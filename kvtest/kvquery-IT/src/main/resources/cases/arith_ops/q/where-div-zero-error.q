@@ -1,0 +1,1 @@
+select int from Foo where int / 0 = 1

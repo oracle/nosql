@@ -1,0 +1,2 @@
+unordered-result
+{"numMap":{"a":1,"b":2,"c":3},"cotnumMap":null,"numNestedMap":{"x":{"a":1},"y":{"b":2}},"cotnumNestedMap":null,"douMap":{"d":1.1,"e":2.2},"cotdouMap":null,"douNestedMap":{"z":{"f":3.3}},"cotdouNestedMap":null,"docnumMap":{"a":1,"b":2,"c":3},"cotdocnumMap":null,"docnumNestedMap":{"x":{"a":1},"y":{"b":2}},"cotdocnumNestedMap":null,"docdouMap":{"d":1.1,"e":2.2},"cotdocdouMap":null,"docdouNestedMap":{"z":{"f":3.3}},"cotdocdouNestedMap":null}

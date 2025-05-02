@@ -1,0 +1,95 @@
+<html>
+<head></head>
+<body>
+This package, and those below it, contain the implementation of the Oracle
+NoSQL Database query processor.  This file is for internal documentation
+purposes to contain general information about how the code is structured
+as well as a way to capture decisions and rationale during design and
+implementation.
+
+<h2>Data Model</h2>
+
+Every instance of the data model is a sequence.
+
+A sequence is an ordered collection of zero or more items.
+
+An item is an atomic value or a complex complex value.
+
+There are 9 kinds of atomic values:
+
+integer : 4-byte-long integer numbers 
+long    : 8-byte-long integer numbers
+float   : 4-byte-long real numbers
+double  : 8-byte-long double numbers
+string  : sequences of 2-byte-long unicode characters
+boolean : sequences of bytes
+
+binary : variable-length sequences of bytes
+
+fixed-binary : 
+
+
+<h2>Language Specification</h2>
+
+<h2>Code Structure</h2>
+Packages include <em>compiler</em> and <em>types</em>
+Details TBD
+<h3>compiler</h3>
+<h3>types</h3>
+
+
+<h2>Design Decisions</h2>
+The format of this section is a list of decisions, where each decision has a
+question or issue, a choice, and rationale.  It may also include who was
+involved and when the decision was made.
+
+create package file for capturing decisions:
+  o do not put KVStore reference in compiled plan, unless absolutely necessary.
+
+<hr/>
+<dl>
+  <dt>Should Consistency and Durability be part of the API, the DML, or both?
+  <dd><b>Motivation:</b>  Usability and potential ability to fully specify
+    query parameters in the DML, which may be handy, although not necessary,
+    for the query shell as well as REST-style applications.</dd>
+  <dd><b>Decision:</b>  API only.</dd>
+  <dd><b>Rationale:</b>
+    <ul>
+      <li>it is implicitly in the API already in the form of default values
+      in the KVStoreConfig used to create the KVStore instance.</li>
+      <li>putting it in the DML adds complexity, as well as the need to specify
+      a priority order when a property is specified in multiple ways.  It can
+      be added to the DML if it becomes necessary.</li>
+      <li>the query shell will include the ability to set and modify default
+      values.</li>
+    </ul>
+  </dd>
+  <dd><b>Who:</b>  Sam, George, Markos, Cezar.</dd>
+  </dt>
+
+  <hr/>
+  <dt>Should a compiled query plan contain a reference to the KVStore instance
+    used to compile it?
+  <dd><b>Motivation:</b>  Doing this would tightly bind the compiled query to
+    a specific transient instance of a store.  This makes possible the pattern
+    of compiledQuery.execute() vs KVStore.execute(compiledQuery).</dd>
+  <dd><b>Decision:</b>  No.</dd>
+  <dd><b>Rationale:</b> This pattern is not typical of the rest of the KVStore
+    API and creating this binding without a functional (vs aesthetic) rationale
+    may constrain future implementation and design choices.
+  </dd>
+  <dd><b>Who:</b>  Sam, George, Markos, Cezar.</dd>
+  </dt>
+
+  <hr/>
+  <dt> Should a batch API be supported?
+  <dd><b>Motivation:</b>  Used for efficient support of multiple, related update
+    operations.</dd>
+  <dd><b>Decision:</b>  Not until we support updates, but yes.</dd>
+  <dd><b>Who:</b>  Sam, George, Markos, Cezar.</dd>
+  </dt>
+</dl>
+
+
+</body>
+</html>

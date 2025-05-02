@@ -1,0 +1,2 @@
+unordered-result
+{"ic":0,"atanic":0.0,"lc":1,"atanlc":0.7853981633974483,"fc":0.34,"atanfc":0.32,"dc":-1.00000000001,"atandc":-0.7853981634024483,"nc":-1,"atannc":-0.7853981633974483,"jsonfc":3.14,"atanjsonfc":1.2624806645994682,"jsondc":NaN,"atanjsondc":NaN,"jsonnc":1.00000000000001,"atanjsonnc":0.7853981633974533}

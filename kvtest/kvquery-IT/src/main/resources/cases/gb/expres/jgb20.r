@@ -1,0 +1,11 @@
+unordered-result
+{"acctno":345,"year":2000,"sales":465.0}
+{"acctno":345,"year":2001,"sales":50.0}
+{"acctno":346,"year":2000,"sales":70}
+{"acctno":346,"year":2001,"sales":30}
+{"acctno":346,"year":null,"sales":80}
+{"acctno":347,"year":2001,"sales":203}
+{"acctno":348,"year":2000,"sales":165}
+{"acctno":349,"year":2000,"sales":60.0}
+{"acctno":349,"year":2001,"sales":80.0}
+{"acctno":null,"year":null,"sales":null}

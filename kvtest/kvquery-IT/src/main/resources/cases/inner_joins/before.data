@@ -1,0 +1,430 @@
+Table: profile
+
+{
+  "uid" : 1,
+  "userName" : "rubin",
+  "emailAddr" : "rubin@oracle.com",
+  "age" : 56
+}
+
+{
+  "uid" : 2,
+  "userName" : "markos",
+  "emailAddr" : "markos@oracle.com"
+}
+
+{
+  "uid" : 3,
+  "userName" : "john",
+  "emailAddr" : "jonh@oracle.com"
+}
+
+
+{
+  "uid" : 4,
+  "userName" : "jin",
+  "emailAddr" : "jin@oracle.com"
+}
+
+{
+  "uid" : 5,
+  "userName" : "george",
+  "emailAddr" : "george@oracle.com"
+}
+
+{
+  "uid" : 6,
+  "userName" : "lauren",
+  "emailAddr" : "lauren@oracle.com"
+}
+
+{
+  "uid" : 7,
+  "userName" : "mike",
+  "emailAddr" : "mike@oracle.com"
+}
+
+{
+  "uid" : 8,
+  "userName" : "yev",
+  "emailAddr" : "yev@oracle.com"
+}
+
+{
+  "uid" : 9,
+  "userName" : "tim",
+  "emailAddr" : "tim@oracle.com"
+}
+
+{
+  "uid" : 10,
+  "userName" : "sam",
+  "emailAddr" : "sam@oracle.com"
+}
+
+{
+  "uid" : 11,
+  "userName" : "ashwini",
+  "emailAddr" : "ashwini@oracle.com"
+}
+
+{
+  "uid" : 12,
+  "userName" : "keith",
+  "emailAddr" : "keith@oracle.com"
+}
+
+{
+  "uid" : 13,
+  "userName" : "linda",
+  "emailAddr" : "linda@oracle.com"
+}
+
+
+Table: profile.inbox
+
+{ "uid" : 1, "msgid" : 10,
+  "content" : {
+    "date" : "2024-07-01"
+  }
+}
+
+{ "uid" : 1, "msgid" : 20,
+  "content" : {
+    "date" : "2024-07-01"
+  }
+}
+
+{ "uid" : 1, "msgid" : 30,
+  "content" : {
+    "date" : "2024-07-04"
+  }
+}
+
+{ "uid" : 1, "msgid" : 40,
+  "content" : {
+    "date" : "2024-07-02"
+  }
+}
+
+{ "uid" : 1, "msgid" : 50,
+  "content" : {
+    "date" : "2024-07-01"
+  }
+}
+
+{ "uid" : 1, "msgid" : 60,
+  "content" : {
+    "date" : "2024-07-01"
+  }
+}
+
+{ "uid" : 1, "msgid" : 70,
+  "content" : {
+    "date" : "2024-07-08"
+  }
+}
+
+{ "uid" : 1, "msgid" : 80,
+  "content" : {
+    "date" : "2024-07-03"
+  }
+}
+
+{ "uid" : 1, "msgid" : 90,
+  "content" : {
+    "date" : "2022-07-01"
+  }
+}
+
+{ "uid" : 1, "msgid" : 100,
+  "content" : {
+    "date" : "2024-07-02"
+  }
+}
+
+
+Table: profile.deleted
+
+{ "uid" : 1, "msgid" : 11 }
+
+{ "uid" : 1, "msgid" : 21 }
+
+{ "uid" : 1, "msgid" : 31 }
+
+{ "uid" : 1, "msgid" : 41 }
+
+
+Table: profile.sent
+
+{ "uid" : 1, "msgid" : 12 }
+
+{ "uid" : 1, "msgid" : 22 }
+
+{ "uid" : 1, "msgid" : 32 }
+
+{ "uid" : 1, "msgid" : 42 }
+
+
+
+Table: profile.messages
+
+{ "uid" : 1, "msgid" : 10,
+  "content" : {
+    "sender" : "markos",
+    "sender2" : { "uid" : 2, "name" : "markos" },
+    "receivers" : [ "rubin", "john", "george" ],
+    "views" : [ "2024-07-01", "2024-07-02", "2024-07-05" ],
+    "size" : 20,
+    "date" : "2024-07-01",
+    "thread_id" : 1
+  }
+}
+
+{ "uid" : 1, "msgid" : 11,
+  "content" : {
+    "sender" : "lauren",
+    "sender2" : { "uid" : 6, "name" : "lauren" },
+    "receivers" : [ "sam", "rubin", "tim" ],
+    "views" : [ "2024-07-01", "2024-07-04", "2024-07-05" ],
+    "size" : 10,
+    "date" : "2024-07-07",
+    "thread_id" : 2
+  }
+}
+
+{ "uid" : 1, "msgid" : 12,
+  "content" : {
+    "sender" : "mike",
+    "sender2" : { "uid" : 7, "name" : "mike" },
+    "receivers" : [ "rubin" ],
+    "views" : [ "2024-07-06", "2024-07-07", "2024-07-08" ],
+    "size" : 15,
+    "date" : "2024-07-06",
+    "thread_id" : 3
+  }
+}
+
+{ "uid" : 1, "msgid" : 13,
+  "content" : {
+    "sender" : "jin",
+    "sender2" : { "uid" : 4, "name" : "jin" },
+    "receivers" : [ "george", "rubin" ],
+    "views" : [ "2024-07-02", "2024-07-04", "2024-07-05" ],
+    "size" : 25,
+    "date" : "2024-07-02",
+    "thread_id" : 2
+  }
+}
+
+{ "uid" : 1, "msgid" : 20,
+  "content" : {
+    "sender" : "markos",
+    "sender2" : { "uid" : 2, "name" : "markos" },
+    "receivers" : [ "rubin", "jin", "yev" ],
+    "views" : [ "2024-07-03", "2024-07-05", "2024-07-08" ],
+    "size" : 20,
+    "date" : "2024-07-01",
+    "thread_id" : 2
+  }
+}
+
+{ "uid" : 1, "msgid" : 21,
+  "content" : {
+    "sender" : "john",
+    "sender2" : { "uid" : 3, "name" : "john" },
+    "receivers" : [ "george", "rubin" ],
+    "views" : [ "2024-07-09", "2024-07-10", "2024-07-11" ],
+    "size" : 13,
+    "date" : "2024-07-08",
+    "thread_id" : 1
+  }
+}
+
+{ "uid" : 1, "msgid" : 22,
+  "content" : {
+    "sender" : "jin",
+    "sender2" : { "uid" : 4, "name" : "jin" },
+    "receivers" : [ "rubin" ],
+    "views" : [ "2024-07-10", "2024-07-11" ],
+    "size" : 16,
+    "date" : "2024-07-10",
+    "thread_id" : 4
+  }
+}
+
+{ "uid" : 1, "msgid" : 23,
+  "content" : {
+    "sender" : "markos",
+    "sender2" : { "uid" : 2, "name" : "markos" },
+    "receivers" : [ "rubin", "sam" ],
+    "views" : [ "2024-07-05", "2024-07-06", "2024-07-07" ],
+    "size" : 17,
+    "date" : "2024-07-05",
+    "thread_id" : 1
+  }
+}
+
+{ "uid" : 1, "msgid" : 30,
+  "content" : {
+    "sender" : "george",
+    "sender2" : { "uid" : 5, "name" : "george" },
+    "receivers" : [ "john", "rubin", "keith" ],
+    "size" : 18,
+    "date" : "2024-07-03",
+    "thread_id" : 3
+  }
+}
+
+{ "uid" : 1, "msgid" : 31,
+  "content" : {
+    "sender" : "yev",
+    "sender2" : { "uid" : 8, "name" : "yev" },
+    "receivers" : [ "rubin" ],
+    "views" : [ ],
+    "size" : 11,
+    "date" : "2024-07-03",
+    "thread_id" : 1
+  }
+}
+
+{ "uid" : 1, "msgid" : 32,
+  "content" : {
+    "sender" : "tim",
+    "sender2" : { "uid" : 9, "name" : "tim" },
+    "receivers" : [ "rubin" ],
+    "views" : [ "2024-07-13", "2024-07-14" ],
+    "size" : 21,
+    "date" : "2024-07-13",
+    "thread_id" : 4
+  }
+}
+
+{ "uid" : 1, "msgid" : 33,
+  "content" : {
+    "sender" : "jin",
+    "sender2" : { "uid" : 4, "name" : "jin" },
+    "receivers" : [ "markos", "rubin" ],
+    "views" : [ "2024-07-06", "2024-07-07", "2024-07-09" ],
+    "size" : 10,
+    "date" : "2024-07-04",
+    "thread_id" : 5
+  }
+}
+
+{ "uid" : 1, "msgid" : 40,
+  "content" : {
+    "sender" : "yev",
+    "sender2" : { "uid" : 8, "name" : "jev" },
+    "receivers" : [ "markos", "jin", "john", "rubin" ],
+    "views" : [ "2024-07-03", "2024-07-05", "2024-07-07" ],
+    "size" : 30,
+    "date" : "2024-07-02",
+    "thread_id" : 6
+  }
+}
+
+{ "uid" : 1, "msgid" : 41,
+  "content" : {
+    "sender" : "sam",
+    "sender2" : { "uid" : 10, "name" : "sam" },
+    "receivers" : [ "rubin", "markos" ],
+    "views" : [ "2024-07-02", "2024-07-03", "2024-07-05" ],
+    "size" : 40,
+    "date" : "2022-07-02",
+    "thread_id" : 2
+  }
+}
+
+{ "uid" : 1, "msgid" : 42,
+  "content" : {
+    "sender" : "ashwini",
+    "sender2" : { "uid" : 11, "name" : "ashwini" },
+    "receivers" : [ "george", "tim", "rubin" ],
+    "views" : [ "2024-07-12" ],
+    "size" : 30,
+    "date" : "2024-07-12",
+    "thread_id" : 3
+  }
+}
+
+{ "uid" : 1, "msgid" : 43,
+  "content" : {
+    "sender" : "keith",
+    "sender2" : { "uid" : 12, "name" : "keith" },
+    "receivers" : [ "tim", "ashwini", "rubin", "george" ],
+    "views" : [ "2024-07-01", "2024-07-02", "2024-07-05" ],
+    "size" : 10,
+    "date" : "2023-07-02",
+    "thread_id" : 2
+  }
+}
+
+{ "uid" : 1, "msgid" : 50,
+  "content" : {
+    "sender" : "markos",
+    "sender2" : { "uid" : 2, "name" : "markos" },
+    "receivers" : [ "rubin", "sam", "tim", "keith" ],
+    "views" : [ "2024-07-01", "2024-07-02", "2024-07-05" ],
+    "size" : 35,
+    "date" : "2024-07-01",
+    "thread_id" : 1
+  }
+}
+
+{ "uid" : 1, "msgid" : 60,
+  "content" : {
+    "sender" : "john",
+    "sender2" : { "uid" : 3, "name" : "john" }, 
+    "receivers" : [ "linda", "markos", "rubin" ],
+    "views" : [ "2024-07-04", "2024-07-06", "2024-07-08" ],
+    "size" : 25,
+    "date" : "2024-07-01",
+    "thread_id" : 4
+  }
+}
+
+{ "uid" : 1, "msgid" : 70,
+  "content" : {
+    "sender" : "george",
+    "sender2" : { "uid" : 5, "name" : "george" }, 
+    "receivers" : [ "markos", "rubin", "jin", "john" ],
+    "views" : [ "2024-07-08", "2024-07-10", "2024-07-12" ],
+    "size" : 30,
+    "date" : "2024-07-08",
+    "thread_id" : 5
+  }
+}
+
+{ "uid" : 1, "msgid" : 80,
+  "content" : {
+    "sender" : "tim",
+    "sender2" : { "uid" : 9, "name" :  "tim" },
+    "views" : [ "2024-07-03", "2024-07-04", "2024-07-05" ],
+    "size" : 31,
+    "date" : "2024-07-02",
+    "thread_id" : 1
+  }
+}
+
+{ "uid" : 1, "msgid" : 90,
+  "content" : {
+    "sender" : "sam",
+    "sender2" : { "uid" : 10, "name" : "sam" },
+    "receivers" : [ ],
+    "size" : 10,
+    "date" : "2022-07-01",
+    "thread_id" : 1
+  }
+}
+
+{ "uid" : 1, "msgid" : 100,
+  "content" : {
+    "sender" : "linda",
+    "sender2" : { "uid" : 13, "name" :  "linda" },
+    "views" : [ "2024-07-01", "2024-07-02", "2024-07-05" ],
+    "size" : 27,
+    "date" : "2022-07-01",
+    "thread_id" : 7
+  }
+}

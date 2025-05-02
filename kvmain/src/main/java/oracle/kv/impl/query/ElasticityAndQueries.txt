@@ -1,0 +1,611 @@
+
+------------
+The problem:
+------------
+
+Make sure that ALL_SHARD queries work correctly when executed in parallel with
+an ongoing elasticity operation. We must make sure that as partitions migrate
+from one shard to another, we don't loose any query results and we don't
+produce any duplicate results.
+
+-------------
+Introduction
+-------------
+
+The basic idea is to detect partition migrations, create "virtual" shards 
+for such migrations, and scan these virtual shards (in addition to all the
+scans of the "normal" shards).
+
+To detect partition migrations, a query uses an initial topology that remains
+stable (unchanged) during the whole lifetime of the query. This is called the
+query's "base topology". Partition migrations are detected by comparing the base
+topology with the local topology at an RN when starting a scan at that RN.
+
+A query could store its base topology in its continuation key (CK), but
+this would add a lot of extra bytes to the CK. Instead, base topologies are
+stored in a new system table. Every time the admin creates a new topology, it
+stores it in this "topology history" system table.
+
+A query's base topology is a topology stored in the topology-history table.
+The mechanism used by a query to choose one of the topologies in the topology-
+history table as its base topology is described below.
+
+Every shard that exists in a query's base topology, will be scanned in the
+"normal" way, i.e., as when there is no elasticity going on, except that any
+index entries that point to partitions that do not belong to the shard according
+to the base topology are skipped. In addition to these "normal" scans, "virtual"
+scans will be created when partition migrations are detected.
+
+For example, suppose that at the start of a normal scan for a shard S1, the query
+detects that a partiton P migrated from shard S1 to shard S2. In this case, we create
+a new "virtual" shard, which is basically the pair { P, S2 } together with an
+associated, internally generated, virtual shard id (vsid). Scanning this
+virtual shard involves scanning the actual underlying shard (S2), but skipping
+any index entries that point to any partition other than P, and also
+skipping any index entries that point to P but were already accessed during
+the scan of the source shard (S1).
+
+This implies that a shard will be scanned up to (1 + N) times, where
+N is the number of partitions that migrated to it during the lifetime of the
+query. One of these scans is a normal scan (if the shard appears in the query's
+base topology) and the rest are virtual-shard scans.
+
+Note: Tthe algorithm does not handle the case where a query ovelaps with more
+than one elasticity operations, that is when a partition migrates more than 
+once during the lifetime of the query. If this happens, a query-terminating 
+exception will be raised.
+
+The full description of the algorithm, in pseudo-code, for non-sorting,
+proxy-based, queries is given below. An example of how the algorithm operates
+on some sample data is also given afterwards. 
+
+--------------------------------------------------------------------------------
+
+--------------
+A. New state.
+--------------
+
+1. The TopologyHistory system table.
+
+It is a system table that stores every new topology. The table has 2
+columns: the 1st stores a topoNum and the 2nd stores the serialized topology
+corresponding to that topoNum.
+
+The admin is responsible for adding a new row to this table whenever it has a
+new topology to send to the RNs.
+
+
+2. The following state is added to the MigrationManager :
+
+- queries : A list of RuntimeControlBlocks (RCBs) representing queries that
+  are executing a batch at the RN. The MigrationManager uses this to notify
+  these queries of partition migrations (when the localTopology at the source
+  shard is updated) and migration failures (when a partition returns at a
+  source shard due to a failure  at the traget shard). Notifications involve
+  setting some state (shown below) in each RCB. This state is checked by each
+  query at the end of its batch.
+
+
+3. The following state is added to the query RuntimeControlBlock (RCB) :
+
+- theMigratedPartitions : a list of partition ids for partitions that migrate 
+  during the query batch.
+
+- theRestoredPartitions : a list of partition ids for partitions that
+  return to this shard due to a failure at the traget shard
+
+- theBaseTopo : caches a pointer to the query base topology
+
+
+4. The following state is added to the continuation key (CK):
+
+- The baseTopoNum : The sequence number of the query's base topology.
+  The shards in this topology will be called the "base" shards of the query.
+
+  Initially, baseTopoNum = -1
+
+- The VirtualScansMap (VSM) : Contains entries for partitions that are found
+  to have migrated from their source shard. An entry maps a partition id to
+  a VirtualScan instance, which contains the partition id, the id of the target
+  shard, and the info needed to determine the starting index entry for the scan
+  of this partition at the target shard (usually this will be just a resume entry,
+  i.e. primary and secondary resume keys).
+  
+  For each VirtualScan VS in theVSM, a scan will be performed in the shard
+  specified by VS, but only for index entries that point to the partition
+  specified by the VS. Such a virtual scan will start at the index entry 
+  specified by the resume info contained in the VS.
+
+  Initially the VSM is empty.
+
+- The virtualShardPid (VSPid) : If the shard to scan is a virtual one, this
+  is the pid of the associated partition.
+
+  Initially, VSPid = -1 
+
+-------------------
+B. Query execution
+-------------------
+
+The driver:
+-----------
+
+while (true) {
+  (batchResults, CK) = sendRequestToRN(CK);
+
+  // do something with batchResults
+  process(patchResults);
+
+  if (CK == null) {
+    break;
+  }
+}
+
+
+The proxy :
+-----------
+
+proxyTopo = the current topology at the proxy;
+
+If (CK.baseTopoNum < 0) {
+  // this is the very 1st batch. 
+  CK.baseTopoNum = proxyTopo.seqNum; 
+}
+
+baseTopo = get the topology specified by Ck.baseTopoNum. In the worst case, we
+           will have to fetch the query's base topology from the TopologyHistory
+           table. To optimize, we have a topology cache at the proxy. Also,
+           in the no-elasticity case, the query's base topology will be the same
+           as the proxyTopo, so no fetch is required;
+
+batchResults = empty
+
+isNextShard = false;
+
+while (true) {
+
+  SHARDS = create an array of shard ids. The array consists of all the shard ids
+           in the baseTopo plus internally generated virtual shard ids for all the
+           virtual scans in the CK.VSM. All virtual shard ids are greater than all
+           the shard ids in the baseTopo;
+
+  // Compute the id of the actual shard to scan and the resume entry for the scan
+  // Note: If this the fist batch, CK.shardIdx == 0
+
+  numBaseShards = baseTopo.getNumShards();
+  isVirtualScan = (isNextShard ? shardIdx >= numBaseShards : CK.VSPid > 0);
+
+  if (isVirtualScan) {
+    vsid = SHARDS[CK.shardIdx];
+
+    // note: the virtual scan ids are generated in a way that allows us to get
+    // the associated VirtualScan from the CK.VSM.  
+    VirtualScan VS = getVirtualScan(CK.VSM, vsid); 
+
+    shardToScan = VS.sid;
+    CK.VSPid = VS.pid;
+
+    if (CK.resumeEntry == null) {
+      CK.resumeEntry = VS.resumeEntry;
+    }
+  } else {
+    shardToScan = SHARDS[CK.shardIdx];
+  } 
+
+  // send request to RN
+  (rnResult, CK, reachedBatchLimit) = sendRequestToRN(shardToScan, CK);
+
+  batchResults.append(rnResults);
+
+  if (reachedBatchLimit) {
+    return (batchResults, CK);
+  }
+
+  CK.shardIdx++;
+
+  if (CK.shardIdx == SHARDS.length) {
+     return (batchResults, null);
+  }
+
+  isNextShard = true;
+}
+
+
+The RN :
+---------
+
+rnSID = the shard id of this RN;
+rnTopo = the current topology at the RN;
+
+baseTopo = get the topology specified by Ck.baseTopoNum.
+
+isNormalScan = CK.VSPid < 0;
+
+register RCB with the MigrationManager;
+
+if (isNormalScan) {
+
+   rnLocalTopo = the current local topology at the RN;
+
+   wait, if needed, for the following 3 conditions:
+   - The RN official topology is the same or later than the query's base topology
+   - The RN partition manager is consistent with the RN's local topology, that is,
+     for every partition that appears to be on this RN according to the local
+     topology, the PartitionManager has oppened the associated partition DB, and
+     for every partiton that is not at this RN according to the local topology,
+     the PartitionManager does not have an open DB for that partition. This
+     check is needed because the local topology and the PartitionManager are
+     not updated together atomically, so the query may see a state where the
+     local topology has been updated to reflect partition migrations, but the
+     PartitionManager has not updated yet to open/close the associated partition
+     DBs.
+   - If a partition has migrated to this RN, then all of its records from the
+     source shard have been copied to this RN. This is always true if the RN is
+     the master RN of the target shard, but may not be the case if the RN is a
+     replica.
+   If the above conditions are not met with a certain amount of time, an 
+   exception is thrown.
+
+   // check that partitions that were found (in previous batches) to have
+   // migrated out of this shard have not returned to this shard (due to
+   // failures). To see why this is needed, consider the following scenario:
+   // Both the current and the previous batch scan the same shard. At the
+   // start of the previous batch, partition P was found to have migrated.
+   // So, during the previous-batch scan, index entries for P are skipped,
+   // while the resume key for the shard moves forward. In between the 2
+   // batches, P returns to this shard. If we allow the scan in this
+   // batch to proceed, we will miss the index entries for P that were
+   // skipped in the previous batch.
+   for (pid in CK.VSM.keys()) {
+       sidForPid = rnLocalTopo.getSID(pid);
+       if (sidForPid == rnSID) {
+         throw new QueryStateException();
+       }
+   }
+
+   if (baseTopo.seqNum != rnLocalTopo.seqNum ||
+       baseTopo.seqNum != rnTopo.seqNum) {
+
+     basePartitions = ids of all partitions that are in this shard according
+                      to the baseTopo;
+     // among basePartitions, find any partitions that have migrated out of
+     // this shard since the end of the previous batch and update the
+     // Ck.VSM accordingly. 
+     for (pid in baseBartitions) {
+       sidForPid = rnLocalTopo.getSID(pid);
+       if (sidForPid != rnSID) {
+          Ck.VSM.putifAbsent(pid, new VirtualScan(pid, sidForPid, ...);
+       }  
+     }
+   }
+
+   savedCK = CK;
+} else {
+
+  // Check whether the partition that is supposed to have migrated to this
+  // shard is indeed here. If the partition is missing, wait for some time,
+  // and if it is still missing, throw an exception.
+  //
+  // The partition may be missing either due to a delay in updating the
+  // local topology or the PartitionManager, or due to migration failure.
+  ensureMigratedPartition();
+}
+
+(results, CK) = execute the batch until the batch limit is reached or there
+                are no more results from the current shard;
+
+// During execution, the following 2 checks are performed for each index entry:
+//
+// pid = getPid(currentPrimKey);
+//
+// Skip entries the point to partitions that should not be accessed during this scan
+// if (isNormalScan) {
+//   targetPartitions = baseTopo.getPartitionsInShard(rnSID);
+// else {
+//   targetPartitions = { CK.VSPid };
+// }
+// if (!targetPartitions.contains(pid)) {
+//   continue;
+// }
+//
+// This check is needed beacause the update of local topology and the partition
+// manager are not done synchronously. As a result, a partition may be be found,
+// based on the local topology check done before we start the index scan, to
+// have migrated out of this shard, but since the PartitionManager is updated
+// at a later time, the index scan may still return entries that point to that
+// partition. Such entries must be skipped, because they will be accessed 
+// again when we scan the partition at its target shard.
+// if (CK.VSM.contains(pid)) {
+//   continue;
+// }
+
+unregister RCB from the MigrationManager;
+
+// Throw exception if the MigrationManager notified the RCB that a partition
+// returned to this shard due to a migration failure at the target shard.
+if (isNormalScan && !rcb.theRestoredPartitions.isEmpty()) {
+  throw new QueryStateException();
+}
+
+// Look at the rcb.theMigratedPartitions to see if any partitions moved out of
+// this shard during the batch. If so, then:
+// - If this is a base-shard scan, the batch will be aborted and then repeated.
+// - If this is a virtual-shard scan, an exception is thrown (this can happen
+//   if a query span more than one elasticity ops, which is not supported by
+//   the query-elasticity algorithm) 
+repeatBatch = checkForMigratedPartitions(rcb);
+
+if (!repeatBatch) {
+  return (results, CK);
+}
+
+// If the consumption-based batch limit has been reached, return an empty
+// result set and the savedCK. The batch will be restarted by the driver
+if (rcb.getReachedLimit()) {
+   return (empty, savedCK);
+}
+
+repeat the batch locally, using the savedCK as the CK.
+
+
+-------------------
+Example
+-------------------
+
+This is a simple example that shows the basic execution of the algorithm.
+It does not demonstrate any of issues arising from replication delays, failures,
+race conditions, etc.
+
+Assume 2 source shards (S1, S2), with 6 partititons each, and 1 target shard (S3).
+S1 contains P1 to P6, and S2 contains P7 to P12. During a store expansion (when
+S3 is added), P2 and P3 are moved from S1 to S3, and P7, P8 are moved from S2 to S3. 
+
+Sample index entries for the index at S1 and S2 (before store expansion) are
+shown below. Each index entry consists of the index key and the associated
+primary key, but I also include the id of the partition corresponding to the
+primary key.
+
+Index at S1:
+(23, 11, 1) (47, 12, 2) (55, 13, 2) (58, 14, 3) (60, 15, 6) (60, 16, 3)
+(62, 18, 2) (75, 19, 1) (75, 20, 5) (75, 21, 2) (80, 22, 4)
+
+Index at S2:
+(12, 40, 8) (15, 41, 7) (23, 42, 12) (23, 43, 8) (34, 44, 7) (47, 45, 10)
+(48, 46, 7) (66, 47, 9) (70, 48, 7)  (70, 49, 8) (70, 50, 7) (80, 51, 11)  
+
+Query looks for keys > 15
+
+Batch 1 :
+---------
+
+At proxy:
+
+Proxy receives request from driver, with CK.shardIdx == 1, CK.resumeKey == null,
+CK.VSM == null
+
+Proxy sends request to S1
+
+At S1:
+- savedCK = CK
+- index entries (23, 11, 1), (47, 12, 2) are retrieved
+- P2 moves to S3. Notice that the index keys for P2 are not removed immediatelly
+  from the index. However, they will be skipped at the JE level.
+- index entries (58, 14, 3) and (60, 15, 6) are retrieved and the batch limit is
+  reached
+- We find that P2 has moved and, as a result, the batch has to be repeated (because
+  entry (55, 13, 2) has been skipped, but CK.resumeKey == (60, 15, 6) now, so if 
+  we used (60, 15, 6) as the resume key when we go, later, to scan P2 in S3, we
+  would be missing the (55, 13, 2) entry). So, we send an empty result set and
+  the savedCK back to the proxy.
+
+At Proxy:
+Proxy sends response with the savedCK and no results to the driver.
+
+Batch 2 :
+----------
+
+At proxy:
+
+Proxy receives request from driver, with CK.shardIdx == 1, CK.resumeKey == null,
+CK.VSM == null
+
+Proxy sends request to S1.
+
+At S1:
+- We detect that P2 has moved. So CK.VSM[P2] is set to { P2, S3, null }
+- index entries (23, 11, 1) (58, 14, 3), (60, 15, 6) and (60, 16, 3) are retrieved
+  and the batch limit is reached.
+- Response is sent to proxy with 4 results and CK.resumeKey == (60, 16, 3),
+  CK.VSM[P2] == { P2, S3, null }
+
+At proxy:
+Proxy sends response to the driver with
+CK.shardIdx == 1,
+CK.resumeKey == (60, 16, 3),
+CK.VSM[P2] = { P2, S3, null }
+
+- P3 moves to S3 before batch 3
+
+Batch 3 :
+---------
+
+At proxy:
+Proxy sends request to S1 with
+CK.resumeKey == (60, 16, 3),
+CK.VSM[P2] == { P2, S3, null }
+
+At S1:
+- We detect that P3 has moved. So VSM[P3] is set to { P3, S3, (60, 16, 3) }
+- index entries (75, 19, 1) (75, 20, 5) (80, 22, 4) are retrieved
+- Response is sent to proxy with 3 results and
+  CK.resumeKey == null,
+  CK.VSM[P2] == { P2, S3, null }
+  CK.VSM[P3] == { P3, S3, (60, 16, 3) }
+
+At proxy:
+- CK.shardIdx = 2
+- Request is sent to S2 with
+  CK.resumeKey == null,
+  CK.VSM[P2] == { P2, S3, null }
+  CK.VSM[P3] == { P3, S3, (60, 16, 3) } 
+
+At S2:
+- index entries (12, 40, 8) (15, 41, 7) are retrieved and the batch limit is
+  reached
+- Response is sent to proxy with 2 results and
+  CK.resumeKey == (15, 41, 7),
+  CK.VSM[P2] == { P2, S3, null }
+  CK.VSM[P3] == { P3, S3, (60, 16, 3) }
+
+At proxy:
+Proxy sends response to the driver with CK.shardIdx == 2,
+CK.resumeKey == (15, 41, 7),
+CK.VSM[P2] == { P2, S3, null }
+CK.VSM[P3] == { P3, S3, (60, 16, 3) }
+
+
+P7 moves from S2 to S3 before batch 4.
+
+Batch 4 :
+----------
+
+At proxy:
+Proxy sends request to S2 with
+CK.resumeKey == (15, 41, 7),
+CK.VSM[P2] == { P2, S3, null }
+CK.VSM[P3] == { P3, S3, (60, 16, 3) }
+
+
+At S2:
+- We detect that P7 has moved. So VSM[P7] is set to { P7, S3, (15, 41, 7) }
+- Index entries (23, 42, 12) (23, 43, 8) (47, 45, 10), (66, 47, 9), (70, 49, 8),
+  and (80, 51, 11) are retrieved.
+- Response is sent to proxy with 7 results and
+  CK.resumeKey == null,
+  CK.VSM[P2] == { P2, S3, null }
+  CK.VSM[P3] == { P3, S3, (60, 16, 3) }
+  CK.VSM[P7] == { P7, S3, (15, 41, 7) }
+
+At proxy:
+CK.shardIdx = 3
+Proxy sends request to S3 for virtual scan of partition P2.
+CK.resumeKey == null
+CK.VSPid == P2 
+
+
+P8 moves to S3
+
+
+At S3:
+P2, P3, P7, and P8 have moved to S3, so the contets of the index are:
+
+(12, 40, 8) (15, 41, 7) (23, 43, 8) (34, 44, 7) (47, 12, 2) (48, 46, 7)
+(55, 13, 2) (58, 14, 3) (60, 16, 3) (62, 18, 2) (70, 48, 7) (70, 49, 8)
+(70, 50, 7) (75, 21, 2) 
+
+- The index scan start at (12, 40, 8) and skips any entries that do not belong
+  to P2.
+- entry (47, 12, 2) is retrieved and the batch limit is reached.
+- Response is sent to proxy with 1 result and
+  CK.resumeKey == (47, 12, 2),
+  CK.VSM[P2] == { P2, S3, null }
+  CK.VSM[P3] == { P3, S3, (60, 16, 3) }
+  CK.VSM[P7] == { P7, S3, (15, 41, 7) }
+
+At proxy:
+proxy sends response to driver with 8 results and
+CK.shardIdx == 3
+CK.VSPid == P2
+CK.resumeKey == (47, 12, 2),
+CK.VSM[P2] == { P2, S3, null }
+CK.VSM[P3] == { P3, S3, (60, 16, 3) }
+CK.VSM[P7] == { P7, S3, (15, 41, 7) }
+
+
+Batch 5:
+---------
+
+Proxy sends request to S3 for virtual scan of partition P2.
+CK.resumeKey == (47, 12, 2),
+CK.VSPid == P2 
+
+At S3:
+
+- Entries (55, 13, 2) (62, 18, 2) (75, 21, 2) are retrieved
+- RN sends response with 3 results and
+  CK.resumeKey == null
+  CK.VSPid == P2
+  CK.VSM[P2] == { P2, S3, null }
+  CK.VSM[P3] == { P3, S3, (60, 16, 3) }
+  CK.VSM[P7] == { P7, S3, (15, 41, 7) }
+
+At proxy:
+
+CK.shardIdx = 4
+Proxy sends request to S3 for virtual scan of partition P3.
+CK.resumeKey == (60, 16, 3)
+CK.VSPid == P3
+
+At S3:
+
+- No entries are retrieved because there are no entries for P3 after the resume key
+- RN sends response with 0 results and
+  CK.resumeKey == null
+  CK.VSPid == P3 
+  CK.VSM[P2] == { P2, S3, null }
+  CK.VSM[P3] == { P3, S3, (60, 16, 3) }
+  CK.VSM[P7] == { P7, S3, (15, 41, 7) }
+
+At proxy:
+
+CK.shardIdx = 5
+Proxy sends request to S3 for virtual scan of partition P7.
+CK.resumeKey == (15, 41, 7)
+CK.VSPid == P7
+
+At S3:
+
+- Entries (34, 44, 7) (48, 46, 7) are retrieved and the batch limit is reached
+- RN sends response with 2 results and
+  CK.resumeKey == (48, 46, 7)
+  CK.VSPid == P7
+  CK.VSM[P2] == { P2, S3, null }
+  CK.VSM[P3] == { P3, S3, (60, 16, 3) }
+  CK.VSM[P7] == { P7, S3, (15, 41, 7) }
+
+
+At proxy:
+
+Proxy sends response to driver with 5 results and
+  CK.shardIdx == 5
+  CK.resumeKey == (48, 46, 7)
+  CK.VSPid == P7
+  CK.VSM[P2] == { P2, S3, null }
+  CK.VSM[P3] == { P3, S3, (60, 16, 3) }
+  CK.VSM[P7] == { P7, S3, (15, 41, 7) }
+
+
+Batch 6:
+---------
+
+At proxy: 
+
+Proxy sends request to S3 for virtual scan of partition P7.
+CK.resumeKey == (48, 46, 7)
+CK.VSPid == P7
+
+At S3:
+
+- Entries (70, 48, 7) (70, 50, 7) are retrieved
+- RN sends response with 2 results and
+  CK.resumeKey == null
+  CK.VSPid == P7
+  CK.VSM[P2] == { P2, S3, null }
+  CK.VSM[P3] == { P3, S3, (60, 16, 3) }
+  CK.VSM[P7] == { P7, S3, (15, 41, 7) }
+
+At Proxy:
+
+There are no more shards (normal or virtual) to be scanned, so proxy
+sends response to the driver with 2 results and CK = null, which will
+terminate the query.

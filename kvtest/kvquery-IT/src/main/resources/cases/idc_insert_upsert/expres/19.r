@@ -1,0 +1,2 @@
+unordered-result
+{"id":100,"id1":25,"name":"E value test","age":120,"ballsbowled":9223372036854775807,"ballsplayed":50432,"strikerate":1.79769313457E308,"tier1rated":true,"avg":3.40250001E8,"fbin":"SGVsbG8gSG93IGFyZSBZb3U/","bin":"Tm9TcWw=","century":100,"country":"India","type":"international","time":"1987-04-30T07:45:00","stats1":{"Tests":{"matches":2147483647,"inns":131,"notout":8,"runs":2332320000,"hs":243,"avg":-1.0,"bf":11549,"sr":-1.0,"century":25,"fifty":20,"fours":731,"sixes":19}},"stats2":null,"stats3":null,"json":null}

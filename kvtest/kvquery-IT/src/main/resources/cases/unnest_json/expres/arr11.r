@@ -1,0 +1,13 @@
+unordered-result
+{"areacode":304,"age":50.0}
+{"areacode":400,"age":19.0}
+{"areacode":408,"age":1.0}
+{"areacode":450,"age":50.0}
+{"areacode":460,"age":5.0}
+{"areacode":500,"age":18.833333333333332}
+{"areacode":520,"age":50.0}
+{"areacode":580,"age":5.0}
+{"areacode":600,"age":5.0}
+{"areacode":605,"age":1.0}
+{"areacode":610,"age":5.0}
+{"areacode":650,"age":50.0}

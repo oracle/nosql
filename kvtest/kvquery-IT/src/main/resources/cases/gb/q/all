@@ -1,0 +1,1694 @@
+################
+allpart01.q
+################
+select id1, sum(f.record.int)
+from Foo f
+group by id1
+
+
+
+################
+collect01.q
+################
+select f.xact.acctno, array_collect(f.xact.prodcat), count(*)
+from Foo f
+group by f.xact.acctno
+
+
+
+################
+collect02.q
+################
+select f.xact.acctno,
+       array_collect({ "prodcat" : f.xact.prodcat,
+                       "year" : f.xact.year 
+                     }) as collect,
+       count(*) as cnt
+from Foo f
+group by f.xact.acctno
+
+
+
+################
+collect03.q
+################
+select f.xact.acctno,
+       array_collect({ "prodcat" : f.xact.prodcat,
+                       "qty" : f.xact.item.qty 
+                     }) as collect,
+       count(*) as cnt
+from Foo f
+where f.xact.year  = 2000
+group by f.xact.acctno
+
+
+
+################
+collect04.q
+################
+select f.xact.state,
+       array_collect(seq_transform(f.xact.items[], $.qty * $.price)) as amounts,
+       count(*) as cnt
+from bar f
+group by f.xact.state
+
+
+
+################
+collect05.q
+################
+select f.xact.state,
+       array_collect([seq_transform(f.xact.items[], $.qty * $.price)]) as amounts,
+       count(*) as cnt
+from bar f
+group by f.xact.state
+
+
+
+################
+collect_d01.q
+################
+select f.xact.acctno, array_collect(distinct f.xact.prodcat), count(*)
+from Foo f
+group by f.xact.acctno
+
+
+
+################
+collect_d02.q
+################
+select f.xact.acctno,
+       array_collect(distinct
+                     { "prodcat" : f.xact.prodcat,
+                       "year" : f.xact.year 
+                     }) as collect,
+       count(*) as cnt
+from Foo f
+group by f.xact.acctno
+
+
+
+################
+collect_d03.q
+################
+select f.xact.acctno,
+       array_collect(distinct f.xact.prodcat) as prodcats,
+       count(distinct f.xact.prodcat) as cnt
+from Foo f
+group by f.xact.acctno
+
+
+
+################
+collect_d04.q
+################
+select f.xact.state,
+       array_collect(distinct seq_transform(f.xact.items[], $.qty * $.price)) as amounts,
+       count(*) as cnt
+from bar f
+group by f.xact.state
+
+
+
+################
+collect_d05.q
+################
+select f.xact.state,
+       array_collect(distinct [seq_transform(f.xact.items[], $.qty * $.price)]) as amounts,
+       count(*) as cnt
+from bar f
+group by f.xact.state
+
+
+
+################
+collect_d06.q
+################
+select f.xact.acctno,
+       array_collect(distinct f.xact.prodcat) as prodcats,
+       count(distinct f.xact.prodcat) as cnt
+from Foo f
+group by f.xact.acctno
+order by count(distinct f.xact.prodcat), f.xact.acctno
+
+
+
+################
+distinct01.q
+################
+select distinct f.record.long, f.record.int
+from foo f
+
+
+
+
+################
+distinct02.q
+################
+select distinct f.record.long, f.record.int
+from foo f
+limit 5
+offset 2
+
+
+
+
+################
+distinct03.q
+################
+select distinct f.record.long, f.record.int
+from foo f
+order by f.record.int, f.record.long
+
+
+
+################
+distinct04.q
+################
+select distinct f.record.long, f.record.int
+from foo f
+order by f.record.long, id1, id2
+
+
+
+################
+distinct05.q
+################
+select distinct f.record.long, f.record.int
+from foo f
+where id1 = 1
+order by f.record.int + f.record.long, f.record.int
+
+
+
+################
+distinct06.q
+################
+select distinct f.record.long, f.record.int
+from foo f
+where id1 = 0
+order by f.record.int + f.record.long, f.record.int
+
+
+
+################
+distinct07.q
+################
+select distinct f.record.long, f.record.int
+from foo f
+where id1 = 0 and
+      345 < f.xact.acctno and  f.xact.acctno < 500 and
+      (f.xact.year = null or (1990 <  f.xact.year and f.xact.year < 2020))
+order by f.record.int + f.record.long, f.record.int
+
+
+
+################
+distinct08.q
+################
+select distinct f.xact.acctno, f.xact.year
+from foo f
+order by sum(f.xact.item.qty)
+
+
+
+################
+distinct09.q
+################
+select distinct f.xact.acctno, f.xact.year
+from foo f
+order by f.xact.acctno
+limit 4
+offset 3
+
+
+
+################
+distinct10.q
+################
+select distinct f.xact.acctno
+from Bar f
+where f.xact.year = 2000 and f.xact.items[].qty >any 2
+order by f.xact.acctno
+
+
+
+################
+distinct11.q
+################
+select distinct f.xact.year
+from Bar f
+where f.xact.items[].qty >any 2
+order by f.xact.year
+
+
+
+################
+distinct12.q
+################
+select distinct count(*) as count
+from Foo f
+group by f.xact.acctno, f.xact.year
+
+
+
+################
+distinct13.q
+################
+select distinct count(*) as count,
+                avg(f.xact.item.qty * f.xact.item.price) as sales
+from Foo f
+group by f.xact.acctno, f.xact.year
+
+
+
+################
+distinct14.q
+################
+select distinct count(*) as count
+from Foo f
+group by f.xact.acctno, f.xact.year
+order by count(*)
+
+
+
+################
+distinct15.q
+################
+select distinct count(*) as count
+from Foo f
+group by f.xact.acctno, f.xact.year
+order by avg(f.xact.item.price2)
+
+
+
+################
+distinct16.q
+################
+select distinct avg(f.xact.item.price) as avg
+from Foo f
+group by f.xact.year, f.xact.prodcat
+
+#select f.xact.year, f.xact.prodcat, avg(f.xact.item.price) as avg
+#from Foo f
+#group by f.xact.year, f.xact.prodcat
+
+
+
+################
+distinct17.q
+################
+select distinct avg(f.xact.item.price) as avg
+from Foo f
+group by f.xact.year, f.xact.prodcat
+order by f.xact.year
+
+
+
+################
+distinct18.q
+################
+select distinct avg(f.xact.item.price) as avg
+from Foo f
+group by f.xact.year, f.xact.prodcat
+order by avg(f.xact.item.price)
+
+
+
+################
+distinct19.q
+################
+select distinct avg(f.xact.item.price) as avg
+from Foo f
+group by f.xact.year, f.xact.prodcat
+order by avg(f.xact.item.price)
+limit 2
+offset 3
+
+
+
+################
+distinct20.q
+################
+select distinct count(*) as cnt
+from Bar f
+where id1 = 0 and f.xact.year = 2000 and f.xact.items[].qty >any 3
+group by f.xact.acctno
+
+
+
+################
+distinct21.q
+################
+select distinct count(*) as cnt
+from Bar f
+where id1 = 0 and f.xact.year = 2000 and f.xact.items[].qty >any 3
+group by f.xact.acctno
+limit 1
+offset 1
+
+
+
+################
+distinct22.q
+################
+select distinct f.xact.year
+from Foo f
+group by f.xact.year
+
+
+
+################
+distinct23.q
+################
+select distinct f.xact.year
+from Foo f
+limit 3
+
+
+
+################
+distinct24.q
+################
+select distinct f.xact.acctno, f.xact.year
+from foo f
+
+
+
+################
+distinct25.q
+################
+select distinct f.xact.acctno, f.xact.year
+from foo f
+order by f.xact.acctno, f.xact.year
+
+
+
+################
+distinct26.q
+################
+select distinct f.acctno, f.xact.year
+from boo f
+order by f.acctno, f.xact.year
+
+
+
+################
+distinct27.q
+################
+select distinct f.xact.acctno, f.xact.month
+from foo f
+
+
+
+################
+distinct28.q
+################
+select distinct f.xact.acctno, f.xact.month
+from foo f
+order by f.xact.acctno, f.xact.month
+
+
+
+################
+distinct29.q
+################
+select distinct b.xact.items.prod
+from bar b
+
+
+
+################
+distinct30.q
+################
+select distinct [ b.xact.items.qty ]
+from bar b
+
+
+
+################
+distinct31.q
+################
+select distinct f.info.bar1, f.info.bar2, count(f.info.bar1)
+from fooNew f
+where f.info.bar1<=7
+group by f.info.bar1, f.info.bar2
+order by count(f.info.bar1)
+
+
+
+################
+empty01.q
+################
+select count(*)
+from empty
+
+
+
+################
+empty02.q
+################
+select count(*) as cnt,
+       sum(e.record.long) as sum,
+       avg(e.record.long) as avg,
+       min(id2) as min
+from empty e
+
+
+
+################
+empty03.q
+################
+select count(id3) + sum(e.record.long) as sum,
+       max(id2) as max
+from empty e
+where id2 > 5
+
+
+
+################
+empty04.q
+################
+select sum(f.xact.item.discount) as sum,
+       count(*) as cnt,
+       avg(id3) as avg
+from Foo f
+where id1 < 0
+
+
+
+
+################
+err01.q
+################
+select f.record.str, sum(f.record.int)
+from Foo f
+group by f.record.long
+
+
+
+################
+err02.q
+################
+select f.record.long, sum(f.record.int)
+from Foo f
+where sum(f.record.int) > 0
+group by f.record.long
+
+
+
+################
+err03.q
+################
+select f.record.long, sum(sum(f.record.int))
+from Foo f
+group by f.record.long
+
+
+
+################
+err06.q
+################
+select f.record.long + f.record.int
+from Foo f
+group by f.record.long
+
+
+
+################
+err07.q
+################
+select f.record.long, sum(sum(f.record.int))
+from Foo f
+group by f.record.long
+order by f.record.long
+
+
+
+################
+err08.q
+################
+select f.record.long, sum(f.record.str)
+from Foo f
+group by f.record.long
+
+
+
+################
+err09.q
+################
+select f.record.long, sum(f.record.int)
+from Foo f
+group by f.record.long, sum(f.record.long)
+
+
+
+################
+err10.q
+################
+select f.record.long, count(count(*))
+from Foo f
+group by f.record.long
+
+
+
+################
+err11.q
+################
+select 1 + f.record.long as c1, count(*) as cnt
+from Foo f
+group by f.record.long + f.record.int
+
+
+
+################
+err12.q
+################
+select *
+from Foo f
+group by f.record.long
+
+
+
+################
+err13.q
+################
+select *
+from bar b
+order by b.xact.items.qty
+
+
+
+################
+gb01.q
+################
+
+select f.record.long, sum(f.record.int)
+from Foo f
+group by f.record.long
+order by f.record.long
+
+
+
+################
+gb02.q
+################
+
+select f.record.long + 1, 
+       sum(f.record.int * f.record.double) + sum(f.record.double)
+from Foo f
+group by f.record.long
+
+
+
+################
+gb03.q
+################
+select f.record.long, 
+       sum(f.record.int * f.record.double) + sum(f.record.double),
+       count(*)
+from Foo f
+group by f.record.long
+
+
+
+################
+gb04.q
+################
+
+select sum(f.record.int), f.record.long
+from Foo f
+group by f.record.long
+
+
+
+################
+gb05.q
+################
+select count(*)
+from Foo f
+where f.record.long > 10
+
+
+
+################
+gb06.q
+################
+
+select f.record.long + 1 as long, 
+       sum(f.record.int * f.record.double) + sum(f.record.double) as sum
+from Foo f
+group by f.record.long
+
+
+
+################
+gb07.q
+################
+select f.record.long
+from Foo f
+group by f.record.long
+
+
+
+################
+gb08.q
+################
+select f.record.long, sum(f.record.int)
+from Foo f
+group by f.record.long
+offset 2
+
+
+
+################
+gb09.q
+################
+select f.record.long, sum(f.record.int) as sum
+from Foo f
+group by f.record.long
+limit 2
+
+
+
+################
+gb10.q
+################
+select f.record.long, sum(f.record.int)
+from Foo f
+group by f.record.long
+limit 4
+offset 6
+
+
+
+################
+gb11.q
+################
+select f.record.long, 
+       avg(f.record.int),
+       count(*)
+from Foo f
+group by f.record.long
+
+
+
+################
+gb12.q
+################
+select f.record.long, min(f.record.int) as min, max(f.record.int) as max
+from Foo f
+group by f.record.long
+
+
+
+################
+gb13.q
+################
+select min(ts3) as ts3min, 
+       max(ts3) as ts3max, 
+       min(seq_min(t.mts6.values())) as mts6min, 
+       max(seq_max(t.mts6.values())) as mts6max 
+from tsminmax t
+
+
+
+################
+gb14.q
+################
+select sum(f.record.int)
+from Foo f
+group by f.record.long
+
+
+
+################
+gb15.q
+################
+select count(*)
+from Foo f
+where id1 < 1 and id2 < 2
+
+
+
+################
+jgb01.q
+################
+
+
+select f.xact.acctno, sum(f.xact.item.qty * f.xact.item.price), count(*)
+from Foo f
+group by f.xact.acctno
+
+
+
+################
+jgb02.q
+################
+select f.xact.acctno, sum(f.xact.item.qty * f.xact.item.price), count(*)
+from Foo f
+where exists f.xact.acctno
+group by f.xact.acctno
+
+
+
+################
+jgb03.q
+################
+
+select f.xact.acctno, count(*) as count
+from Foo f
+group by f.xact.acctno, f.xact.year
+
+
+
+
+################
+jgb04.q
+################
+
+select f.xact.acctno,
+       f.xact.year,
+       count(*) as count,
+       sum(f.xact.item.qty * f.xact.item.price) as sales
+from Foo f
+group by f.xact.acctno, f.xact.year
+
+
+
+
+################
+jgb05.q
+################
+select f.xact.acctno,
+       f.xact.year,
+       f.xact.prodcat,
+       sum(f.xact.item.discount) as sum
+from Foo f
+group by f.xact.acctno, f.xact.year, f.xact.prodcat
+
+
+
+################
+jgb06.q
+################
+select f.xact.acctno,
+       f.xact.year,
+       count(*) as count,
+       avg(f.xact.item.qty * f.xact.item.price) as sales
+from Foo f
+group by f.xact.acctno, f.xact.year
+
+
+
+################
+jgb07.q
+################
+select min(f.xact.item.discount) as min, f.record.long
+from Foo f
+group by f.record.long
+
+
+
+################
+jgb08.q
+################
+select min(f.xact.item.qty * f.xact.item.price) as min, f.xact.acctno, f.xact.year
+from Foo f
+group by f.xact.acctno, f.xact.year
+
+
+
+################
+jgb09.q
+################
+select min(f.xact.item.qty * f.xact.item.price) as min
+from Foo f
+group by f.xact.acctno, f.xact.year
+
+
+
+################
+jgb10.q
+################
+select f.xact.year, 
+       sum(seq_transform(f.xact.items[] , $.price * $.qty)) as sales
+from Bar f
+where f.xact.acctno = 345
+group by f.xact.year
+
+
+
+################
+jgb11.q
+################
+select f.xact.acctno, 
+       sum(seq_transform(f.xact.items[] , $.price * $.qty)) as sales
+from Bar f
+where f.xact.year = 2000
+group by f.xact.acctno
+
+
+
+################
+jgb20.q
+################
+select f.xact.acctno, 
+       f.xact.year, 
+       sum(seq_transform(f.xact.items[] , $.price * $.qty)) as sales
+from Bar f
+group by f.xact.acctno, f.xact.year
+
+
+
+################
+jgb21.q
+################
+select f.xact.acctno, 
+       f.xact.year, 
+       avg(seq_transform (f.xact.items[] , $.price * $.qty)) as sales,
+       count(seq_transform (f.xact.items[] , $.price * $.qty)) as cnt
+from Bar f
+group by f.xact.acctno, f.xact.year
+
+
+
+################
+jgb22.q
+################
+select f.xact.acctno, sum(f.xact.item.qty * f.xact.item.price), count(*)
+from Foo f
+group by f.xact.acctno
+order by f.xact.acctno
+
+
+
+################
+jgb23.q
+################
+select f.xact.storeid, count(*)
+from Foo f
+group by f.xact.storeid
+order by f.xact.storeid
+
+
+
+################
+jgb24.q
+################
+select count(*)
+from Bar f
+where f.xact.year = 2000 and f.xact.items[].qty >any 2
+
+
+
+################
+noidx01.q
+################
+select f.record.int, sum(f.record.long)
+from Foo f
+group by f.record.int
+
+
+
+################
+noidx02.q
+################
+select b.xact.year, count(*)
+from bar b
+group by b.xact.year
+
+
+
+################
+noidx03.q
+################
+select f.record.int
+from Foo f
+group by f.record.int
+
+
+
+################
+noidx04.q
+################
+select sum(f.record.long)
+from Foo f
+group by f.record.int
+
+
+
+################
+noidx05.q
+################
+select sum(f.mixed.x) as sum, count(*) as cnt, f.mixed.a, avg(f.mixed.x) as avg
+from Foo f
+group by f.mixed.a
+
+
+
+################
+noidx06.q
+################
+select f.mixed.a,
+       count(*) as cnt,
+       min(f.mixed.x) as min,
+       max(f.mixed.x) as max
+from Foo f
+group by f.mixed.a
+
+
+
+################
+noidx07.q
+################
+select
+  f.record.long + f.record.int + 1 as c1, 
+  1+ f.record.long + f.record.int as c2,
+  2 * (1 + 5 + f.record.long + f.record.int - 3 - 6) + 4 as c3,
+  sum(f.record.int * f.record.double) + sum(f.record.double) as sum
+from Foo f
+group by f.record.long + f.record.int
+
+
+
+
+################
+noidx08.q
+################
+select f.record.int + 1 as c1,
+        2*(f.record.int - f.record.long) + 1 + f.record.int as c2,
+        f.record.int + f.record.int + 1 as c3,
+        count(*) as cnt
+from Foo f
+group by f.record.int - f.record.long, f.record.int
+
+
+
+################
+noidx09.q
+################
+select f.record.int, sum(f.record.long)
+from Foo f
+group by f.record.int
+offset 2
+
+
+
+################
+noidx10.q
+################
+select f.xact.prodcat,
+       sum(seq_transform(f.xact.items[] , $.price * $.qty)) as sales
+from Bar f
+group by f.xact.prodcat
+
+
+
+################
+noidx11.q
+################
+select f.xact.prodcat,
+       sum(seq_transform(f.xact.items[] , $.price * $.qty)) as sales
+from Bar f
+where f.xact.year = 2000 and f.xact.items[].qty >any 2
+group by f.xact.prodcat
+
+
+
+################
+noidx12.q
+################
+select f.record.int, sum(f.record.long)
+from Foo f
+group by f.record.int
+limit 2
+offset 2
+
+
+
+################
+noidx13.q
+################
+select f.mixed.a,
+       min(case
+             when f.mixed.x is of type (number) then f.mixed.x
+             else seq_concat()
+           end) as min
+from Foo f
+group by f.mixed.a
+
+
+
+################
+noidx14.q
+################
+select f.record.int, sum(f.record.long)
+from Foo f
+where id1 = 1
+group by f.record.int
+
+
+
+################
+noidx15.q
+################
+select f.record.int, sum(f.record.long)
+from Foo f
+where id1 = 1
+group by f.record.int
+limit 4
+offset 2
+
+
+
+################
+noidx16.q
+################
+select case
+       when f.mixed.b is of type (number) then cast(f.mixed.b as double)
+       else f.mixed.b
+       end as b,
+       sum(f.mixed.x) as sum, count(*) as cnt
+from Foo f
+group by f.mixed.b
+
+
+
+################
+noidx17.q
+################
+select f.record.int
+from foo f
+group by f.record.int, f.record.double
+
+
+
+################
+noidx20.q
+################
+select cast(number as double) as number, count(*) as cnt
+from numbers
+group by number
+
+
+
+
+################
+noidx21.q
+################
+select decimal, count(*) as cnt
+from numbers
+group by decimal
+
+
+
+################
+noidx22.q
+################
+select case when id < 16 then number else decimal end as number,
+       count(*) as cnt
+from numbers
+group by case when id < 16 then number else decimal end
+
+
+
+################
+noidx23.q
+################
+select f.xact.acctno,
+       sum(seq_transform(f.xact.items[] , $.price * $.qty)) as sales
+from Bar f
+where f.xact.year = 2000 and f.xact.items[].qty >any 2
+group by f.xact.acctno
+
+
+
+################
+noidx24.q
+################
+select f.xact.acctno, count(*) as cnt
+from Foo f
+where f.record.long = 10
+group by f.xact.acctno
+
+
+
+################
+noidx25.q
+################
+select number, sum(decimal) as sum
+from numbers
+where id < 10
+group by number
+
+
+
+################
+noidx_collect01.q
+################
+select f.xact.prodcat,
+       array_collect(f.xact.acctno) as accounts,
+       count(*) as cnt
+from Foo f
+where f.xact.year = 2000
+group by f.xact.prodcat
+
+
+
+################
+noidx_collect02.q
+################
+select f.xact.prodcat,
+       array_collect({ "acctno" : f.xact.acctno,
+                       "amount" : f.xact.item.qty * f.xact.item.price
+                     }) as accounts,
+       count(*) as cnt
+from Foo f
+where f.xact.year = 2000
+group by f.xact.prodcat
+
+
+
+################
+noidx_collect04.q
+################
+select f.xact.year,
+       array_collect(seq_transform(f.xact.items[],
+                                   cast($.qty * $.price as integer))) as amounts,
+       count(*) as cnt
+from bar f
+group by f.xact.year
+
+
+
+################
+noidx_collect_d01.q
+################
+select f.xact.prodcat,
+       array_collect(distinct f.xact.acctno) as accounts,
+       count(*) as cnt
+from Foo f
+where f.xact.year = 2000
+group by f.xact.prodcat
+
+
+
+################
+noidx_collect_d02.q
+################
+select f.xact.prodcat,
+       array_collect(distinct
+                     { "acctno" : f.xact.acctno,
+                       "amount" : f.xact.item.qty * f.xact.item.price
+                     }) as accounts,
+       count(*) as cnt
+from Foo f
+where f.xact.year = 2000
+group by f.xact.prodcat
+
+
+
+################
+noidx_collect_d03.q
+################
+select f.xact.year,
+       size(
+           array_collect(distinct
+                         seq_transform(f.xact.items[], cast($.qty * $.price as long)))
+       ) as count_distinct,
+       count(*) as cnt
+from bar f
+group by f.xact.year
+
+
+
+################
+noidx_collect_d04.q
+################
+select
+  f.xact.year,
+  array_collect(distinct
+                seq_transform(f.xact.items[], cast($.qty*$.price as long))) as amounts,
+  count(*) as cnt
+from bar f
+group by f.xact.year
+
+
+
+################
+noidx_collect_d05.q
+################
+select f.xact.prodcat,
+       array_collect(distinct f.xact.acctno) as accounts,
+       count(*) as cnt,
+       count(distinct f.xact.acctno) as dcnt
+from Foo f
+where f.xact.year = 2000
+group by f.xact.prodcat
+order by count(distinct f.xact.acctno), f.xact.prodcat
+
+
+
+################
+noidx_singleshard01.q
+################
+select f.xact.month, count(*)
+from Foo f
+where id1 = 0 and f.xact.year = 2000
+group by f.xact.month
+
+
+
+
+################
+noidx_singleshard02.q
+################
+select f.xact.prodcat, count(*)
+from Foo f
+where id1 = 0 and f.xact.year >= 2000
+group by f.xact.prodcat
+order by count(*), f.xact.prodcat
+
+
+
+################
+noidx_singleshard03.q
+################
+select f.xact.acctno, count(*)
+from Bar f
+where id1 = 0 and f.xact.year = 2000 and f.xact.items[].qty >any 3
+group by f.xact.acctno
+
+
+
+################
+noidx_singleshard04.q
+################
+#
+# TODO: remove group by in this case
+#
+select f.xact.year, count(*)
+from Bar f
+where id1 = 0 and f.xact.year = 2000 and f.xact.items[].qty >any 3
+group by f.xact.year
+
+
+
+################
+noidx_sort01.q
+################
+select f.record.int, sum(f.record.long)
+from Foo f
+group by f.record.int
+order by sum(f.record.long), f.record.int
+
+
+
+################
+noidx_sort02.q
+################
+select b.xact.year, count(*)
+from bar b
+group by b.xact.year
+order by avg(seq_transform(b.xact.items[$element.prod in ("milk", "cheese")],
+                           $.qty * $.price))
+
+
+
+
+################
+noidx_sort03.q
+################
+select f.record.int
+from Foo f
+group by f.record.int
+order by count(*), f.record.int
+
+
+
+################
+noidx_sort05.q
+################
+select sum(f.mixed.x) as sum, count(*) as cnt, f.mixed.a, avg(f.mixed.x) as avg
+from Foo f
+group by f.mixed.a
+order by 2 * avg(f.mixed.x) + 1
+
+
+
+################
+noidx_sort08.q
+################
+select f.record.int + 1 as c1,
+        2*(f.record.int - f.record.long) + 1 + f.record.int as c2,
+        f.record.int + f.record.int + 1 as c3,
+        count(*) as cnt
+from Foo f
+group by f.record.int - f.record.long, f.record.int
+order by f.record.int, count(*), sum(f.xact.item.qty)
+
+
+
+################
+noidx_sort09.q
+################
+select f.record.int, sum(f.record.long)
+from Foo f
+group by f.record.int
+order by sum(f.record.long), f.record.int
+offset 2
+
+
+
+################
+noidx_sort10.q
+################
+select f.xact.prodcat,
+       sum(seq_transform(f.xact.items[] , $.price * $.qty)) as sales
+from Bar f
+group by f.xact.prodcat
+order by sum(f.xact.year) div count(*)
+
+
+
+################
+noidx_sort11.q
+################
+select f.xact.month, f.record.int, sum(f.record.long) as cnt
+from Foo f
+group by f.xact.month, f.record.int
+order by f.record.int, f.xact.month
+
+
+
+################
+onepart01.q
+################
+
+select id2, sum(f.record.int)
+from Foo f
+where id1 = 0
+group by id1, id2
+
+
+
+################
+onepart02.q
+################
+
+select id2, sum(f.record.int)
+from Foo f
+where id1 = 0
+group by id1, id2
+offset 1
+
+
+
+################
+onepart03.q
+################
+select id2, sum(f.record.int) as sum
+from Foo f
+where id1 = 0
+group by id1, id2
+limit 1
+offset 1
+
+
+
+################
+onepart04.q
+################
+select id1, id2, sum(f.record.int) as sum
+from Foo f
+where id1 = 0
+group by id1, id2
+limit 2
+
+
+
+
+################
+onepart05.q
+################
+select id1, id2, sum(f.record.int) as sum, count(*) as cnt
+from Foo f
+where id1 = 1
+group by id1, id2
+
+
+
+################
+seq_sort01.q
+################
+select f.xact.acctno,
+       seq_sort(collect({ "prodcat" : f.xact.prodcat,
+                          "year" : f.xact.year 
+                        })[]) as collect,
+       count(*) as cnt
+from Foo f
+group by f.xact.acctno
+
+
+
+################
+seq_sort02.q
+################
+select f.xact.acctno,
+       [seq_sort(collect({ "prodcat" : f.xact.prodcat,
+                           "qty" : f.xact.item.qty 
+                         })[])
+       ] as collect,
+       count(*) as cnt
+from Foo f
+where f.xact.year  = 2000
+group by f.xact.acctno
+
+
+
+################
+seq_sort03.q
+################
+select f.xact.state,
+       seq_sort(collect(seq_transform(f.xact.items[], $.qty * $.price))[]) as amounts,
+       count(*) as cnt
+from bar f
+group by f.xact.state
+
+
+
+################
+seq_sort04.q
+################
+select f.xact.state,
+       seq_sort(collect([seq_transform(f.xact.items[], $.qty * $.price)])[]) as amounts,
+       count(*) as cnt
+from bar f
+group by f.xact.state
+
+
+
+################
+seq_sort05.q
+################
+select f.xact.prodcat,
+       seq_sort(collect(f.xact.acctno)[]) as accounts,
+       count(*) as cnt
+from Foo f
+where f.xact.year = 2000
+group by f.xact.prodcat
+
+
+
+################
+seq_sort06.q
+################
+select f.xact.prodcat,
+       seq_sort(collect({ "acctno" : f.xact.acctno,
+                        "amount" : f.xact.item.qty * f.xact.item.price
+                       })[]) as accounts,
+       count(*) as cnt
+from Foo f
+where f.xact.year = 2000
+group by f.xact.prodcat
+
+
+
+################
+seq_sort07.q
+################
+select f.xact.year,
+       seq_sort(collect(seq_transform(f.xact.items[], $.qty * $.price))[]) as amounts,
+       count(*) as cnt
+from bar f
+group by f.xact.year
+
+
+
+################
+singleshard01.q
+################
+select f.xact.acctno, count(*)
+from Foo f
+where id1 = 0 and f.xact.year = 2000
+group by f.xact.acctno
+
+
+
+################
+singleshard02.q
+################
+select f.xact.acctno, count(*)
+from Foo f
+where id1 = 0 and f.xact.year = 2000
+group by f.xact.acctno
+order by count(*)
+
+
+
+################
+singleshard03.q
+################
+select id1, f.xact.year
+from Bar f
+where id1 = 0 and f.xact.items[].qty >any 2
+order by f.xact.year
+limit 6
+offset 2
+
+
+
+################
+sort01.q
+################
+select f.record.long, sum(f.record.int)
+from Foo f
+group by f.record.long
+order by sum(f.record.int)
+
+
+
+################
+sort02.q
+################
+select f.record.long + 1, 
+       sum(f.record.int * f.record.double) + sum(f.record.double)
+from Foo f
+group by f.record.long
+order by count(f.record.long)
+
+
+
+################
+sort03.q
+################
+select f.record.long, 
+       sum(f.record.int * f.record.double) + sum(f.record.double) as sum,
+       count(*) as cnt
+from Foo f
+group by f.record.long
+order by sum(f.record.int * f.record.double)
+
+
+
+################
+sort04.q
+################
+select sum(f.record.int), f.record.long
+from Foo f
+group by f.record.long
+order by sum(f.record.int) * count(*)
+
+
+
+################
+sort05.q
+################
+select count(*)
+from Foo f
+where f.record.long > 10
+order by count(*)
+
+
+
+################
+sort08.q
+################
+select f.record.long, sum(f.record.int) as sum
+from Foo f
+group by f.record.long
+order by sum(f.record.int)
+offset 2
+
+
+
+################
+sort09.q
+################
+select f.record.long, sum(f.record.int) as sum
+from Foo f
+group by f.record.long
+order by sum(f.record.int)
+limit 2
+
+
+
+################
+sort10.q
+################
+select f.record.long, sum(f.record.int)
+from Foo f
+group by f.record.long
+order by sum(f.record.int)
+limit 2
+offset 1
+
+
+
+################
+sort11.q
+################
+select f.record.long, 
+       avg(f.record.int) + 1 as avg,
+       count(*)
+from Foo f
+group by f.record.long
+order by avg(f.record.int)
+
+
+
+################
+sort20.q
+################
+select f.xact.acctno, 
+       f.xact.year, 
+       sum(seq_transform(f.xact.items[] , $.price * $.qty)) as sales
+from Bar f
+group by f.xact.acctno, f.xact.year
+order by sum(seq_transform(f.xact.items[] , $.price * $.qty)) desc, f.xact.acctno
+
+
+
+################
+sort21.q
+################
+select f.xact.acctno, 
+       f.xact.year, 
+       avg(seq_transform (f.xact.items[] , $.price * $.qty)) as sales,
+       count(seq_transform (f.xact.items[] , $.price * $.qty)) as cnt
+from Bar f
+group by f.xact.acctno, f.xact.year
+order by avg(seq_transform(f.xact.items[] , $.price * $.qty)), f.xact.year
+
+
+
+################
+sort22.q
+################
+select id1, f.xact.month
+from Foo f
+order by f.xact.month
+
+
+

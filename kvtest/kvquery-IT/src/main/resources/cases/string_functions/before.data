@@ -1,0 +1,111 @@
+
+Table: stringsTable
+
+{
+"id":0,
+"str1":"abc",
+"str2":"bcd",
+"str3":"cde"
+}
+
+{
+"id":1,
+"str1":null,
+"str2":"bcd",
+"str3":"cde"
+}
+
+{
+"id":2,
+"str1":null,
+"str2":null,
+"str3":"cde"
+}
+
+{
+"id":3,
+"str1":null,
+"str2":null,
+"str3":null
+}
+
+{
+"id":4,
+"str1":null,
+"str2":"",
+"str3":null
+}
+
+{
+"id":5,
+"str1":"abc",
+"str2":"DEF",
+"str3":"GhIj"
+}
+
+{
+"id":6,
+"str1":"   a  b  c   ",
+"str2":"--ABC--",
+"str3":"0000"
+}
+
+{
+"id":7,
+"str1":"   a  b  c",
+"str2":"--ABC",
+"str3":"000"
+}
+
+{
+"id":8,
+"str1":"a  b  c   ",
+"str2":"ABC--",
+"str3":"00"
+}
+
+{
+"id":9,
+"str1":"         ",
+"str2":"---",
+"str3":"0"
+}
+
+{
+"id":10,
+"str1":"aӿ╳▟◿⛱😋⏳",
+"str2":"😋",
+"str3":" 😋⏳ "
+}
+
+
+
+Table: stringsTable2
+
+{
+"id":0,
+"str":null,
+"jsn":null,
+"arr":null,
+"map":null,
+"rec":null,
+"arrrec":null
+}
+
+{
+"id":1,
+"str":" abc  def  ",
+"jsn": {"a1": "xyz", "b1": 1,
+        "c1": ["val", 1, [], {}, null],
+        "d1": {"a2": " x y z ", "b2": 1,"c2":["v v v", 1, [], {}, null],
+               "d2":null},
+        "e1":[]},
+"arrStr":["abc", "", "  a b c  "],
+"arrInt":[1, 2, 3],
+"mapStr":{"a": ["abc", "", "  a b c  "], "b": []},
+"mapInt":{"a": [1, 2, 3], "b": []},
+"recStr":{"fmap":{"a": ["abc", "", "  a b c  "], "b": []}},
+"recFlt":{"fmap":{"a": [1, 2, 3], "b": []}},
+"arrrecStr":[{"fmap":{"a": ["abc", "", "  a b c  "], "b": []}}, {}],
+"arrrecFlt":[{"fmap":{"a": [1, 2, 3], "b": []}}, {}]
+}

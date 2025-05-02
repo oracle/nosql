@@ -1,0 +1,12 @@
+ordered-result
+{"id":0,"c":false,"s":false,"e":false}
+{"id":1,"c":null,"s":null,"e":null}
+{"id":2,"c":null,"s":null,"e":null}
+{"id":3,"c":null,"s":null,"e":null}
+{"id":4,"c":null,"s":null,"e":null}
+{"id":5,"c":false,"s":false,"e":false}
+{"id":6,"c":false,"s":false,"e":false}
+{"id":7,"c":false,"s":false,"e":false}
+{"id":8,"c":false,"s":false,"e":false}
+{"id":9,"c":false,"s":false,"e":false}
+{"id":10,"c":true,"s":false,"e":false}

@@ -1,0 +1,92 @@
+compiled-query-plan
+{
+"query file" : "unnest_json/q/arr17.q",
+"plan" : 
+{
+  "iterator kind" : "SORT",
+  "order by fields at positions" : [ 1, 0 ],
+  "input iterator" :
+  {
+    "iterator kind" : "RECEIVE",
+    "distribution kind" : "ALL_PARTITIONS",
+    "input iterator" :
+    {
+      "iterator kind" : "SELECT",
+      "FROM" :
+      {
+        "iterator kind" : "TABLE",
+        "target table" : "Foo",
+        "row variable" : "$$t",
+        "index used" : "primary index",
+        "covering index" : false,
+        "index scans" : [
+          {
+            "equality conditions" : {},
+            "range conditions" : {}
+          }
+        ]
+      },
+      "FROM variable" : "$$t",
+      "FROM" :
+      {
+        "iterator kind" : "ARRAY_FILTER",
+        "input iterator" :
+        {
+          "iterator kind" : "FIELD_STEP",
+          "field name" : "phones",
+          "input iterator" :
+          {
+            "iterator kind" : "FIELD_STEP",
+            "field name" : "address",
+            "input iterator" :
+            {
+              "iterator kind" : "FIELD_STEP",
+              "field name" : "info",
+              "input iterator" :
+              {
+                "iterator kind" : "VAR_REF",
+                "variable" : "$$t"
+              }
+            }
+          }
+        }
+      },
+      "FROM variable" : "$phone",
+      "SELECT expressions" : [
+        {
+          "field name" : "id",
+          "field expression" : 
+          {
+            "iterator kind" : "FIELD_STEP",
+            "field name" : "id",
+            "input iterator" :
+            {
+              "iterator kind" : "VAR_REF",
+              "variable" : "$$t"
+            }
+          }
+        },
+        {
+          "field name" : "areacode",
+          "field expression" : 
+          {
+            "iterator kind" : "ARRAY_CONSTRUCTOR",
+            "conditional" : true,
+            "input iterators" : [
+              {
+                "iterator kind" : "FIELD_STEP",
+                "field name" : "areacode",
+                "input iterator" :
+                {
+                  "iterator kind" : "VAR_REF",
+                  "variable" : "$phone"
+                }
+              }
+            ]
+          }
+        }
+      ]
+    }
+  }
+}
+}

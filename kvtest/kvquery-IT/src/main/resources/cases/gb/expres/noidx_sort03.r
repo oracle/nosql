@@ -1,0 +1,11 @@
+ordered-result
+{"int":-2}
+{"int":5}
+{"int":null}
+{"int":0}
+{"int":1}
+{"int":3}
+{"int":4}
+{"int":10}
+{"int":2}
+{"int":20}

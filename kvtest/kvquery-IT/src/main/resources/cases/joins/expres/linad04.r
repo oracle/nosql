@@ -1,0 +1,11 @@
+unordered-result
+{"b_ida":0,"b_idb":0,"a_ida":0,"a1":1,"c_ida":0,"c_idb":0,"c_idc":0,"c_size":true,"size_a_idx_a2":true}
+{"b_ida":0,"b_idb":0,"a_ida":0,"a1":1,"c_ida":0,"c_idb":0,"c_idc":5,"c_size":true,"size_a_idx_a2":true}
+{"b_ida":0,"b_idb":5,"a_ida":0,"a1":1,"c_ida":0,"c_idb":5,"c_idc":10,"c_size":true,"size_a_idx_a2":true}
+{"b_ida":0,"b_idb":5,"a_ida":0,"a1":1,"c_ida":0,"c_idb":5,"c_idc":15,"c_size":true,"size_a_idx_a2":true}
+{"b_ida":0,"b_idb":5,"a_ida":0,"a1":1,"c_ida":0,"c_idb":5,"c_idc":20,"c_size":true,"size_a_idx_a2":true}
+{"b_ida":0,"b_idb":5,"a_ida":0,"a1":1,"c_ida":0,"c_idb":5,"c_idc":25,"c_size":true,"size_a_idx_a2":true}
+{"b_ida":0,"b_idb":10,"a_ida":0,"a1":1,"c_ida":null,"c_idb":null,"c_idc":null,"c_size":null,"size_a_idx_a2":true}
+{"b_ida":0,"b_idb":15,"a_ida":0,"a1":1,"c_ida":0,"c_idb":15,"c_idc":25,"c_size":true,"size_a_idx_a2":true}
+{"b_ida":10,"b_idb":4,"a_ida":10,"a1":3,"c_ida":null,"c_idb":null,"c_idc":null,"c_size":null,"size_a_idx_a2":true}
+{"b_ida":41,"b_idb":10,"a_ida":null,"a1":null,"c_ida":null,"c_idb":null,"c_idc":null,"c_size":null,"size_a_idx_a2":null}

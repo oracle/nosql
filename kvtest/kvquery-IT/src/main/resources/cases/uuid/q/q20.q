@@ -1,0 +1,1 @@
+insert into foo_default values(default, 2)

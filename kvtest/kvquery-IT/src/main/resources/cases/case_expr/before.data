@@ -1,0 +1,136 @@
+###
+# Table and records can be on multiple lines but they must be delimited by an
+# empty line.
+#
+# Line  "Table: table-name" defines the table name to be used and it must
+# precede the records. Multiple tables can be populated in the same file.
+###
+
+Table: Foo
+
+{ "firstName":"first0", "lastName":"last0", "id":0, "age":10,"ptr":"firstName",
+  "double" : 3.5,
+  "float"  : 2342,
+  "address":
+  {
+    "city": "San Fransisco",
+    "state"  : "CA",
+    "phones" : [ { "work" : 504,  "home" : 50 },
+                 { "work" : 518,  "home" : 51 },
+                 { "work" : 528,  "home" : 52 },
+                 { "work" : 538,  "home" : 53 },
+                 { "work" : 548,  "home" : 54 } ],
+    "ptr"    : "city"
+  },
+  "children":
+  {
+    "John" : { "age" : 10, "friends" : ["Anna", "John", "Maria"]},
+    "Lisa" : { "age" : 12, "friends" : ["Ada"]}
+  }
+}
+
+{ "firstName":"first1", "lastName":"last1", "id":1, "age":11,"ptr":"lastName",
+  "double" : 44.5,
+  "float"  : 234,
+  "address":
+  {
+    "city"   : "Boston",
+    "state"  : "MA",
+    "phones" : [ { "work" : 304,  "home" : 30 },
+                 { "work" : 318,  "home" : 31 } ],
+    "ptr"    : "state"
+  },
+  "children":
+  {
+    "Anna" : { "age" : 9, "friends" : ["Bobby", "John"]},
+    "Mark" : { "age" : 4, "friends" : ["George"]}
+  }
+}
+
+{ "firstName":"first2", "id":2, "age":11,"ptr":"lastName",
+  "double" : 4353245242134,
+  "float"  : 23,
+  "address":
+  {
+    "city"   : "Boston",
+    "state"  : "MA",
+    "phones" : [ { "work" : 304,  "home" : 30 },
+                 { "work" : 318,  "home" : 31 } ],
+    "ptr"    : "state"
+  },
+  "children":
+  {
+    "Anna" : { "age" : 9, "friends" : ["Bobby", "John"]},
+    "Mark" : { "age" : 4, "friends" : ["George"]}
+  }
+}
+
+{ "firstName":"first3", "lastName":"last3", "id":3, "ptr":"lastName",
+  "double" : 44.5,
+  "float"  : 23.1,
+  "address":
+  {
+    "city"   : "Salem",
+    "state"  : "MA",
+    "phones" : [ { "work" : 304,  "home" : 30 },
+                 { "work" : 318,  "home" : 31 } ],
+    "ptr"    : "state"
+  },
+  "children":
+  {
+    "Anna" : { "age" : 9, "friends" : ["Bobby", "John"]},
+    "Mark" : { "age" : 4, "friends" : ["George"]}
+  }
+}
+
+{ "firstName":"first4", "lastName":"last4", "id":4, "ptr":"lastName",
+  "double" : 44.5,
+  "float"  : 234.4,
+  "address":
+  {
+    "city"   : "Boston",
+    "state"  : "MA",
+    "phones" : [ { "work" : 304,  "home" : 30 },
+                 { "work" : 318,  "home" : 31 } ],
+    "ptr"    : "state"
+  },
+  "children":
+  {
+    "Anna" : { "age" : 9, "friends" : ["Bobby", "John"]},
+    "Mark" : { "age" : 4, "friends" : ["George"]}
+  }
+}
+
+
+{ "firstName":"first5", "lastName":"last5", "id":5, "age":12,"ptr":"firstName",
+  "double" : 44.5,
+  "float"  : 23,
+  "address":
+  {
+    "city"   : "Portland",
+    "state"  : "OR",
+    "phones" : [ { "work" : 104,  "home" : 10 },
+                 { "work" : 118,  "home" : 11 } ],
+    "ptr"    : "phones"
+  },
+  "children":
+  {
+  }
+}
+
+{ "firstName":"first6", "lastName":"last6", "id":6, "age":13,"ptr":"lastName",
+  "double" : 44.5,
+  "float"  : 2,
+  "address":
+  {
+    "city"   : "Seattle",
+    "state"  : "WA",
+    "phones" : [ ],
+    "ptr"    : "phones"
+  },
+  "children":
+  {
+    "George" : { "age" : 7,  "friends" : ["Bill", "Mark"]},
+    "Matt" :   { "age" : 14, "friends" : ["Bill"]}
+  }
+}

@@ -1,0 +1,2 @@
+#Expression has array constructor and is not null in predicate and is null in projection
+select  id,age,{"work" :[s.address.phones.keys($value>50)]} is null from sn s where {"work" :[s.address.phones.keys($value>50)]} is not null

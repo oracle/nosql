@@ -1,0 +1,2 @@
+#expression returns year using Extract Function for non json map
+SELECT id,extract(year from t.mts9.k1) as mts1,extract(year from t.mts9.k2) as mts2,extract(year from t.mts9.k3) as mts3,extract(year from t.mts9.k4) as mts4,extract(year from t.mts9.k5) as mts5,extract(year from t.mts9.k6) as mts6,extract(year from t.mts9.k7) as mts7 ,extract(year from t.mts9.k8) as mts8,extract(year from t.mts9.k9) as mts9 FROM Extract t 

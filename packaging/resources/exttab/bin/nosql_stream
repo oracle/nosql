@@ -1,0 +1,16 @@
+#!/bin/bash
+
+#
+# See the file LICENSE for redistribution information.
+#
+# Copyright (c) 2011, 2025 Oracle and/or its affiliates.  All rights reserved.
+#
+# Fill in site-appropriate values for PATH, KVHOME, and CLASSPATH
+# This script will be executed by the Oracle Database server.
+# If you are using user-specified Formatters, by sure to include their home
+# in the CLASSPATH.
+#
+export PATH=
+export KVHOME=
+export CLASSPATH="$KVHOME/lib/kvstore-${project.version}.jar"
+java oracle.kv.exttab.Preproc $*

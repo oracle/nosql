@@ -1,0 +1,2 @@
+unordered-result
+{"iv":2.147483647E9,"Column_2":9.3319298,"lv":9.223372036854776E18,"Column_4":18.9648897,"fv":3.4028234663852886E38,"Column_6":38.5318394,"dv":Infinity,"Column_8":308.2547155,"nv":Infinity,"Column_10":308.2547155,"jsoniv":2.147483647E9,"log10jsoniv":9.3319298,"jsonlv":9.223372036854776E18,"log10jsonlv":18.9648897,"jsonfv":3.4028235E38,"log10jsonfv":38.5318394,"jsondv":Infinity,"log10jsondv":308.2547155,"jsonnv":Infinity,"log10jsonnv":308.2547155}

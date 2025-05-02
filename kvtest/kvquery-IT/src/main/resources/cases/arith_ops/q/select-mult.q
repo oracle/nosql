@@ -1,0 +1,1 @@
+select int * 1 * 2 from Foo

@@ -1,0 +1,2 @@
+unordered-result
+{"iv":2.147483647E9,"Column_2":0.9502289,"lv":9.223372036854776E18,"Column_4":0.0118008,"fv":3.4028234663852886E38,"Column_6":-1.6345265,"dv":Infinity,"Column_8":-201.5309957,"nv":Infinity,"Column_10":-201.5309957,"jsoniv":2.147483647E9,"cotjsoniv":0.9502289,"jsonlv":9.223372036854776E18,"cotjsonlv":0.0118008,"jsonfv":3.4028235E38,"cotjsonfv":1.6313921,"jsondv":Infinity,"cotjsondv":-201.5309957,"jsonnv":Infinity,"cotjsonnv":-201.5309957}

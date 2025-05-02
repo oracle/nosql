@@ -1,0 +1,10 @@
+unordered-result
+{"Column_1":[20,"aef"]}
+{"Column_1":[20,"xyz"]}
+{"Column_1":[50,"abc"]}
+{"Column_1":null}
+{"Column_1":[{"areacode":570,"number":51},{"areacode":580,"number":51}]}
+{"Column_1":null}
+{"Column_1":null}
+{"Column_1":null}
+{"Column_1":{"areacode":408,"kind":"work","number":80}}

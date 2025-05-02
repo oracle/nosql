@@ -1,0 +1,3 @@
+select
+  - - "abc"
+from NumTable

@@ -1,0 +1,2 @@
+#expression returns day using Extract Function with timestamp of all nine precision
+SELECT id,extract(day from t.ts0) as ts0,extract(day from t.ts1) as ts1,extract(day from t.ts2) as ts2,extract(day from t.ts3) as ts3,extract(day from t.ts4) as ts4,extract(day from t.ts5) as ts5,extract(day from t.ts6) as ts6,extract(day from t.ts7) as ts7 ,extract(day from t.ts8) as ts8 ,extract(day from t.ts9) as ts9 FROM Extract t

@@ -1,0 +1,2 @@
+unordered-result
+{"ic":0,"acosic":1.5707963267948966,"lc":1,"acoslc":0.0,"fc":0.34,"acosfc":1.22,"dc":-1.00000000001,"acosdc":NaN,"nc":-1,"acosnc":3.141592653589793,"jsonfc":3.14,"acosjsonfc":NaN,"jsondc":NaN,"acosjsondc":NaN,"jsonnc":1.00000000000001,"acosjsonnc":NaN}

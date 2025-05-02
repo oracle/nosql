@@ -1,0 +1,12 @@
+ordered-result
+{"id":0,"str2":"bcd","Column_3":"bcd"}
+{"id":1,"str2":"bcd","Column_3":"bcd"}
+{"id":2,"str2":null,"Column_3":null}
+{"id":3,"str2":null,"Column_3":null}
+{"id":4,"str2":"","Column_3":""}
+{"id":5,"str2":"DEF","Column_3":"DEF"}
+{"id":6,"str2":"--ABC--","Column_3":"--ABC--"}
+{"id":7,"str2":"--ABC","Column_3":"--ABC"}
+{"id":8,"str2":"ABC--","Column_3":"ABC--"}
+{"id":9,"str2":"---","Column_3":"---"}
+{"id":10,"str2":"😋","Column_3":""}

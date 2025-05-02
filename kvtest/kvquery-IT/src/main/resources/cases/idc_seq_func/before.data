@@ -1,0 +1,629 @@
+Table: playerinfo
+{
+	"id": 100,
+	"id1": 1,
+	"name": "Virat Kohli",
+	"age": 31,
+	"ballsbowled": 5266,
+	"ballsplayed": 50432,
+	"strikerate": 83.5,
+	"tier1rated": true,
+	"avg": 48,
+	"fbin": "SGVsbG8gSG93IGFyZSBZb3U/",
+	"bin": "Tm9TcWw=",
+	"century": 100,
+	"country": "India",
+	"type": "international",
+	"time": "1987-04-30T07:45:00",
+	"stats1": {
+		"Tests": {
+			"matches": 77,
+			"inns": 131,
+			"notout": 8,
+			"runs": 6613,
+			"hs": 243,
+			"avg": 53.76,
+			"bf": 121549,
+			"sr": 57.26,
+			"century": 25,
+			"fifty": 20,
+			"fours": 731,
+			"sixes": 19
+		},
+		"Odi": {
+			"matches": 77,
+			"inns": 131,
+			"notout": 20,
+			"runs": 6613,
+			"hs": 243,
+			"avg": 53.76,
+			"bf": 112549,
+			"sr": 57.26,
+			"century": 25,
+			"fifty": 20,
+			"fours": 731,
+			"sixes": 19
+		},
+		"T20": {
+			"matches": 77,
+			"inns": 131,
+			"notout": 28,
+			"runs": 6613,
+			"hs": 243,
+			"avg": 53.76,
+			"bf": 11549,
+			"sr": 57.26,
+			"century": 25,
+			"fifty": 20,
+			"fours": 731,
+			"sixes": 19
+		}
+	},
+	"stats2": [{
+		"last5intest": [12, 23, 33, 56, 98]
+	}, {
+		"last5inodi": [123, 98, 34, 22, 88]
+	}, {
+		"last5int20": [22, 98, 67, 10, 76]
+	}],
+	"stats3": {
+		"city": "Adelaide",
+		"country": "AUS",
+		"runs": [{
+			"test": 100,
+			"odi": 43,
+			"t20": 41
+		}, {
+			"test": 112,
+			"odi": 51,
+			"t20": 19
+		}, {
+			"test": 58,
+			"odi": 52,
+			"t20": 81
+		}, {
+			"test": 38,
+			"odi": 53,
+			"t20": 11
+		}, {
+			"test": 58,
+			"odi": 4,
+			"t20": 1
+		}],
+		"ptr": "city"
+	},
+	"json": {
+		"Virat": {
+			"age": 30,
+			"ballsbowled": 5266,
+			"ballsplayed": 50432,
+			"strikerate": 83.5,
+			"tier1rated": true,
+			"avg": 56.87,
+			"fbin": "SGVsbG8gSG93IGFyZSBZb3U/",
+			"bin": "Tm9TcWw=",
+			"century": 100,
+			"country": "India",
+			"type": "international",
+			"dob": "1988-11-05T10:45:00",
+			"stats1": {
+				"Tests": {
+					"matches": 77,
+					"inns": 131,
+					"notout": 8,
+					"runs": 6613,
+					"hs": 243,
+					"avg": 53.76,
+					"bf": 115429,
+					"sr": 57.26,
+					"century": 25,
+					"fifty": 20,
+					"fours": 731,
+					"sixes": 19
+				},
+				"Odi": {
+					"matches": 77,
+					"inns": 131,
+					"notout": 8,
+					"runs": 6613,
+					"hs": 243,
+					"avg": 53.76,
+					"bf": 115249,
+					"sr": 57.26,
+					"century": 25,
+					"fifty": 20,
+					"fours": 731,
+					"sixes": 19
+				},
+				"T20": {
+					"matches": 87,
+					"inns": 166,
+					"notout": 9,
+					"runs": 99213,
+					"hs": 343,
+					"avg": 73.76,
+					"bf": 151549,
+					"sr": 87.26,
+					"century": 35,
+					"fifty": 30,
+					"fours": 931,
+					"sixes": 49
+				}
+			},
+			"stats2": [{
+				"last5intest": [12, 23, 33, 56, 98]
+			}, {
+				"last5inodi": [123, 98, 34, 22, 88]
+			}, {
+				"last5int20": [22, 98, 67, 10, 76]
+			}],
+			"stats3": {
+				"city": "Adelaide oval",
+				"country": "AUS",
+				"century": [{
+					"test": 4
+				}, {
+					"odi": 2
+				}, {
+					"t20": 1
+				}]
+			}
+		}
+	}
+}
+
+{
+	"id": 100,
+	"id1": 2,
+	"name": "Rohit Sharma",
+	"age": 35,
+	"ballsbowled": 52661,
+	"ballsplayed": 504321,
+	"strikerate": 93.5,
+	"tier1rated": true,
+	"avg": 67,
+	"fbin": "SGVsbG8gSG93IGFyZSBZb3U/",
+	"bin": "Tm9TcWw=",
+	"century": 100,
+	"country": "India",
+	"type": "international",
+	"time": "1984-04-30T07:45:00",
+	"stats1": {
+		"Tests": {
+			"matches": 177,
+			"inns": 176,
+			"notout": 18,
+			"runs": 61613,
+			"hs": 243,
+			"avg": 53.76,
+			"bf": 11549,
+			"sr": 57.26,
+			"century": 25,
+			"fifty": 20,
+			"fours": 731,
+			"sixes": 19
+		},
+		"Odi": {
+			"matches": 277,
+			"inns": 231,
+			"notout": 38,
+			"runs": 16613,
+			"hs": 143,
+			"avg": 153.76,
+			"bf": 111549,
+			"sr": 87.26,
+			"century": 75,
+			"fifty": 70,
+			"fours": 831,
+			"sixes": 99
+		},
+		"T20": {
+			"matches": 77,
+			"inns": 131,
+			"notout": 48,
+			"runs": 6613,
+			"hs": 243,
+			"avg": 53.76,
+			"bf": 11549,
+			"sr": 57.26,
+			"century": 25,
+			"fifty": 20,
+			"fours": 831,
+			"sixes": 29
+		}
+	},
+	"stats2": [{
+		"last5intest": [121, 23, 33, 56, 98]
+	}, {
+		"last5inodi": [123, 98, 34, 22, 88]
+	}, {
+		"last5int20": [22, 98, 67, 10, 76]
+	}],
+	"stats3": {
+		"city": "Adelaide",
+		"country": "AUS",
+		"runs": [{
+			"test": 100,
+			"odi": 43,
+			"t20": 41
+		}, {
+			"test": 112,
+			"odi": 51,
+			"t20": 19
+		}, {
+			"test": 58,
+			"odi": 52,
+			"t20": 81
+		}, {
+			"test": 38,
+			"odi": 53,
+			"t20": 11
+		}, {
+			"test": 58,
+			"odi": 4,
+			"t20": 1
+		}],
+		"ptr": "city"
+	},
+	"json": {
+		"Rohit": {
+			"age": 35,
+			"ballsbowled": 5266,
+			"ballsplayed": 50432,
+			"strikerate": 83.5,
+			"tier1rated": true,
+			"avg": 56.87,
+			"fbin": "SGVsbG8gSG93IGFyZSBZb3U/",
+			"bin": "Tm9TcWw=",
+			"century": 100,
+			"country": "India",
+			"type": "international",
+			"dob": "1988-11-05T10:45:00",
+			"stats1": {
+				"Tests": {
+					"matches": 77,
+					"inns": 131,
+					"notout": 8,
+					"runs": 6613,
+					"hs": 243,
+					"avg": 53.76,
+					"bf": 11549,
+					"sr": 57.26,
+					"century": 25,
+					"fifty": 20,
+					"fours": 731,
+					"sixes": 19
+				},
+				"Odi": {
+					"matches": 77,
+					"inns": 131,
+					"notout": 8,
+					"runs": 6613,
+					"hs": 243,
+					"avg": 53.76,
+					"bf": 11549,
+					"sr": 57.26,
+					"century": 25,
+					"fifty": 20,
+					"fours": 731,
+					"sixes": 19
+				},
+				"T20": {
+					"matches": 77,
+					"inns": 131,
+					"notout": 8,
+					"runs": 6613,
+					"hs": 243,
+					"avg": 53.76,
+					"bf": 11549,
+					"sr": 57.26,
+					"century": 25,
+					"fifty": 20,
+					"fours": 731,
+					"sixes": 19
+				}
+			},
+			"stats2": [{
+				"last5intest": [121, 23, 33, 56, 98]
+			}, {
+				"last5inodi": [123, 98, 34, 212, 88]
+			}, {
+				"last5int20": [22, 98, 67, 10, 76]
+			}],
+			"stats3": {
+				"city": "Edrn Gardens",
+				"country": "IND",
+				"century": [{
+					"test": 6
+				}, {
+					"odi": 4
+				}, {
+					"t20": 2
+				}]
+			}
+		}
+	}
+}
+
+{
+	"id": 100,
+	"id1": 3,
+	"name": "Shikhar Dhawan",
+	"age": null,
+	"ballsbowled": 5266,
+	"ballsplayed": 50432,
+	"strikerate": 83.5,
+	"tier1rated": true,
+	"avg": null,
+	"fbin": "SGVsbG8gSG93IGFyZSBZb3U/",
+	"bin": "Tm9TcWw=",
+	"century": 100,
+	"country": "India",
+	"type": "international",
+	"time": "1987-04-30T07:45:00",
+	"stats1": {
+		"Tests": {
+			"matches": 377,
+			"inns": 370,
+			"notout": 28,
+			"runs": 6613,
+			"hs": 243,
+			"avg": 53.76,
+			"bf": 11549,
+			"sr": 57.26,
+			"century": 25,
+			"fifty": 20,
+			"fours": 431,
+			"sixes": 9
+		},
+		"Odi": {
+			"matches":109,
+			"inns": 101,
+			"notout": 95,
+			"runs": 16613,
+			"hs": 133,
+			"avg": 63.76,
+			"bf": 141549,
+			"sr": 77.26,
+			"century": 5,
+			"fifty": 8,
+			"fours": 731,
+			"sixes": 19
+		},
+		"T20": {
+			"matches": 77,
+			"inns": null,
+			"notout": 48,
+			"runs": 6613,
+			"hs": 243,
+			"avg": 53.76,
+			"bf": 11549,
+			"sr": 57.26,
+			"century": 25,
+			"fifty": 20,
+			"fours": 731,
+			"sixes": 19
+		}
+	},
+	"stats2": [{
+		"last5intest": [12, 23, 33, 56, 98]
+	}, {
+		"last5inodi": [123, 98, 34, 22, 88]
+	}, {
+		"last5int20": [22, 98, 67, 10, 76]
+	}],
+	"stats3": {
+		"city": "Adelaide",
+		"country": "AUS",
+		"runs": [{
+			"test": 100,
+			"odi": 43,
+			"t20": 41
+		}, {
+			"test": 112,
+			"odi": 51,
+			"t20": 19
+		}, {
+			"test": 58,
+			"odi": 52,
+			"t20": 81
+		}, {
+			"test": 38,
+			"odi": 53,
+			"t20": 11
+		}, {
+			"test": 58,
+			"odi": 4,
+			"t20": 1
+		}],
+		"ptr": "city"
+	},
+	"json": {
+		"Shikhar": {
+			"age": 30,
+			"ballsbowled": 5266,
+			"ballsplayed": 50432,
+			"strikerate": 83.5,
+			"tier1rated": true,
+			"avg": 56.87,
+			"fbin": "SGVsbG8gSG93IGFyZSBZb3U/",
+			"bin": "Tm9TcWw=",
+			"century": 100,
+			"country": "India",
+			"type": "international",
+			"dob": "1988-11-05T10:45:00",
+			"stats1": {
+				"Tests": {
+					"matches": 77,
+					"inns": 131,
+					"notout": 8,
+					"runs": 6613,
+					"hs": 243,
+					"avg": 53.76,
+					"bf": null,
+					"sr": 57.26,
+					"century": 25,
+					"fifty": 20,
+					"fours": 731,
+					"sixes": 19
+				},
+				"Odi": {
+					"matches": 77,
+					"inns": 131,
+					"notout": 8,
+					"runs": 6613,
+					"hs": 243,
+					"avg": 53.76,
+					"bf": 11549,
+					"sr": 57.26,
+					"century": 25,
+					"fifty": 20,
+					"fours": 731,
+					"sixes": 19
+				},
+				"T20": {
+					"matches": 77,
+					"inns": 131,
+					"notout": 8,
+					"runs": 6613,
+					"hs": 243,
+					"avg": 53.76,
+					"bf": 11549,
+					"sr": 57.26,
+					"century": 25,
+					"fifty": 20,
+					"fours": 731,
+					"sixes": 19
+				}
+			},
+			"stats2": [{
+				"last5intest": [12, 23, 33, 56, 98]
+			}, {
+				"last5inodi": [123, 98, 34, 22, 88]
+			}, {
+				"last5int20": [22, 98, 67, 10, 76]
+			}],
+			"stats3": {
+				"city": "Wellington",
+				"country": "NZ",
+				"century": [{
+					"test": 4
+				}, {
+					"odi": null
+				}, {
+					"t20": 1
+				}]
+			}
+		}
+	}
+}
+
+{
+	"id": 100,
+	"id1": 4,
+	"json": {
+		"MSD": {
+			"age": 30,
+			"ballsbowled": 5266,
+			"ballsplayed": 50432,
+			"strikerate": 83.5,
+			"tier1rated": true,
+			"avg": 56.87,
+			"fbin": "SGVsbG8gSG93IGFyZSBZb3U/",
+			"bin": "Tm9TcWw=",
+			"century": 100,
+			"country": "India",
+			"type": "international",
+			"dob": "1988-11-05T10:45:00",
+                        "handed":"right",
+                        "test1":-1,
+                        "test2":null,
+                        "test3":1,
+                        "test4":true,
+                        "test5":false,
+                        "test6":"",
+                        "test7":{},
+                        "test8":" ",
+                        "test9":1111111111,
+                        "test10":1111111111111.88888888888,
+                        "test11":"wwwwwwwwwwwwwwwwwwwwwwwwwwwwsddddddddddddddddddddddddddddnnnnnnnnnnnnnnnnnnnnnncccccccccccccccccccccccccccccccccccccc",
+                        "test12":"1982-04-30T07:45:00"
+                }                       
+}
+}
+
+{
+	"id": 100,
+	"id1": 5,
+        "stats1": { "T20": { "matches": 1234567, "inns": null}}
+}
+
+{
+	"id": 100,
+	"id1": 6,
+        "json": { "stats": { "matches": 124, "inns": 922337203685470}}
+}
+
+{
+	"id": 100,
+	"id1": 7,
+        "json": { "stats": { "matches": 123, "inns": -92233720368547758}}
+}
+
+{
+	"id": 100,
+	"id1": 8,
+        "json": { "stats": { "matches": 122, "inns": 922337203685477580, "runs": 2884689857947530493430848034}}
+}
+
+{
+	"id": 100,
+	"id1": 9,
+        "json": { "stats": { "matches": "", "inns": null, "runs": " "}}
+}
+
+{
+	"id": 100,
+	"id1": 10,
+        "json": { "stats": [{ "matches": 187,  "runs": 5000},{ "matches": 287,  "runs": 9000},{ "matches": 387,  "runs": 12000},{ "matches": 587,  "runs": 15000}], "stats2": [12, 123, 456, 5656, 4757945945, 95497594590450]}
+}
+
+
+Table: stats
+{
+	"id": 1,
+        "statsinfo": {"matches": 177,"inns": 131,"notout": 18,"runs": 6613,"hs": 243,"avg": 53.76,"bf": 121549,"sr": 57.26,"century": 25,"fifty": 20,"fours": 731,"sixes": 19}
+}
+
+{
+	"id": 2,
+        "statsinfo": {"matches": 277,"inns": 231,"notout": 28,"runs": 7613,"hs": 143,"avg": 63.76,"bf": 221549,"sr": 67.26,"century": 35,"fifty": 30,"fours": 831,"sixes": 29}
+}
+
+{
+	"id": 3,
+        "statsinfo": {"matches": 377,"inns": 331,"notout": 38,"runs": 8613,"hs": 343,"avg": 73.76,"bf": 321549,"sr": 77.26,"century": 45,"fifty": 40,"fours": 931,"sixes": 39}
+}
+
+Table: testarray
+{
+	"id": 1,
+        "arrstr": ["samajh","vijay","ajay"],
+        "arrbool": [true,false],
+        "info": {"arrstr":["virat kohli","abd"],"arrbool":[true,false]}
+}
+
+{
+	"id": 2,
+        "arrstr": ["vinay","vijay","ajay"," ", "aa"],
+        "arrbool": [true,false,true],
+        "info": {"arrstr":["sanjeev","abd", "sachin", "sehwag"]}
+}
+
+{
+	"id": 3,
+        "arrstr": ["nyay","Ranvijay","ajeta","!@#$%^&*()_+"],
+        "arrbool": [true,false,true],
+        "info": {"arrstr":["sachin", "sehwag","zaheer","ganguly"], "arrbool":[false,true]}
+}
+

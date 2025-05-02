@@ -1,0 +1,1204 @@
+################
+arith_add01.q
+################
+SELECT tm0,
+       timestamp_add(tm0, '1 year') as P1Y,
+       timestamp_add(tm0, '-6 months') as SUB_P6M,
+       timestamp_add(tm0, '30 days') as P30D,
+       timestamp_add(tm0, '1 year 6 months 14 days') as P1Y6M14D,
+       timestamp_add(tm0, '- 1 year 6 months 14 days') as SUB_P1Y6M14D
+FROM arithtest
+WHERE id = 0
+
+
+################
+arith_add02.q
+################
+SELECT tm9,
+       timestamp_add(tm9, '12 hours') as P12H,
+       timestamp_add(tm9, '-300 minutes') as SUB_P300MI,
+       timestamp_add(tm9, '3600 seconds 500 milliseconds') as SUB_P3600S500MS,
+       timestamp_add(tm9, '- 999 milliseconds 999999 nanoseconds') as SUB_P999MS999999NS,
+       timestamp_add(tm9, '1 hour 1 minute 1 second 1 milliseconds 1 nanoseconds') as P1H1MI1S1MS1NS,
+       timestamp_add(tm9, '- 1 hour 1 minute 1 second 1 milliseconds 1 nanoseconds') as SUB_P1H1MI1S1MS1NS
+FROM arithtest
+WHERE id = 0
+
+
+################
+arith_add03.q
+################
+SELECT tm3, tm9,
+       timestamp_add(tm3, '1 day') as T3_P1D,
+       timestamp_add(tm9, '1 day') as T9_P1D,
+       timestamp_add(tm3, '1 millisecond') as T3_P1MS,
+       timestamp_add(tm9, '1 nanosecond') as T9_P1NS
+FROM arithtest
+WHERE id = 0
+
+
+################
+arith_add04.q
+################
+SELECT timestamp_add(tm0, duration) as T0,
+       timestamp_add(tm3, duration) as T3, 
+       timestamp_add(tm9, duration) as T9,
+       timestamp_add($t.info.tm3, duration) as JT3,
+       timestamp_add($t.info.tm6, duration) as JT6
+FROM arithtest $t
+WHERE id = 0
+
+
+################
+arith_add05.q
+################
+SELECT timestamp_add(tm0, '1 day') as T1,
+       timestamp_add(current_time(), duration) as T2,
+       timestamp_add($t.info.tm3, '1 day') as T3,
+       timestamp_add(current_time(), $t.info.dur) as T4
+FROM arithtest $t
+WHERE id = 1
+
+
+################
+arith_diff01.q
+################
+SELECT id, tm3, tm0 
+FROM arithtest 
+WHERE timestamp_diff(tm3, tm0) > 0
+
+
+################
+arith_diff02.q
+################
+SELECT timestamp_diff('2021-11-27', cast(tm0 as string)) as DIFF1,
+       timestamp_diff(cast(tm0 as string), '2021-11-27') as DIFF2,
+       timestamp_diff(86400000, 0) as DIFF3,       
+       timestamp_diff('2020-03-01', $t.info.tm3) as DIFF4
+FROM arithtest $t
+WHERE id = 0
+
+
+################
+arith_diff03.q
+################
+SELECT timestamp_diff(current_time(), tm0) as DIFF1,
+       timestamp_diff(tm3, current_time()) as DIFF2,
+       timestamp_diff($t.info.tm0, current_time()) as DIFF3,
+       timestamp_diff(current_time(), $t.info.tm0) as DIFF4
+FROM arithtest $t
+WHERE id = 1
+
+
+################
+arith_dur01.q
+################
+SELECT get_duration(cast(tm3 as long)) as DUR,
+       (timestamp_add(0, get_duration(cast(tm3 as long))) = tm3) as RET
+FROM arithtest
+WHERE tm3 is not null
+
+
+
+################
+arith_err_add01.q
+################
+//the result exceeded max value of TIMESTAMP type.
+SELECT timestamp_add(tm9, '1 nanosecond')
+FROM arithtest
+WHERE id = 2
+
+
+################
+arith_err_add02.q
+################
+//the result is less than min value of TIMESTAMP type.
+SELECT timestamp_add(tm0, '- 1 nanosecond')
+FROM arithtest
+WHERE id = 2
+
+
+################
+arith_err_add03.q
+################
+//invalid unit 'mon'
+SELECT timestamp_add(tm0, '1 mon') 
+FROM arithtest
+
+
+################
+arith_err_add04.q
+################
+//invalid timestamp string 'abc'
+SELECT timestamp_add('abc', '1 day') 
+FROM arithtest
+
+
+################
+arith_err_diff01.q
+################
+//the 2nd timestamp is invalid
+SELECT timestamp_diff(tm0, duration) 
+FROM arithtest
+
+
+################
+arith_ext01.q
+################
+DECLARE $dur1 STRING;  //"7 days 12 hours"
+SELECT id
+FROM arithtest 
+WHERE timestamp_add(tm0, $dur1) > '2021-12-04'
+
+
+################
+arith_ext02.q
+################
+DECLARE $tm1 string;  //"2021-02-03T10:46:00"
+SELECT timestamp_diff(tm0, $tm1) as DIFF
+FROM arithtest 
+WHERE id = 0
+
+
+################
+arith_ext03.q
+################
+DECLARE $dur2 long;   //3600999
+SELECT timestamp_add(tm0, get_duration($dur2)) as T0
+FROM arithtest 
+WHERE id = 0
+
+
+################
+arith_misc01.q
+################
+SELECT timestamp_diff(tm0, tm3) as DIFF_T0_T3,
+       get_duration(timestamp_diff(tm0, tm3)) as DURATION_T0_T3,
+       tm0 = timestamp_add(tm3, get_duration(timestamp_diff(tm0, tm3))) as RET_T0, 
+       timestamp_diff(tm3, tm0) as DIFF_T3_T0,
+       get_duration(timestamp_diff(tm3, tm0)) as DURATION_T3_T0,
+       tm3 = timestamp_add(tm0, get_duration(timestamp_diff(tm3, tm0))) as RET_T3
+FROM arithtest 
+WHERE id = 2
+
+
+################
+ext_time02.q
+################
+declare $tm2 string;
+SELECT *
+FROM bar
+WHERE tm > CAST($tm2 AS TIMESTAMP(1))
+
+
+
+################
+ext_time04.q
+################
+declare $tm3 string;
+SELECT *
+FROM bar
+WHERE tm > CAST($tm3 AS TIMESTAMP(5))
+
+
+
+################
+ext_tm02.q
+################
+declare $tm2 string;
+SELECT *
+FROM bar
+WHERE tm > $tm2
+
+
+
+################
+ext_tm10.q
+################
+declare $tm4 string; // "2021-02-03T10:45:00.23406"
+SELECT *
+FROM bar
+WHERE tm >= $tm4
+
+
+
+################
+format_timestamp01.q
+################
+select id,
+       format_timestamp(tm9) as d0,
+       format_timestamp(tm9, 'MMMdd yyyyVV') as d1,
+       format_timestamp(t.info.tm3) as d2,
+       format_timestamp(t.info.tm3, 'HH-mm-ss.SSSSSS') as d3,
+       format_timestamp(t.info.tm6) as d4,
+       format_timestamp(t.info.tm6, "yyyy-ww'w'") as d5,
+       format_timestamp(t.info.tm6, t.info.notexists) as d6,
+       format_timestamp(t.info.notexists, 'yyyy-MM-dd') as d7
+from arithtest t
+where id = 0
+
+
+
+################
+format_timestamp02.q
+################
+select id,
+       format_timestamp(tm9, 'MM/dd/yyyy HH:mm VV', 'America/Los_Angeles') as d0,
+       format_timestamp(tm9, 'MMM dd yyyy VV', 'GMT+05:00') as d1,
+       format_timestamp(t.info.tm3, "MM/dd/yy'T'HH:mm:SS.SSS VV", 'UTC') as d2,
+       format_timestamp(t.info.tm3, 'HH-mm-ss.SSSSSS VV', 'Asia/Kolkata') as d3,
+       format_timestamp(t.info.tm3, 'yyyy-MM-dd', 'Asia/Kolkata') as d4,
+       format_timestamp(t.info.tm3, 'MMM,dd HH-mm-SS') as d5
+from arithtest t
+where id = 0
+
+
+
+################
+format_timestamp03.q
+################
+select seq_transform(t.info.formats[], format_timestamp($.dt, $.pattern)) as d
+from arithtest t
+where id = 0
+
+
+
+################
+format_timestamp04.q
+################
+select format_timestamp(t.info.dt.pattern) as d
+from arithtest t
+where id = 0
+
+
+
+################
+format_timestamp_err01.q
+################
+select format_timestamp('2000')
+from arithtest
+
+
+
+################
+format_timestamp_err02.q
+################
+select format_timestamp(tm9, 'MM/dd/yyyy v', 'America/Los_Angeles') as d1
+from arithtest t
+where id = 0
+
+
+
+################
+format_timestamp_err03.q
+################
+select format_timestamp(tm9, 'MM/dd/yyyy VV', 'PST') as d1
+from arithtest t
+where id = 0
+
+
+
+################
+funcidx01.q
+################
+select id1
+from foo
+where year(time2) = 2015
+
+
+
+################
+funcidx02.q
+################
+select id1
+from foo
+where year(time2) = 2015 and month(time2) = 1
+
+
+
+################
+funcidx03.q
+################
+select /* FORCE_INDEX(bar2 idx_year_month) */id
+from bar2 b
+where exists b.tmarr[year($element) = 2021 and month($element) < 6]
+
+
+
+################
+funcidx04.q
+################
+select id, concat(year(tm), "-", month(tm))
+from bar
+where year(tm) = 2021 and month(tm) = 2
+
+
+
+################
+funcidx05.q
+################
+select /* FORCE_INDEX(bar idx_year_hour) */ hour(tm), count(*) as cnt
+from bar
+where year(tm) = 2021
+group by hour(tm)
+
+
+
+################
+funcidx06.q
+################
+select /* FORCE_INDEX(foo idx_modtime) */ id1
+from foo $f
+where modification_time($f) < current_time()
+
+
+
+################
+funcidx07.q
+################
+select id1
+from foo $f
+where modification_time($f) > current_time()
+
+
+
+################
+funcidx08.q
+################
+select id1, modification_time($f) < current_time() as mod_time
+from foo $f
+where modification_time($f) < current_time()
+
+
+
+################
+funcidx09.q
+################
+select /*+ FORCE_INDEX(bar idx_year_month) */ *
+from bar
+
+
+
+################
+funcidx10.q
+################
+select id1, year(modification_time($f)) > 2020
+from foo $f
+where modification_time($f) < current_time()
+
+
+
+################
+funcidx11.q
+################
+select /*+ FORCE_INDEX(bar2 idx_year_month) */id
+from bar2 b
+where year(b.tmarr[]) =any 2021
+
+
+
+################
+funcidx12.q
+################
+select id
+from bar2 b
+where substring(b.map.a, 0, 4) = "2020"
+
+
+
+################
+funcidx13.q
+################
+select /*+ force_index(bar2 idx_map_keys_year_month) */ id
+from bar2 b
+where
+      exists b.map.values(substring($value, 0, 4) = "2021")
+
+
+
+################
+funcidx14.q
+################
+select /*+ force_index(bar2 idx_map_upper_keys) */ id
+from bar2 $b, $b.map.keys() $k
+where upper($k) = "B"
+
+
+
+################
+last_day_of_month01.q
+################
+select to_last_day_of_month(t0) as last_day_t0,
+       to_last_day_of_month(t3) as last_day_t3,
+       to_last_day_of_month(l3) as last_day_l3,
+       to_last_day_of_month(t.doc.l3) as last_day_jl3,
+       to_last_day_of_month(t.doc.s6) as last_day_js6
+from roundtest t
+
+
+
+################
+last_day_of_month_idx01.q
+################
+select count(id) as cnt,
+       to_last_day_of_month(t3) as day
+from roundtest
+group by to_last_day_of_month(t3)
+
+
+
+################
+last_day_of_month_idx02.q
+################
+select id
+from roundtest t
+where to_last_day_of_month(t.doc.s6) = '2021-11-30' and year(l3) = 2024
+
+
+
+################
+parse_to_timestamp01.q
+################
+select parse_to_timestamp(t.info.dt.str, t.info.dt.pattern) as d1,
+       parse_to_timestamp(t.info.tm6) as d2,
+       parse_to_timestamp(t.info.tm6, t.info.notexists) as d3,
+       parse_to_timestamp('Apr 16, 24', "MMM dd, yy") as d4
+from arithtest t
+where id = 0
+
+
+
+################
+parse_to_timestamp02.q
+################
+select parse_to_timestamp(t.info, 'yyyy-mm-dd') as d
+from arithtest t
+where id = 0
+
+
+
+################
+parse_to_timestamp_err01.q
+################
+select parse_to_timestamp(t.info.dt.str, 'MM/dd yyyy')
+from arithtest t
+where id = 0
+
+
+
+################
+parse_to_timestamp_err02.q
+################
+select parse_to_timestamp(t.info.dt.str, t.info.dt.pattern, 'EST')
+from arithtest t
+where id = 0
+
+
+
+################
+parse_to_timestamp_err03.q
+################
+select parse_to_timestamp('04/16/24 IST', "MM/dd/yy z")
+from arithtest t
+where id = 0
+
+
+
+################
+q01.q
+################
+
+select id1, time1, time2, cast ("2015-01-01T10:45:00.234" as timestamp)
+from Foo
+where time1 = cast("2014-05-05T10:45:00.234" as timestamp)
+
+
+
+################
+q02.q
+################
+
+select id1
+from Foo
+where time2 = cast ("2015-01" as timestamp)
+
+
+
+################
+q03.q
+################
+select id1, time1, time2
+from Foo
+where time1 = cast("2014-05-05T10:45:00.234" as timestamp(6))
+
+
+
+################
+q04.q
+################
+select id1, time1
+from Foo
+where time1 = cast("2014-05-05T10:45:00.234" as timestamp(0))
+
+
+
+################
+q05.q
+################
+select id1, time1, cast(time1 as timestamp(1)), cast(time2 as timestamp(3))
+from Foo
+order by id1
+
+
+
+################
+q06.q
+################
+select id1, time1
+from Foo
+where time1 = cast("2014-05-05T10:45:00.0" as timestamp(3))
+
+
+
+################
+q07.q
+################
+select id1, time1
+from Foo
+where time1 > cast("2014-05-05T10" as timestamp(3))
+
+
+
+################
+q08.q
+################
+select id 
+from foo2 f 
+where f.json[] >any cast("2022-03-18" as timestamp)
+
+
+
+################
+q09.q
+################
+select id
+from foo2 f
+where f.json[0] > cast("2022-03-18" as timestamp)
+
+
+
+################
+q10.q
+################
+select /*+ FORCE_PRIMARY_INDEX(foo2) */ id 
+from foo2 f 
+where f.json[] >any cast("2022-03-18" as timestamp)
+
+
+
+################
+time01.q
+################
+SELECT *
+FROM bar
+WHERE tm > CAST("2021-02-03T10:46:00" AS TIMESTAMP(0))
+
+
+
+################
+time02.q
+################
+SELECT *
+FROM bar
+WHERE tm > CAST("2021-02-03T10:45:00" AS TIMESTAMP(1))
+
+
+
+################
+time03.q
+################
+SELECT *
+FROM bar
+WHERE tm > CAST("2021-02-03T10:45:00" AS TIMESTAMP(3))
+
+
+
+################
+time04.q
+################
+SELECT *
+FROM bar
+WHERE tm > CAST("2021-02-03T10:45:00.24356" AS TIMESTAMP(5))
+
+
+
+################
+time05.q
+################
+SELECT *
+FROM bar
+WHERE tm > CAST("2021-02-03T10:45:00.786533" AS TIMESTAMP)
+
+
+
+################
+time06.q
+################
+SELECT *
+FROM bar
+WHERE tm > CAST("2021-02-03T10:45:00.24306" AS TIMESTAMP(5))
+
+
+
+################
+time07.q
+################
+SELECT *
+FROM bar
+WHERE tm > CAST("2021-02-03T10:45:00.23400" AS TIMESTAMP(5))
+
+
+
+################
+time08.q
+################
+SELECT *
+FROM bar
+WHERE tm < CAST("2021-02-03T10:45:00.75678" AS TIMESTAMP(5))
+
+
+
+################
+time09.q
+################
+SELECT *
+FROM bar
+WHERE tm < CAST("2021-02-03T10:45:00.75600" AS TIMESTAMP(5))
+
+
+
+################
+time10.q
+################
+SELECT *
+FROM bar
+WHERE tm >= CAST("2021-02-03T10:45:00.23406" AS TIMESTAMP(5))
+
+
+
+################
+time11.q
+################
+SELECT *
+FROM bar
+WHERE tm >= CAST("2021-02-03T10:45:00.23400" AS TIMESTAMP(5))
+
+
+
+################
+time12.q
+################
+SELECT *
+FROM bar
+WHERE tm >= CAST("2021-02-03T10:45:00.75601" AS TIMESTAMP(5))
+
+
+
+################
+time13.q
+################
+SELECT *
+FROM bar
+WHERE tm <= CAST("2021-02-03T10:45:00.75678" AS TIMESTAMP(5))
+
+
+
+################
+time14.q
+################
+SELECT *
+FROM bar
+WHERE tm <= CAST("2021-02-03T10:45:00.00000" AS TIMESTAMP(5))
+
+
+
+################
+time15.q
+################
+SELECT *
+FROM bar
+WHERE tm = CAST("2021-02-03T10:45:00.75678" AS TIMESTAMP(5))
+
+
+
+################
+time16.q
+################
+SELECT *
+FROM bar
+WHERE tm = CAST("2021-02-03T10:45:00.756" AS TIMESTAMP(5))
+
+
+
+################
+time20.q
+################
+SELECT id
+FROM bar2
+WHERE tm < CAST("2021-02-03T10:45:00.75678" AS TIMESTAMP(5))
+
+
+
+################
+time21.q
+################
+SELECT id
+FROM bar2
+WHERE tm <= CAST("2021-02-03T10:45:00.75678" AS TIMESTAMP(5))
+
+
+
+################
+time22.q
+################
+SELECT id
+FROM bar2
+WHERE tm > CAST("2021-02-03T10:45:01.11" AS TIMESTAMP(5))
+
+
+
+################
+time23.q
+################
+SELECT id
+FROM bar2
+WHERE tm >= CAST("2021-02-03T10:45:01" AS TIMESTAMP(5))
+
+
+
+################
+time24.q
+################
+SELECT id
+FROM bar2
+WHERE age > 40 and tm > CAST("2021-02-03T10:45:01.11" AS TIMESTAMP(5))
+
+
+
+################
+timestamp_bucket01.q
+################
+select t0,
+       timestamp_bucket(t0, '9 SECOND') as t0_b1_9secs,
+       s9,
+       timestamp_bucket(s9, '5 MINUTEs') as s9_b1_5mins,
+       t3,
+       timestamp_bucket(t3, '2 hour') as t3_b1_2hours,
+       t.doc.s6 as s6,
+       timestamp_bucket(t.doc.s6, '5 Days') as s6_r_5days
+from roundtest t
+where id = 0
+
+
+
+################
+timestamp_bucket02.q
+################
+select timestamp_bucket(s9, '5 days', '2021-02-01') as b1,
+       timestamp_bucket(s9, '6 hours', '2021-02-28T01') as b2,
+       timestamp_bucket(s9, '7 minutes', '2021-03-01T23:30:00.999') as b3,
+       timestamp_bucket(s9, '18 seconds', '2021-02-01T00:00:30.000000001') as b4
+from roundtest t
+where id = 0
+
+
+
+################
+timestamp_bucket03.q
+################
+select seq_transform(t.doc.bucket_arr[],
+                     timestamp_bucket($sq1.time,
+                                      $sq1.interval,
+                                      $sq1.origin)) as buckets
+from roundtest t
+where id = 0
+
+
+
+################
+timestamp_bucket_idx01.q
+################
+select timestamp_bucket(t3, '5 minutes') as t3_5mins,
+       count(*) as count
+from roundtest
+group by timestamp_bucket(t3, '5 minutes')
+
+
+
+################
+timestamp_ceil01.q
+################
+select t0,
+       timestamp_ceil(t0, 'year') as t0_to_year,
+       timestamp_ceil(t0, 'iyear') as t0_to_iyear,
+       t3,
+       timestamp_ceil(t3, 'QUARTER') as t0_to_quarter,
+       timestamp_ceil(t3, 'Month') as t3_to_month,
+       cast(l3 as timestamp(3)) as l3,
+       timestamp_ceil(l3, 'weeK') as l3_to_week,
+       timestamp_ceil(l3, 'iweeK') as l3_to_iweek,
+       cast(t.doc.l3 as timestamp(3)) as jl3,
+       timestamp_ceil(t.doc.l3, 'day') as jl3_to_day,
+       timestamp_ceil(t.doc.l3, 'hour') as jl3_to_hour,
+       t.doc.s6 as s6,
+       timestamp_ceil(t.doc.s6) as s6_to_day1,
+       timestamp_ceil(t.doc.s6, 'minute') as s6_to_minute,
+       timestamp_ceil(t.doc.s6, 'second') as s6_to_second
+from roundtest t
+where id < 2
+
+
+
+################
+timestamp_ceil02.q
+################
+select timestamp_ceil(t0, 'year') as t0_to_year,
+       timestamp_ceil(t0, 'iyear') as t0_to_iyear,
+       timestamp_ceil(t0, 'QUARTER') as t0_to_quarter,
+       timestamp_ceil(t0, 'Month') as tm0_to_month,
+       timestamp_ceil(t0, 'weeK') as t0_to_week,
+       timestamp_ceil(t0, 'iweeK') as t0_to_iweek,
+       timestamp_ceil(t0, 'day') as t0_to_day1,
+       timestamp_ceil(t0) as t0_to_day2,
+       timestamp_ceil(t0, 'hour') as t0_to_hour,
+       timestamp_ceil(t0, 'minute') as t0_to_minute,
+       timestamp_ceil(t0, 'second') as t0_to_second
+from roundtest t
+where id = 2
+
+
+
+################
+timestamp_ceil_err01.q
+################
+select timestamp_ceil(t3, 'year')
+from roundtest t
+where id = 2
+
+
+
+################
+timestamp_ceil_idx01.q
+################
+select id, timestamp_ceil(t0) as t0_to_day
+from roundtest
+where timestamp_ceil(t0) >= '2021-11-27'
+
+
+
+################
+timestamp_ceil_idx02.q
+################
+select id, timestamp_ceil(t0, 'month') as t0_to_month
+from roundtest
+where timestamp_ceil(t0, 'month') = '2021-12-01'
+
+
+
+################
+timestamp_floor01.q
+################
+select t0,
+       timestamp_floor(t0, 'year') as t0_to_year,
+       timestamp_floor(t0, 'iyear') as t0_to_iyear,
+       t3,
+       timestamp_floor(t3, 'QUARTER') as t0_to_quarter,
+       timestamp_floor(t3, 'Month') as t3_to_month,
+       cast(l3 as timestamp(3)) as l3,
+       timestamp_floor(l3, 'weeK') as l3_to_week,
+       timestamp_floor(l3, 'iweeK') as l3_to_iweek,
+       cast(t.doc.l3 as timestamp(3)) as jl3,
+       timestamp_floor(t.doc.l3, 'day') as jl3_to_day,
+       timestamp_floor(t.doc.l3, 'hour') as jl3_to_hour,
+       t.doc.s6 as s6,
+       timestamp_floor(t.doc.s6) as s6_to_day1,
+       timestamp_floor(t.doc.s6, 'minute') as s6_to_minute,
+       timestamp_floor(t.doc.s6, 'second') as s6_to_second
+from roundtest t
+where id < 2
+
+
+
+################
+timestamp_floor02.q
+################
+select timestamp_floor(t3, 'year') as t3_to_year,
+       timestamp_floor(t3, 'iyear') as t3_to_iyear,
+       timestamp_floor(t3, 'QUARTER') as t3_to_quarter,
+       timestamp_floor(t3, 'Month') as t3_to_month,
+       timestamp_floor(t3, 'weeK') as t3_to_week,
+       timestamp_floor(t3, 'iweeK') as t3_to_iweek,
+       timestamp_floor(s9, 'day') as t9_to_day,
+       timestamp_floor(s9) as t9_to_day1,
+       timestamp_floor(s9, 'hour') as t9_to_hour,
+       timestamp_floor(s9, 'minute') as t9_to_minute,
+       timestamp_floor(t3, 'second') as t3_to_second
+from roundtest t
+where id = 2
+
+
+
+################
+timestamp_floor_err01.q
+################
+select timestamp_floor(t0, 'iyear')
+from roundtest
+where id = 2
+
+
+
+################
+timestamp_floor_idx01.q
+################
+select id
+from roundtest t
+where timestamp_floor(t.doc.s6, 'year') = '2021-01-01'
+
+
+
+################
+timestamp_floor_idx02.q
+################
+select id
+from roundtest t
+where timestamp_floor(t.doc.s6) = '2021-11-26'
+
+
+
+################
+timestamp_floor_idx03.q
+################
+select id
+from roundtest t
+where month(timestamp_floor(t.doc.s6)) = 11
+
+
+
+################
+timestamp_round01.q
+################
+select t0,
+       timestamp_round(t0, 'year') as t0_to_year,
+       timestamp_round(t0, 'iyear') as t0_to_iyear,
+       t3,
+       timestamp_round(t3, 'QUARTER') as t0_to_quarter,
+       timestamp_round(t3, 'Month') as t3_to_month,
+       cast(l3 as timestamp(3)) as l3,
+       timestamp_round(l3, 'weeK') as l3_to_week,
+       timestamp_round(l3, 'iweeK') as l3_to_iweek,
+       cast(t.doc.l3 as timestamp(3)) as jl3,
+       timestamp_round(t.doc.l3, 'day') as jl3_to_day,
+       timestamp_round(t.doc.l3, 'hour') as jl3_to_hour,
+       t.doc.s6 as s6,
+       timestamp_round(t.doc.s6) as s6_to_day1,
+       timestamp_round(t.doc.s6, 'minute') as s6_to_minute,
+       timestamp_round(t.doc.s6, 'second') as s6_to_second
+from roundtest t
+where id < 2
+
+
+
+################
+timestamp_round02.q
+################
+select seq_transform(t.doc.map.keys(),
+                     timestamp_round($sq1, t.doc.map.$sq1)) as dts
+from roundtest t
+where id = 0
+
+
+
+################
+timestamp_round_err01.q
+################
+select timestamp_round(t0, 'a') from roundtest t
+
+
+
+################
+timestamp_round_err02.q
+################
+select timestamp_round(t0, '-1 day')
+from roundtest
+
+
+
+################
+timestamp_round_err03.q
+################
+select timestamp_round(t0, '2 days', 'abc')
+from roundtest
+
+
+
+################
+timestamp_round_idx01.q
+################
+select id
+from roundtest t
+where exists t.doc.arr[timestamp_round($element) =any '2021-11-27']
+
+
+
+################
+timestamp_round_idx02.q
+################
+select id
+from roundtest t
+where exists t.doc.arr[timestamp_round($element, 'year') =any '2022-01-01']
+
+
+
+################
+timestamp_trunc01.q
+################
+select t0,
+       timestamp_trunc(t0, 'year') as t0_to_year,
+       timestamp_trunc(t0, 'iyear') as t0_to_iyear,
+       t3,
+       timestamp_trunc(t3, 'QUARTER') as t0_to_quarter,
+       timestamp_trunc(t3, 'Month') as t3_to_month,
+       cast(l3 as timestamp(3)) as l3,
+       timestamp_trunc(l3, 'weeK') as l3_to_week,
+       timestamp_trunc(l3, 'iweeK') as l3_to_iweek,
+       cast(t.doc.l3 as timestamp(3)) as jl3,
+       timestamp_trunc(t.doc.l3, 'day') as jl3_to_day,
+       timestamp_trunc(t.doc.l3, 'hour') as jl3_to_hour,
+       t.doc.s6 as s6,
+       timestamp_trunc(t.doc.s6) as s6_to_day1,
+       timestamp_trunc(t.doc.s6, 'minute') as s6_to_minute,
+       timestamp_trunc(t.doc.s6, 'second') as s6_to_second
+from roundtest t
+where id < 2
+
+
+
+################
+timestamp_trunc_err01.q
+################
+select timestamp_trunc(t0, 'iyear')
+from roundtest
+where id = 2
+
+
+
+################
+timestamp_trunc_idx01.q
+################
+select id
+from roundtest t
+where timestamp_trunc(t.s9) = '2021-02-28'
+
+
+
+################
+timestamp_trunc_idx02.q
+################
+select id
+from roundtest t
+where timestamp_trunc(t.s9, 'day') = cast('2021-02-28' as timestamp)
+
+
+
+################
+timestamp_trunc_idx03.q
+################
+select id
+from roundtest t
+where year(timestamp_trunc(t.s9, 'day')) = 2021
+
+
+
+################
+timestamp_trunc_idx04.q
+################
+select id
+from roundtest t
+where timestamp_trunc(t.doc.l3,'hour') = "2020-02-28T23" and
+      timestamp_trunc(l3) > "2000-01-01"
+
+
+
+################
+tm01.q
+################
+SELECT *
+FROM bar
+WHERE tm > "2021-02-03T10:46:00"
+
+
+
+################
+tm02.q
+################
+SELECT *
+FROM bar
+WHERE tm > "2021-02-03T10:45:00"
+
+
+
+################
+tm04.q
+################
+SELECT *
+FROM bar
+WHERE tm > "2021-02-03T10:45:00.24356"
+
+
+
+################
+tm08.q
+################
+SELECT id1
+FROM foo
+WHERE "2014-05-05T10:45:00" in (time1, time2)
+
+
+
+################
+tm09.q
+################
+SELECT id
+FROM bar
+WHERE tm in ("2021-02-03T10:45:00.23406", "2021-02-03T10:45:00.999")
+
+
+
+################
+tm10.q
+################
+SELECT *
+FROM bar
+WHERE tm >= "2021-02-03T10:45:00.23406"
+
+
+
+################
+tmarr01.q
+################
+SELECT id
+FROM bar2 b
+WHERE b.tmarr[] =any "2021-02-03T10:45:00.0011"
+
+
+
+
+################
+tmarr02.q
+################
+SELECT id
+FROM bar2 b
+WHERE "2021-02-03T10:45:00.998999" <any b.tmarr[]
+
+
+

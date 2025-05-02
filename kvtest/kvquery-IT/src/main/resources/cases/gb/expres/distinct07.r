@@ -1,0 +1,9 @@
+ordered-result
+{"long":10,"int":3}
+{"long":20,"int":4} 
+{"long":10,"int":20}
+{"long":30,"int":1} 
+{"long":null,"int":0}
+{"long":null,"int":2}
+{"long":null,"int":3}
+{"long":20,"int":null}

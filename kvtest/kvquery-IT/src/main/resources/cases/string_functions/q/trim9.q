@@ -1,0 +1,1 @@
+select id, str2, trim(str2, "BOTH", "😋") from stringsTable ORDER BY id

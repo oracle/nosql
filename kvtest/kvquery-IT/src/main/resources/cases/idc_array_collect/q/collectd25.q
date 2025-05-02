@@ -1,0 +1,1 @@
+select u.address.country, array_collect(distinct u.address.phones[$element.areacode = 339]) as area339, count(u.address.phones[$element.areacode = 339]) as count  from users u group by u.address.country

@@ -1,0 +1,11 @@
+unordered-result
+{"id1":1,"stats_avg":null}
+{"id1":2,"stats_avg":null}
+{"id1":3,"stats_avg":null}
+{"id1":4,"stats_avg":null}
+{"id1":5,"stats_avg":null}
+{"id1":6,"stats_avg":4.61168601842797E14}
+{"id1":7,"stats_avg":-4.6116860184273816E16}
+{"id1":8,"stats_avg":9.615633E+26}
+{"id1":9,"stats_avg":null}
+{"id1":10,"stats_avg":5306.0}

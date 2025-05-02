@@ -1,0 +1,1 @@
+SELECT id IS OF TYPE ( string, only long ) from Foo

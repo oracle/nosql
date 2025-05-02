@@ -1,0 +1,13 @@
+unordered-result
+{"ida":0,"idb":0,"cnt":4,"sum":140,"avg":35.0}
+{"ida":0,"idb":4,"cnt":1,"sum":32,"avg":32.0}
+{"ida":0,"idb":5,"cnt":4,"sum":17,"avg":4.25}
+{"ida":0,"idb":15,"cnt":2,"sum":35,"avg":17.5}
+{"ida":40,"idb":0,"cnt":5,"sum":230,"avg":46.0}
+{"ida":40,"idb":2,"cnt":2,"sum":88,"avg":44.0}
+{"ida":40,"idb":4,"cnt":1,"sum":5,"avg":5.0}
+{"ida":40,"idb":5,"cnt":3,"sum":57,"avg":19.0}
+{"ida":40,"idb":6,"cnt":2,"sum":27,"avg":13.5}
+{"ida":40,"idb":8,"cnt":1,"sum":13,"avg":13.0}
+{"ida":40,"idb":9,"cnt":2,"sum":10,"avg":5.0}
+{"ida":1,"idb":4,"cnt":1,"sum":32,"avg":32.0}

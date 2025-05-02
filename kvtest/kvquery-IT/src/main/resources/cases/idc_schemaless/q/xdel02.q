@@ -1,0 +1,1 @@
+delete from jsoncol $f where index_storage_size($f, "idx_name") > 100 returning id,row_storage_size($f) as row_size,index_storage_size($f, "idx_index") as isize_sca, index_storage_size($f, "idx_name") as isize_cp, partition($f) as part,shard($f) as shard, remaining_days($f) as expiration, year(modification_time($f)) >= 2020 and month(modification_time($f)) >= 9  as mod_time

@@ -1,0 +1,4 @@
+select id
+from fooNew f
+where f.info.bar1 in (6, 3, seq_concat(5, 3), null)
+

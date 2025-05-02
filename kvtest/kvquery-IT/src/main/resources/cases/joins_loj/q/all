@@ -1,0 +1,622 @@
+################
+err01.q
+################
+select *
+from A a left outer join A.B b on a.ida = b.ida
+         left outer join A.B.C c ON b.ida = c.ida and b.idb = c.idb and c.c2 + d.d1 < 10
+         left outer join A.B.C.D d on c.ida = d.ida and c.idb = d.idb and c.idc = d.idc
+order by a.ida
+
+
+
+################
+err02.q
+################
+select a.ida as a_ida,
+       d.ida as d_ida, d.idb as d_idb, d.idc as d_idc, d.idd as d_idd,
+       j.ida as j_ida, j.idg as j_idg, j.idj as j_idj
+from A a left outer join A.B.C.D d on a.ida = d.ida
+         left outer join A.G.J j on d.ida = j.ida and d.idb > 10
+order by a.ida
+
+
+
+################
+err03.q
+################
+select * from A.F f left outer join A.G g
+
+
+################
+err04.q
+################
+select a.ida as a_ida, c1
+from A a left outer join A.G g on a.ida = g.ida
+order by a.ida
+
+
+
+################
+err05.q
+################
+select *
+from A a left outer join A.B b on a.ida = b.ida
+         left outer join A.B.C c on b.ida = c.ida and b.idb = c.idb
+         left outer join A.B.C.D d on c.ida = d.ida and c.idb = d.idb and
+                                      c.idc = d.idc
+where a.ida != 40
+order by a.ida desc
+
+
+
+################
+err06.q
+################
+select *
+from A.B b1 left outer join A.B b2 on b1.ida = b2.ida and b1.idb = b2.idb
+
+
+
+################
+err07.q
+################
+# Error: Table A.B is neither ancestor nor descendant of the target table A.B
+select *
+from A b1 left outer join A.B b2 on b1.ida = b2.ida and b1.idb = b2.idb
+
+
+
+################
+err08.q
+################
+# Error: Invalid expression in ON clause of left outer join: OP_OR
+select * from A.B b left outer join A.B.C c on b.ida = c.ida or c.ida > 0
+
+
+################
+err09.q
+################
+# Error: Table A is not descendant of the table A.B
+select * from A.B.C c left outer join A.B b on c.ida = b.ida and c.idb = b.idb
+					  left outer join A a on c.ida = a.ida
+
+
+
+################
+err10.q
+################
+# Error: at (1, 63) Table alias c cannot be referenced at this location
+select * from A.B.C c left outer join A a on c.ida = a.ida and c.c1 = a.c1
+                      left outer join A.B b on c.ida = b.ida and c.idb = b.idb
+
+
+
+################
+lina01.q
+################
+select c.ida as c_ida, c.idb as c_idb, c.idc as c_idc, a.ida as a_ida, a.a2
+from A.B.C c left outer join A a on c.ida = a.ida
+order by c.ida
+
+
+
+################
+lina02.q
+################
+select c.ida as c_ida, c.idb as c_idb, c.idc as c_idc,
+       a.ida as a_ida, a.c1 as a_c1,
+       b.ida as b_ida, b.idb as b_idb, b.c1 as b_c1
+from A.B.C c left outer join A a on c.ida = a.ida
+             left outer join A.B b on c.ida = b.ida and c.idb = b.idb
+order by c.ida
+
+
+
+################
+lina03.q
+################
+select d.ida as d_ida, d.idb as d_idb, d.idc as d_idc, d.idd as d_idd,
+       a.ida as a_ida, a.c1 as a_c1,
+       b.ida as b_ida, b.idb as b_idb, b.c1 as b_c1,
+       c.ida as c_ida, c.idb as c_idb, c.idc as c_idc
+from A.B.C.D d left outer join A a on d.ida = a.ida
+               left outer join A.B b on d.ida = b.ida and d.idb = b.idb
+               left outer join A.B.C c on d.ida = c.ida and d.idb = c.idb and
+                                          d.idc = c.idc
+order by d.ida
+
+
+
+################
+lina04.q
+################
+select d.ida as d_ida, d.idb as d_idb, d.idc as d_idc, d.idd as d_idd,
+       b.ida as b_ida, b.idb as b_idb, b.c1 as b_c1,
+       c.ida as c_ida, c.idb as c_idb, c.idc as c_idc
+from A.B.C.D d left outer join A.B b on d.ida = b.ida and d.idb = b.idb
+               left outer join A.B.C c on d.ida = c.ida and d.idb = c.idb and
+                                          d.idc = c.idc
+order by d.ida
+
+
+
+################
+lina05.q
+################
+select d.ida as d_ida, d.idb as d_idb, d.idc as d_idc, d.idd as d_idd,
+       a.ida as a_ida, a.c1 as a_c1,
+       b.ida as b_ida, b.idb as b_idb, b.c1 as b_c1,
+       c.ida as c_ida, c.idb as c_idb, c.idc as c_idc
+from A.B.C.D d left outer join A a on d.ida = a.ida
+               left outer join A.B b on d.ida = b.ida and d.idb = b.idb
+               left outer join A.B.C c on d.ida = c.ida and d.idb = c.idb and
+                                          d.idc = c.idc and c.c1 >= 15
+order by d.ida
+
+
+
+################
+lina06.q
+################
+select d.ida as d_ida, d.idb as d_idb, count(*) as cnt
+from A.B.C.D d left outer join A a on d.ida = a.ida
+               left outer join A.B b on d.ida = b.ida and d.idb = b.idb
+               left outer join A.B.C c on d.ida = c.ida and d.idb = c.idb and
+                                          d.idc = c.idc and c.c1 >= 15
+where d.ida = 40 and d.idb > 0 and d.idd > 5
+group by d.ida, d.idb
+
+
+
+################
+lina07.q
+################
+select d.ida as d_ida, d.idb as d_idb, d.idc as d_idc, d.idd as d_idd,
+       a.ida as a_ida,
+       b.ida as b_ida, b.idb as b_idb,
+       c.ida as c_ida, c.idb as c_idb, c.idc as c_idc
+from A.B.C.D d left outer join A a on d.ida = a.ida
+               left outer join A.B b on d.ida = b.ida and d.idb = b.idb
+               left outer join A.B.C c on d.ida = c.ida and d.idb = c.idb and
+                                          d.idc = c.idc and c.c1 >= 15
+where b.idb > 0
+order by d.ida
+
+
+
+################
+lina08.q
+################
+select d.ida as d_ida, d.idb as d_idb, d.idc as d_idc, d.idd as d_idd,
+       a.ida as a_ida,
+       b.ida as b_ida, b.idb as b_idb,
+       c.ida as c_ida, c.idb as c_idb, c.idc as c_idc
+from A.B.C.D d left outer join A a on d.ida = a.ida
+               left outer join A.B b on d.ida = b.ida and d.idb = b.idb
+               left outer join A.B.C c on d.ida = c.ida and d.idb = c.idb and
+                                          d.idc = c.idc and c.c1 >= 15
+where b.c1 > 0
+order by d.ida
+
+
+
+################
+lina09.q
+################
+select d.ida as d_ida, d.idb as d_idb, d.idc as d_idc, d.idd as d_idd,
+       a.ida as a_ida,
+       b.ida as b_ida, b.idb as b_idb,
+       c.ida as c_ida, c.idb as c_idb, c.idc as c_idc
+from A.B.C.D d left outer join A a on d.ida = a.ida
+               left outer join A.B b on d.ida = b.ida and d.idb = b.idb
+               left outer join A.B.C c on d.ida = c.ida and d.idb = c.idb and
+                                          d.idc = c.idc and c.c1 >= 15
+where b.c1 > 0 and d.ida = 40 and d.idc > 0 and d.d1 > 5
+order by d.ida
+
+
+
+################
+lina10.q
+################
+select d.ida as d_ida, d.idb as d_idb, d.idc as d_idc, d.idd as d_idd,
+       a.ida as a_ida, a.c1 as a_c1,
+       b.ida as b_ida, b.idb as b_idb, b.c1 as b_c1,
+       c.ida as c_ida, c.idb as c_idb, c.idc as c_idc
+from A.B.C.D d left outer join A a on d.ida = a.ida
+               left outer join A.B b on d.ida = b.ida and d.idb = b.idb
+               left outer join A.B.C c on d.ida = c.ida and d.idb = c.idb and
+                                          d.idc = c.idc
+where d.d2 > 15
+
+
+
+################
+lina11.q
+################
+select d.ida as d_ida, d.idb as d_idb, d.idc as d_idc, d.idd as d_idd, d.d1,
+       a.ida as a_ida, a.c1 as a_c1,
+       b.ida as b_ida, b.idb as b_idb, b.c1 as b_c1,
+       c.ida as c_ida, c.idb as c_idb, c.idc as c_idc
+from A.B.C.D d left outer join A a on d.ida = a.ida
+               left outer join A.B b on d.ida = b.ida and d.idb = b.idb
+               left outer join A.B.C c on d.ida = c.ida and d.idb = c.idb and
+                                          d.idc = c.idc
+where d.d2 > 15 and d.c3 < 100
+
+
+
+################
+lina12.q
+################
+select d.ida as d_ida, d.idb as d_idb, d.idc as d_idc, d.idd as d_idd,
+       a.ida as a_ida,
+       b.ida as b_ida, b.idb as b_idb,
+       c.ida as c_ida, c.idb as c_idb, c.idc as c_idc,
+       d.ida + b.c1 as sum1,
+       d.idb + c.ida as sum2,
+       d.d2 + a.c1 as sum3
+from A.B.C.D d left outer join A a on d.ida = a.ida
+               left outer join A.B b on d.ida = b.ida and d.idb = b.idb
+               left outer join A.B.C c on d.ida = c.ida and d.idb = c.idb and
+                                          d.idc = c.idc
+where d.d2 > 15 and d.c3 < 100
+
+
+
+################
+lina13.q
+################
+select c.ida as c_ida, c.idb as c_idb, c.idc as c_idc, a2
+from A.B.C c left outer join A a on c.ida = a.ida
+order by c.ida desc
+
+
+
+################
+lina14.q
+################
+select *
+from A.B.C c left outer join A a on c.ida = a.ida
+             left outer join A.B b on c.ida = b.ida and c.idb = b.idb
+order by c.ida
+
+
+
+################
+lina15.q
+################
+select d.ida as d_ida, d.idb as d_idb, d.idc as d_idc, d.idd as d_idd,
+       a.ida as a_ida, a.c1 as a_c1,
+       b.ida as b_ida, b.idb as b_idb, b.c1 as b_c1,
+       c.ida as c_ida, c.idb as c_idb, c.idc as c_idc
+from A.B.C.D d left outer join A a on d.ida = a.ida
+               left outer join A.B b on d.ida = b.ida and d.idb = b.idb
+               left outer join A.B.C c on d.ida = c.ida and d.idb = c.idb and
+                                          d.idc = c.idc
+where d.d2 > 15 and d.c3 < 100
+
+
+
+################
+linad01.q
+################
+select b.ida as b_ida, b.idb as b_idb,
+       a.ida as a_ida, a.a1,
+       c.ida as c_ida, c.idb as c_idb, c.idc as c_idc
+from A.B b left outer join A a on b.ida = a.ida
+           left outer join A.B.C c on b.ida = c.ida and b.idb = c.idb
+where b.ida != 40
+order by b.ida, b.idb
+
+
+
+################
+linad02.q
+################
+select b.ida as b_ida, b.idb as b_idb,
+        a.ida as a_ida, a.a2,
+       d.ida as d_ida, d.idb as d_idb, d.idc as d_idc, d.idd as d_idd
+from A.B b left outer join A a on b.ida = a.ida
+           left outer join A.B.C.D d on b.ida = d.ida and b.idb = d.idb
+order by b.ida, b.idb
+declare $ext1 integer; // = 30
+
+
+
+################
+linad03.q
+################
+select c.ida as c_ida, c.idb as c_idb, c.idc as c_idc,
+       a.ida as a_ida, a.a2,
+       b.ida as b_ida, b.idb as b_idb,
+       d.ida as d_ida, d.idb as d_idb, d.idc as d_idc, d.idd as d_idd
+from A.B.C c left outer join A a on c.ida = a.ida
+             left outer join A.B b on c.ida = b.ida and c.idb = b.idb
+             left outer join A.B.C.D d on c.ida = d.ida and c.idb = d.idb and
+                                          c.idc = d.idc and
+                                          (b.b2 = 45 or b.b2 is null and
+                                           d.c3 < $ext1)
+order by c.ida, c.idb
+
+
+
+################
+lind01.q
+################
+select *
+from A a left outer join A.B b on a.ida = b.ida
+         left outer join A.B.C c on b.ida = c.ida and b.idb = c.idb
+         left outer join A.B.C.D d on c.ida = d.ida and c.idb = d.idb and
+                                      c.idc = d.idc
+where a.ida != 40
+
+
+
+################
+lind02.q
+################
+select *
+from A a left outer join A.B b on a.ida = b.ida
+         left outer join A.B.C c on b.ida = c.ida and b.idb = c.idb
+         left outer join A.B.C.D d on c.ida = d.ida and c.idb = d.idb and
+                                      c.idc = d.idc
+order by a.ida
+
+
+
+
+################
+lind03.q
+################
+select count(*)
+from  A a left outer join A.B b on a.ida = b.ida
+         left outer join A.B.C c on b.ida = c.ida and b.idb = c.idb
+         left outer join A.B.C.D d on c.ida = d.ida and c.idb = d.idb and
+                                      c.idc = d.idc
+where a.ida != 40
+
+
+
+################
+lind04.q
+################
+select $a, b.ida, b.idb, $c.ida, $c.idb, $c.idc, d.ida, d.idb, d.idc, d.idd
+from A $a left outer join A.B b on $a.ida = b.ida
+          left outer join A.B.C $c on b.ida = $c.ida and b.idb = $c.idb
+          left outer join A.B.C.D d on $c.ida = d.ida and $c.idb = d.idb and
+                                       $c.idc = d.idc
+where $a.ida = 0
+
+
+
+################
+lind05.q
+################
+select a.ida as a_ida,
+       b.ida as b_ida, b.idb as b_idb,
+       c.ida as c_ida, c.idb as c_idb, c.idc as c_idc,
+       d.ida as d_ida, d.idb as d_idb, d.idc as d_idc, d.idd as d_idd
+from A a left outer join A.B b on a.ida = b.ida
+         left outer join A.B.C c on b.ida = c.ida and b.idb = c.idb
+         left outer join A.B.C.D d on c.ida = d.ida and c.idb = d.idb and
+         							  c.idc = d.idc
+where a.ida != 40
+order by a.ida
+
+
+
+################
+lind06.q
+################
+select a.ida as a_ida,
+       c.ida as c_ida, c.idb as c_idb, c.idc as c_idc,
+       d.ida as d_ida, d.idb as d_idb, d.idc as d_idc, d.idd as d_idd
+from A a left outer join A.B.C c on a.ida = c.ida
+         left outer join A.B.C.D d on c.ida = d.ida and c.idb = d.idb and
+                                      c.idc = d.idc
+where a.ida != 40
+order by a.ida
+
+
+
+################
+lind07.q
+################
+select a.ida as a_ida,
+       b.ida as b_ida, b.idb as b_idb,
+       d.ida as d_ida, d.idb as d_idb, d.idc as d_idc, d.idd as d_idd
+from A a left outer join A.B b on a.ida = b.ida
+         left outer join A.B.C.D d on b.ida = d.ida and b.idb = d.idb
+where a.ida != 40
+order by a.ida
+
+
+
+################
+lind08.q
+################
+select a.ida as a_ida,
+       b.ida as b_ida, b.idb as b_idb,
+       c.ida as c_ida, c.idb as c_idb, c.idc as c_idc
+from A a left outer join A.B b on a.ida = b.ida
+         left outer join A.B.C c on b.ida = c.ida and b.idb = c.idb
+where a.ida != 40
+order by a.ida
+
+
+
+################
+lind09.q
+################
+select a.ida as a_ida,
+       b.ida as b_ida, b.idb as b_idb
+from A a left outer join A.B b on a.ida = b.ida
+where a.ida != 40
+order by a.ida
+
+
+
+################
+lind10.q
+################
+select a.ida as a_ida,
+       c.ida as c_ida, c.idb as c_idb, c.idc as c_idc
+from A a left outer join A.B.C c on a.ida = c.ida
+where a.ida != 40
+order by a.ida
+
+
+################
+lind11.q
+################
+select a.ida as a_ida,
+       d.ida as d_ida, d.idb as d_idb, d.idc as d_idc, d.idd as d_idd
+from A a left outer join A.B.C.D d on a.ida = d.ida
+where a.ida != 40
+order by a.ida
+
+
+
+################
+lind12.q
+################
+select b.ida as b_ida, b.idb as b_idb,
+       c.ida as c_ida, c.idb as c_idb, c.idc as c_idc
+from A.B b left outer join A.B.C c on b.ida = c.ida and b.idb = c.idb
+where b.ida != 40
+order by b.ida, b.idb
+
+
+
+################
+lind13.q
+################
+select b.ida as b_ida, b.idb as b_idb,
+       d.ida as d_ida, d.idb as d_idb, d.idc as d_idc, d.idd as d_idd
+from A.B b left outer join A.B.C.D d on b.ida = d.ida and b.idb = d.idb
+where b.ida != 40
+order by b.ida, b.idb
+
+
+################
+lind14.q
+################
+select b.ida as b_ida, b.idb as b_idb,
+       c.ida as c_ida, c.idb as c_idb, c.idc as c_idc,
+       d.ida as d_ida, d.idb as d_idb, d.idc as d_idc, d.idd as d_idd
+from A.B b left outer join A.B.C c on b.ida = c.ida and b.idb = c.idb
+           left outer join A.B.C.D d on c.ida = d.ida and c.idb = d.idb and
+                                        c.idc = d.idc
+where b.ida != 40
+order by b.ida, b.idb
+
+
+
+################
+lind15.q
+################
+select *
+from A a left outer join A.B b on a.ida = b.ida
+         left outer join A.B.C c ON b.ida = c.ida and b.idb = c.idb and
+                                    c.c2 < 10
+         left outer join A.B.C.D d on c.ida = d.ida and c.idb = d.idb and
+                                      c.idc = d.idc
+order by a.ida
+
+
+
+################
+lind16.q
+################
+select *
+from A a left outer join A.B b on a.ida = b.ida
+         left outer join A.B.C c ON b.ida = c.ida and b.idb = c.idb and c2 > 20
+         left outer join A.B.C.D d ON c.ida = d.ida and c.idb = d.idb and
+                                      c.idc = d.idc and d1 < 20
+order by a.ida
+
+
+
+################
+lind17.q
+################
+select *
+from A a left outer join A.B b on a.ida = b.ida
+         left outer join A.B.C c ON b.ida = c.ida and b.idb = c.idb
+         left outer join A.B.C.D d ON c.ida = d.ida and c.idb = d.idb and
+                                      c.idc = d.idc and c.c2 < 10
+order by a.ida
+
+
+
+################
+lind18.q
+################
+select *
+from A a left outer join A.B b ON a.ida = b.ida and
+								  (b.b1 is null or b.c1 = a.c1)
+          left outer join A.B.C c on b.ida = c.ida and b.idb = c.idb
+          left outer join A.B.C.D d on c.ida = d.ida and c.idb = d.idb and
+          							   c.idc = d.idc
+order by a.ida
+
+
+
+################
+lind19.q
+################
+select b.ida as b_ida, b.idb as b_idb,
+       c.ida as c_ida, c.idb as c_idb, c.idc as c_idc,
+       d.ida as d_ida, d.idb as d_idb, d.idc as d_idc, d.idd as d_idd
+from A.B b left outer join A.B.C c on b.ida = c.ida and b.idb = c.idb
+           left outer join A.B.C.D d on c.ida = d.ida and c.idb = d.idb and
+                                        c.idc = d.idc
+where case when d.ida < 40 then b.ida + c.idc < 25 else c.idc > 5 end
+order by b.ida, b.idb
+
+
+
+################
+lind20.q
+################
+select *
+from A a left outer join A.B b on a.ida = b.ida
+         left outer join A.B.C c on b.ida = c.ida and b.idb = c.idb
+         left outer join A.B.C.D d on c.ida = d.ida and c.idb = d.idb and
+                                      c.idc = d.idc
+order by a.ida
+limit 10
+
+
+
+################
+lind21.q
+################
+select /*+ FORCE_INDEX(A a_idx_c1_a2) */
+       a.ida as a_ida, a.c1,
+       b.ida as b_ida, b.idb as b_idb,
+       c.ida as c_ida, c.idb as c_idb, c.idc as c_idc,
+       d.ida as d_ida, d.idb as d_idb, d.idc as d_idc, d.idd as d_idd
+from A a left outer join A.B b on a.ida = b.ida
+         left outer join A.B.C c on b.ida = c.ida and b.idb = c.idb
+         left outer join A.B.C.D d on c.ida = d.ida and c.idb = d.idb and
+                                      c.idc = d.idc
+order by a.c1
+
+
+
+################
+lind22.q
+################
+select a.ida as a_ida, b.ida as b_ida, b.idb as b_idb , b.c1 as b_c1
+from A as a left outer join A.B as b on a.ida = b.ida
+order by a.c1, a.ida
+
+
+
+################
+lind23.q
+################
+select *
+from M x left outer join M.N y on x.idx = y.idx

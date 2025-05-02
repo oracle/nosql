@@ -1,0 +1,167 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>com.oracle.nosql</groupId>
+    <artifactId>kvtest</artifactId>
+    <version>25.2.0-SNAPSHOT</version>
+  </parent>
+
+  <artifactId>kvtif-IT</artifactId>
+
+  <name>Oracle NoSQL Database Text Index Test</name>
+  <url>https://www.oracle.com/database/nosql/</url>
+
+  <properties>
+    <!-- Prevent ocibuild from publishing this module -->
+    <skipPublish>true</skipPublish>
+  </properties>
+
+  <profiles>
+    <profile>
+      <id>skip-kvtif-test</id>
+      <activation>
+        <activeByDefault>true</activeByDefault>
+      </activation>
+      <build>
+        <plugins>
+          <plugin>
+            <artifactId>maven-antrun-plugin</artifactId>
+            <configuration>
+              <skip>true</skip>
+            </configuration>
+          </plugin>
+          <plugin>
+            <artifactId>maven-failsafe-plugin</artifactId>
+            <configuration>
+              <skipITs>true</skipITs>
+            </configuration>
+          </plugin>
+          <plugin>
+            <groupId>org.jacoco</groupId>
+            <artifactId>jacoco-maven-plugin</artifactId>
+            <configuration>
+              <skip>true</skip>
+            </configuration>
+          </plugin>
+          <plugin>
+            <groupId>com.github.alexcojocaru</groupId>
+            <artifactId>elasticsearch-maven-plugin</artifactId>
+            <configuration>
+              <skip>true</skip>
+            </configuration>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+
+    <profile>
+      <id>IT</id>
+    </profile>
+
+    <profile>
+      <id>it.kvtif</id>
+    </profile>
+  </profiles>
+
+  <dependencies>
+    <!-- For Test -->
+    <dependency> <groupId>junit</groupId> <artifactId>junit</artifactId> </dependency>
+
+    <dependency> <groupId>com.oracle.nosql</groupId> <artifactId>kvstore-IT</artifactId> <version>${project.version}</version> </dependency>
+
+    <!-- checker lib during compile, but will be excluded from tar ball, due to provided scope -->
+    <dependency> <groupId>org.checkerframework</groupId> <artifactId>checker-qual</artifactId> <scope>provided</scope> </dependency>
+  </dependencies>
+
+  <build>
+    <plugins>
+      <plugin>
+        <artifactId>maven-clean-plugin</artifactId>
+      </plugin>
+      <plugin>
+        <artifactId>maven-resources-plugin</artifactId>
+      </plugin>
+      <plugin>
+        <artifactId>maven-compiler-plugin</artifactId>
+      </plugin>
+      <plugin>
+        <artifactId>maven-jar-plugin</artifactId>
+      </plugin>
+      <plugin>
+        <artifactId>maven-antrun-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>remove-es-directories</id>
+            <phase>pre-integration-test</phase>
+            <configuration>
+              <target>
+                <delete dir="${project.build.directory}/elasticsearch0" failonerror="false"/>
+              </target>
+            </configuration>
+            <goals>
+              <goal>run</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>com.github.alexcojocaru</groupId>
+        <artifactId>elasticsearch-maven-plugin</artifactId>
+        <configuration>
+          <!-- THE ELASTICSEARCH VERSION; REPLACE WITH THE VERSION YOU NEED -->
+          <version>${elasticsearch.version}</version>
+          <clusterName>tif-test-es-cluster</clusterName>
+          <transportPort>29551</transportPort>
+          <httpPort>29550</httpPort>
+          <keepExistingData>false</keepExistingData>
+          <environmentVariables>
+            <ES_JAVA_HOME>${JAVA_HOME}</ES_JAVA_HOME>
+          </environmentVariables>
+        </configuration>
+        <executions>
+          <!--
+            The elasticsearch maven plugin goals are by default bound to the
+            pre-integration-test and post-integration-test phases
+          -->
+          <execution>
+            <id>start-elasticsearch</id>
+            <phase>pre-integration-test</phase>
+            <goals>
+              <goal>runforked</goal>
+            </goals>
+          </execution>
+          <execution>
+            <id>stop-elasticsearch</id>
+            <phase>post-integration-test</phase>
+            <goals>
+              <goal>stop</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <artifactId>maven-failsafe-plugin</artifactId>
+        <configuration>
+          <systemPropertyVariables>
+            <!-- Elasticsearch port -->
+            <es.http.port>29550</es.http.port>
+          </systemPropertyVariables>
+        </configuration>
+      </plugin>
+      <plugin>
+        <groupId>org.jacoco</groupId>
+        <artifactId>jacoco-maven-plugin</artifactId>
+      </plugin>
+      <plugin>
+        <artifactId>maven-install-plugin</artifactId>
+      </plugin>
+      <plugin>
+        <artifactId>maven-deploy-plugin</artifactId>
+      </plugin>
+    </plugins>
+  </build>
+</project>

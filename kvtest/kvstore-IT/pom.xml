@@ -1,0 +1,313 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>com.oracle.nosql</groupId>
+    <artifactId>kvtest</artifactId>
+    <version>25.2.0-SNAPSHOT</version>
+  </parent>
+
+  <artifactId>kvstore-IT</artifactId>
+
+  <name>Oracle NoSQL Database KVStore Test</name>
+  <url>https://www.oracle.com/database/nosql/</url>
+
+  <properties>
+    <!-- Prevent ocibuild from publishing this module -->
+    <skipPublish>true</skipPublish>
+  </properties>
+
+  <profiles>
+    <profile>
+      <id>skip-kvstore-test</id>
+      <activation>
+        <activeByDefault>true</activeByDefault>
+      </activation>
+      <build>
+        <plugins>
+          <plugin>
+            <artifactId>maven-antrun-plugin</artifactId>
+            <configuration>
+              <skip>true</skip>
+            </configuration>
+          </plugin>
+          <plugin>
+            <artifactId>maven-failsafe-plugin</artifactId>
+            <configuration>
+              <skipITs>true</skipITs>
+            </configuration>
+          </plugin>
+          <plugin>
+            <groupId>org.jacoco</groupId>
+            <artifactId>jacoco-maven-plugin</artifactId>
+            <configuration>
+              <skip>true</skip>
+            </configuration>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+
+    <profile>
+      <id>IT</id>
+    </profile>
+
+    <profile>
+      <id>it.kvstore</id>
+    </profile>
+
+    <profile>
+      <id>mats</id>
+      <properties>
+        <mats>
+          oracle/kv/impl/admin/*Test,
+          oracle/kv/impl/admin/client/**/*Test,
+          oracle/kv/impl/admin/plan/**/*Test,
+          oracle/kv/impl/admin/criticalevent/**/*Test,
+          oracle/kv/impl/admin/param/**/*Test,
+          oracle/kv/impl/admin/web/**/*Test,
+          oracle/kv/impl/admin/topo/**/*Test,
+          oracle/kv/impl/param/**/*Test,
+          oracle/kv/impl/query/**/*Test,
+          oracle/kv/query/**/*Test,
+          qt/framework/**/*Test,
+          oracle/kv/impl/api/table/**/*Test,
+          oracle/kv/impl/rep/**/*Test,
+          oracle/kv/impl/api/*Test,
+          oracle/kv/impl/sna/**/*Test,
+          oracle/kv/impl/rep/subscription/**/*Test,
+          oracle/kv/impl/pubsub/**/*Test,
+          oracle/kv/pubsub/**/*Test,
+          oracle/kv/impl/tif/**/*Test,
+          oracle/kv/impl/xregion/**/*Test,
+          oracle/kv/impl/util/**/*Test,
+          oracle/kv/impl/backup/**/*Test,
+          oracle/kv/util/**/*Test
+        </mats>
+      </properties>
+    </profile>
+
+    <profile>
+      <id>mats.admin</id>
+      <properties>
+        <mats>
+          oracle/kv/impl/admin/*Test
+        </mats>
+      </properties>
+    </profile>
+
+    <profile>
+      <id>mats.adminclient</id>
+      <properties>
+        <mats>
+          oracle/kv/impl/admin/client/**/*Test
+        </mats>
+      </properties>
+    </profile>
+
+    <profile>
+      <id>mats.plan</id>
+      <properties>
+        <mats>
+          oracle/kv/impl/admin/plan/**/*Test,
+          oracle/kv/impl/admin/criticalevent/**/*Test,
+          oracle/kv/impl/admin/param/**/*Test,
+          oracle/kv/impl/admin/web/**/*Test,
+          oracle/kv/impl/admin/topo/**/*Test,
+          oracle/kv/impl/param/**/*Test
+        </mats>
+      </properties>
+    </profile>
+
+    <profile>
+      <!-- To run qt.framework test, we must activate -Pit.query profile as well -->
+      <id>mats.table</id>
+      <properties>
+        <mats>
+          oracle/kv/impl/query/**/*Test,
+          oracle/kv/query/**/*Test,
+          qt/framework/**/*Test,
+          oracle/kv/impl/api/table/**/*Test
+        </mats>
+      </properties>
+    </profile>
+
+    <profile>
+      <id>mats.rn</id>
+      <properties>
+        <mats>
+          oracle/kv/impl/rep/**/*Test,
+          oracle/kv/impl/api/*Test
+        </mats>
+      </properties>
+    </profile>
+
+    <profile>
+      <id>mats.sn</id>
+      <properties>
+        <mats>
+          oracle/kv/impl/sna/**/*Test
+        </mats>
+      </properties>
+    </profile>
+
+    <profile>
+      <id>mats.streams</id>
+      <properties>
+        <mats>
+          oracle/kv/impl/rep/subscription/**/*Test,
+          oracle/kv/impl/pubsub/**/*Test,
+          oracle/kv/pubsub/**/*Test,
+          oracle/kv/impl/tif/**/*Test,
+          oracle/kv/impl/xregion/**/*Test
+        </mats>
+      </properties>
+    </profile>
+
+    <profile>
+      <id>mats.util</id>
+      <properties>
+        <mats>
+          oracle/kv/impl/util/**/*Test,
+          oracle/kv/impl/backup/**/*Test,
+          oracle/kv/util/**/*Test
+        </mats>
+      </properties>
+    </profile>
+  </profiles>
+
+  <dependencies>
+    <!-- For Test -->
+    <dependency> <groupId>junit</groupId> <artifactId>junit</artifactId> </dependency>
+
+    <dependency> <groupId>com.oracle.nosql</groupId> <artifactId>kvmain</artifactId> <version>${project.version}</version> </dependency>
+    <dependency> <groupId>com.oracle.nosql</groupId> <artifactId>sql</artifactId> <version>${project.version}</version> </dependency>
+    <dependency> <groupId>com.oracle.nosql</groupId> <artifactId>recovery</artifactId> <version>${project.version}</version> </dependency>
+
+    <!-- checker lib during compile, but will be excluded from tar ball, due to provided scope -->
+    <dependency> <groupId>org.checkerframework</groupId> <artifactId>checker-qual</artifactId> <scope>provided</scope> </dependency>
+    <!-- easymock -->
+    <dependency> <groupId>org.easymock</groupId> <artifactId>easymock</artifactId> </dependency>
+    <!-- jetestutil -->
+    <!-- <dependency> <groupId>com.sleepycat</groupId> <artifactId>jetestutil</artifactId> </dependency> -->
+    <!-- Kerberos -->
+    <dependency> <groupId>org.apache.kerby</groupId> <artifactId>kerb-client</artifactId> </dependency>
+    <dependency> <groupId>org.apache.kerby</groupId> <artifactId>kerb-common</artifactId> </dependency>
+    <dependency> <groupId>org.apache.kerby</groupId> <artifactId>kerb-core</artifactId> </dependency>
+    <dependency> <groupId>org.apache.kerby</groupId> <artifactId>kerb-crypto</artifactId> </dependency>
+    <dependency> <groupId>org.apache.kerby</groupId> <artifactId>kerb-identity</artifactId> </dependency>
+    <dependency> <groupId>org.apache.kerby</groupId> <artifactId>kerb-server</artifactId> </dependency>
+    <dependency> <groupId>org.apache.kerby</groupId> <artifactId>kerb-simplekdc</artifactId> </dependency>
+    <dependency> <groupId>org.apache.kerby</groupId> <artifactId>kerb-util</artifactId> </dependency>
+    <dependency> <groupId>org.apache.kerby</groupId> <artifactId>kerby-asn1</artifactId> </dependency>
+    <dependency> <groupId>org.apache.kerby</groupId> <artifactId>kerby-config</artifactId> </dependency>
+    <dependency> <groupId>org.apache.kerby</groupId> <artifactId>kerby-pkix</artifactId> </dependency>
+    <dependency> <groupId>org.apache.kerby</groupId> <artifactId>kerby-util</artifactId> </dependency>
+    <!-- hadoop -->
+    <dependency> <groupId>org.apache.hadoop</groupId> <artifactId>hadoop-common</artifactId> </dependency>
+    <dependency> <groupId>org.apache.hadoop</groupId> <artifactId>hadoop-mapreduce-client-core</artifactId> </dependency>
+    <dependency> <groupId>org.apache.hadoop</groupId> <artifactId>hadoop-annotations</artifactId> </dependency>
+    <dependency> <groupId>org.apache.hadoop</groupId> <artifactId>hadoop-yarn-api</artifactId> </dependency>
+    <dependency> <groupId>org.apache.hadoop</groupId> <artifactId>hadoop-auth</artifactId> </dependency>
+    <dependency> <groupId>org.apache.hadoop</groupId> <artifactId>hadoop-mapreduce-client-common</artifactId> </dependency>
+    <!-- ojdbc6 for external tables -->
+    <!-- <dependency> <groupId>com.oracle</groupId> <artifactId>ojdbc6</artifactId> </dependency> -->
+  </dependencies>
+
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.codehaus.gmavenplus</groupId>
+        <artifactId>gmavenplus-plugin</artifactId>
+        <version>2.1.0</version>
+        <dependencies>
+          <dependency>
+            <groupId>org.apache.groovy</groupId>
+            <artifactId>groovy-ant</artifactId>
+            <version>4.0.6</version>
+            <scope>runtime</scope>
+          </dependency>
+        </dependencies>
+        <executions>
+          <execution>
+            <id>run-mats</id>
+            <phase>initialize</phase>
+            <goals>
+              <goal>execute</goal>
+            </goals>
+            <configuration>
+              <scripts>
+                <script><![CDATA[
+                  def value = ""
+                  (project.activeProfiles).each {
+                    profile -> if (profile.properties.mats) {value += profile.properties.mats + ","}
+                  }
+                  if (value) {
+                    value = value.substring(0, value.length() - 1)
+                    project.properties.setProperty('it.test', value)
+                    log.info("Mats profile(s) activated, running tests with following pattern:")
+                    value.split(',').each {
+                      pattern -> log.info(pattern.trim())
+                    }
+                  } else {
+                    log.info("No mats profile specified.")
+                  }
+                  ]]>
+                </script>
+              </scripts>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <artifactId>maven-clean-plugin</artifactId>
+      </plugin>
+      <plugin>
+        <artifactId>maven-resources-plugin</artifactId>
+      </plugin>
+      <plugin>
+        <artifactId>maven-compiler-plugin</artifactId>
+      </plugin>
+      <plugin>
+        <artifactId>maven-jar-plugin</artifactId>
+        <configuration>
+          <archive>
+            <manifest>
+              <mainClass>oracle.kv.impl.util.KVStoreMain</mainClass>
+            </manifest>
+          </archive>
+        </configuration>
+      </plugin>
+      <plugin>
+        <artifactId>maven-antrun-plugin</artifactId>
+      </plugin>
+      <plugin>
+        <artifactId>maven-failsafe-plugin</artifactId>
+        <configuration>
+          <excludes>
+            <!--
+              All inner classes
+              This is the default value if no excludes defined
+            -->
+            <exclude>**/*$*</exclude>
+            <!-- Erasure Test -->
+            <exclude>oracle/kv/impl/api/table/TableErasureTest.class</exclude>
+          </excludes>
+        </configuration>
+      </plugin>
+      <plugin>
+        <groupId>org.jacoco</groupId>
+        <artifactId>jacoco-maven-plugin</artifactId>
+      </plugin>
+      <plugin>
+        <artifactId>maven-install-plugin</artifactId>
+      </plugin>
+      <plugin>
+        <artifactId>maven-deploy-plugin</artifactId>
+      </plugin>
+    </plugins>
+  </build>
+</project>

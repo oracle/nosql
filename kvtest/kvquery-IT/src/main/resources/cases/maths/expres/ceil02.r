@@ -1,0 +1,2 @@
+unordered-result
+{"ic":-42,"ceilic":-42,"lc":-9223372036444,"ceillc":-9223372036444,"fc":-3.14,"ceilfc":-3.0,"dc":-2.7182823456,"ceildc":-2.0,"nc":-123.456,"ceilnc":-123,"icjson":-42,"ceilicjson":-42,"lcjson":-9223372036444,"ceillcsjon":-9223372036444,"fcjson":-3.14159,"ceilfcsjon":-3.0,"dcjson":-2.7182823456,"ceildcsjon":-2.0,"ncjson":-123.456,"ceilncsjon":-123.0}

@@ -1,0 +1,2 @@
+unordered-result
+{"numMap":{"a":1,"b":2,"c":3},"degreesnumMap":null,"numNestedMap":{"x":{"a":1},"y":{"b":2}},"degreesnumNestedMap":null,"douMap":{"d":1.1,"e":2.2},"degreesdouMap":null,"douNestedMap":{"z":{"f":3.3}},"degreesdouNestedMap":null,"docnumMap":{"a":1,"b":2,"c":3},"degreesdocnumMap":null,"docnumNestedMap":{"x":{"a":1},"y":{"b":2}},"degreesdocnumNestedMap":null,"docdouMap":{"d":1.1,"e":2.2},"degreesdocdouMap":null,"docdouNestedMap":{"z":{"f":3.3}},"degreesdocdouNestedMap":null}

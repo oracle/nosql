@@ -1,0 +1,1023 @@
+Table: users
+
+{
+  "id": 1,
+  "country": "USA",
+  "firstName": "David",
+  "lastName": "Morrison",
+  "otherNames": null,
+  "age": 25,
+  "income": 100000,
+  "lastLogin": "2016-10-29T18:43:59.8319Z",
+  "address": {
+    "city": "Antioch",
+    "country": "USA",
+    "phones": [{
+      "areacode": 423,
+      "number": 8634379,
+      "type": "home"
+    }],
+    "state": "TN",
+    "street": "150 Route 2",
+    "zipcode": 37013
+  },
+  "connections": [2, 3],
+  "expenses": {
+    "food": 1E+3,
+    "gas": 1.8E+2
+  },
+  "type": "free",
+  "photo": "dGhpcyBpcyBvcmFjbGUgbm9zcWwgZGF0YWJhc2U=",
+  "thumbnail": "MTIz",
+  "rating": 4.3
+}
+
+{
+  "id": 2,
+  "country": "USA",
+  "firstName": "John",
+  "lastName": "Morrison",
+  "otherNames": [{
+    "first": "Johny",
+    "last": "BeGood"
+  }],
+  "age": 35,
+  "income": 80000,
+  "lastLogin": "2016-11-28T13:01:11.2088Z",
+  "address": {
+    "city": "Beloit",
+    "country": "USA",
+    "phones": [{
+      "areacode": 339,
+      "number": 1684972,
+      "type": "home"
+    }],
+    "state": "WI",
+    "street": "187 Hill Street",
+    "zipcode": 53511
+  },
+  "connections": [1, 3],
+  "expenses": {
+    "books": 100.34,
+    "food": 1.7E+3,
+    "travel": 2100.6798
+  },
+  "type": "free",
+  "photo": null,
+  "thumbnail": "MTIz",
+  "rating": 4.23
+}
+
+{
+  "id": 3,
+  "country": "USA",
+  "firstName": "John",
+  "lastName": "Morgan",
+  "otherNames": null,
+  "age": 38,
+  "income": 100000000,
+  "lastLogin": "2016-11-29T08:21:35.4971Z",
+  "address": null,
+  "connections": [1, 4, 2],
+  "expenses": {
+    "food": 2E+3,
+    "gas": 1E+1,
+    "others": 2E+2,
+    "travel": 7E+2
+  },
+  "type": "paid",
+  "photo": null,
+  "thumbnail": null,
+  "rating": 4.8
+}
+
+{
+  "id": 4,
+  "country": null,
+  "firstName": "Peter",
+  "lastName": "Smith",
+  "otherNames": null,
+  "age": 38,
+  "income": 80000,
+  "lastLogin": "2016-10-19T09:18:05.5555Z",
+  "address": {
+    "city": "Leominster",
+    "country": "USA",
+    "phones": [{
+      "areacode": 339,
+      "number": 4120211,
+      "type": "work"
+    }, {
+      "areacode": 339,
+      "number": 8694021,
+      "type": "work"
+    }, {
+      "areacode": 339,
+      "number": 1205678,
+      "type": "home"
+    }, {
+      "areacode": 305,
+      "number": 8064321,
+      "type": "home"
+    }],
+    "state": "MA",
+    "street": "364 Mulberry Street"
+  },
+  "connections": [3, 5, 1, 2],
+  "expenses": {
+    "books": 2.4E+2,
+    "clothes": 2E+3,
+    "food": 6E+3,
+    "shoes": 1.2E+3
+  },
+  "type": null,
+  "photo": "dGhpcyBpcyBvcmFjbGUgbm9zcWwgZGF0YWJhc2U=",
+  "thumbnail": "MTIz",
+  "rating": 5.0
+}
+
+{
+  "id": 5,
+  "country": "USA",
+  "firstName": "Dana",
+  "lastName": "Scully",
+  "otherNames": null,
+  "age": 47,
+  "income": 400000,
+  "lastLogin": "2016-11-08T09:16:46.3929Z",
+  "address": {
+    "city": "Monroe Township",
+    "country": "USA",
+    "phones": [{
+      "areacode": 201,
+      "number": 3213267,
+      "type": "work"
+    }, {
+      "areacode": 201,
+      "number": 8765421,
+      "type": "work"
+    }, {
+      "areacode": 339,
+      "number": 3414578,
+      "type": "home"
+    }],
+    "state": "NJ",
+    "street": "427 Linden Avenue"
+  },
+  "connections": [2, 4, 1, 3],
+  "expenses": {
+    "clothes": 1.5E+3,
+    "food": 9E+2,
+    "shoes": 1E+3
+  },
+  "type": null,
+  "photo": null,
+  "thumbnail": null,
+  "rating": null
+}
+
+{
+  "id": 101,
+  "country": "IND",
+  "firstName": "Ganesh",
+  "lastName": "Eshwar",
+  "otherNames": [{
+    "first": "Ganesha",
+    "last": null
+  }],
+  "age": 18,
+  "income": 20000,
+  "lastLogin": "2016-10-25T10:43:59.8319Z",
+  "address": {
+    "city": "Bengaluru",
+    "country": "IND",
+    "phones": [{
+      "areacode": 80,
+      "number": 2446543,
+      "type": "home"
+    }],
+    "state": "KA",
+    "street": "KH ROAD",
+    "zipcode": 560004
+  },
+  "connections": [102],
+  "expenses": {
+    "food": 1E+3,
+    "gas": 1.8E+2,
+    "rent": 3E+2,
+    "travel": 345.44
+  },
+  "type": "paid",
+  "photo": "dGhpcyBpcyBvcmFjbGUgbm9zcWwgZGF0YWJhc2U=",
+  "thumbnail": "MTIz",
+  "rating": 3.3
+}
+
+{
+  "id": 102,
+  "country": "IND",
+  "firstName": "Vishnu",
+  "lastName": "Prasad",
+  "otherNames": [{
+    "first": null,
+    "last": "Hari"
+  }],
+  "age": 35,
+  "income": 80000,
+  "lastLogin": "2016-11-18T13:01:11.2088Z",
+  "address": {
+    "city": "Bengaluru",
+    "country": "IND",
+    "phones": [{
+      "areacode": 80,
+      "number": 24423455,
+      "type": "home"
+    }],
+    "state": "KA",
+    "street": "MG ROAD",
+    "zipcode": 560002
+  },
+  "connections": [101, 103],
+  "expenses": {
+    "books": 100.34,
+    "food": 1.7E+3,
+    "travel": 2100.6798
+  },
+  "type": "paid",
+  "photo": null,
+  "thumbnail": "MTIz",
+  "rating": 4.23
+}
+
+{
+  "id": 103,
+  "country": "IND",
+  "firstName": "Nara",
+  "lastName": "Simha",
+  "otherNames": null,
+  "age": 38,
+  "income": 100000000,
+  "lastLogin": "2016-11-29T08:21:35.4971Z",
+  "address": null,
+  "connections": [104, 102],
+  "expenses": {
+    "food": 2E+3,
+    "gas": 1E+1,
+    "others": 2E+2,
+    "travel": 7E+2
+  },
+  "type": "paid",
+  "photo": null,
+  "thumbnail": null,
+  "rating": 4.8
+}
+
+{
+  "id": 104,
+  "country": null,
+  "firstName": "Narayana",
+  "lastName": "Simha",
+  "otherNames": null,
+  "age": 38,
+  "income": null,
+  "lastLogin": "2016-10-19T09:18:05.5555Z",
+  "address": {
+    "city": "Mysuru",
+    "country": "IND",
+    "state": "TN",
+    "street": "Cubbon road"
+  },
+  "connections": [103, 105, 101, 102],
+  "expenses": {
+    "books": 2.4E+2,
+    "clothes": 2E+3,
+    "food": 6E+3,
+    "shoes": 1.2E+3
+  },
+  "type": null,
+  "photo": "dGhpcyBpcyBvcmFjbGUgbm9zcWwgZGF0YWJhc2U=",
+  "thumbnail": "MTIz",
+  "rating": 5.0
+}
+
+{
+  "id": 105,
+  "country": "IND",
+  "firstName": "Ramesh",
+  "lastName": "Chandra",
+  "otherNames": null,
+  "age": 47,
+  "income": 400000,
+  "lastLogin": "2016-11-08T09:16:46.3929Z",
+  "address": {
+    "city": "Kanoor",
+    "country": "IND",
+    "phones": [{
+      "areacode": 201,
+      "number": 3213267,
+      "type": "work"
+    }, {
+      "areacode": 201,
+      "number": 8765421,
+      "type": "work"
+    }, {
+      "areacode": 339,
+      "number": 3414578,
+      "type": "home"
+    }],
+    "state": "KL"
+  },
+  "connections": [2, 4, 1, 3],
+  "expenses": {
+    "clothes": 1.5E+3,
+    "food": 9E+2,
+    "shoes": 1E+3
+  },
+  "type": null,
+  "photo": null,
+  "thumbnail": null,
+  "rating": null
+}
+
+{
+  "id": 201,
+  "country": "GER",
+  "firstName": "Arnold",
+  "lastName": "Morrison",
+  "otherNames": null,
+  "age": 52,
+  "income": 8000,
+  "lastLogin": "2016-10-19T18:43:59.8319Z",
+  "address": {
+    "city": "Antioch",
+    "country": "GER",
+    "phones": [{
+      "areacode": 1423,
+      "number": 86343333456679,
+      "type": "home"
+    }],
+    "street": "150 Route 2",
+    "zipcode": 37013
+  },
+  "connections": [202, 203],
+  "expenses": {
+    "food": 1E+2,
+    "gas": 2.18E+3
+  },
+  "type": "paid",
+  "photo": "dGhpcyBpcyBvcmFjbGUgbm9zcWwgZGF0YWJhc2U=",
+  "thumbnail": "MTIz",
+  "rating": 4.3
+}
+
+{
+  "id": 202,
+  "country": "GER",
+  "firstName": "John",
+  "lastName": "Anderson",
+  "otherNames": [{
+    "first": "Johny",
+    "last": "BeGood"
+  }],
+  "age": 35,
+  "income": 80000,
+  "lastLogin": "2016-11-18T13:01:11.2088Z",
+  "address": {
+    "city": "Beloit",
+    "country": "GER",
+    "phones": [{
+      "areacode": 339,
+      "number": 1684972,
+      "type": "home"
+    }],
+    "street": "187 Hill Street",
+    "zipcode": 53511
+  },
+  "connections": [201, 203],
+  "expenses": {
+    "books": 100.34,
+    "food": 1.7E+3,
+    "travel": 2100.6798
+  },
+  "type": "free",
+  "photo": null,
+  "thumbnail": "MTIz",
+  "rating": 4.23
+}
+
+{
+  "id": 203,
+  "country": "GER",
+  "firstName": "John",
+  "lastName": "Morgan",
+  "otherNames": null,
+  "age": 38,
+  "income": 100000000,
+  "lastLogin": "2016-11-09T08:21:35.4971Z",
+  "address": null,
+  "connections": [301, 304, 302],
+  "expenses": {
+    "food": 2E+3,
+    "gas": 1E+1,
+    "others": 2E+2,
+    "travel": 7E+2
+  },
+  "type": "paid",
+  "photo": null,
+  "thumbnail": null,
+  "rating": 4.8
+}
+
+{
+  "id": 204,
+  "country": null,
+  "firstName": "Peter",
+  "lastName": "Smith",
+  "otherNames": null,
+  "age": 38,
+  "income": 80000,
+  "lastLogin": "2016-10-19T09:18:05.5555Z",
+  "address": {
+    "city": "Leominster",
+    "phones": [{
+      "areacode": 339,
+      "number": 4120211,
+      "type": "work"
+    }, {
+      "areacode": 339,
+      "number": 8694021,
+      "type": "work"
+    }, {
+      "areacode": 339,
+      "number": 1205678,
+      "type": "home"
+    }, {
+      "areacode": 305,
+      "number": 8064321,
+      "type": "home"
+    }],
+    "street": "364 Mulberry Street"
+  },
+  "connections": [203, 205, 201, 202],
+  "expenses": {
+    "books": 2.4E+2,
+    "clothes": 2E+3,
+    "food": 6E+3,
+    "shoes": 1.2E+3
+  },
+  "type": null,
+  "photo": "dGhpcyBpcyBvcmFjbGUgbm9zcWwgZGF0YWJhc2U=",
+  "thumbnail": "MTIz",
+  "rating": 5.0
+}
+
+{
+  "id": 205,
+  "country": "GER",
+  "firstName": "Dana",
+  "lastName": "Scully",
+  "otherNames": null,
+  "age": 47,
+  "income": 400000,
+  "lastLogin": "2016-11-08T09:16:46.3929Z",
+  "address": {
+    "city": "Monroe Township",
+    "country": "GER",
+    "phones": [{
+      "areacode": 201,
+      "number": 3213267,
+      "type": "work"
+    }, {
+      "areacode": 201,
+      "number": 8765421,
+      "type": "work"
+    }, {
+      "areacode": 339,
+      "number": 3414578,
+      "type": "home"
+    }],
+    "street": "427 Linden Avenue"
+  },
+  "connections": [202, 204, 201, 203],
+  "expenses": {
+    "clothes": 1.5E+3,
+    "food": 9E+2,
+    "shoes": 1E+3
+  },
+  "type": null,
+  "photo": null,
+  "thumbnail": null,
+  "rating": null
+}
+
+Table: emails
+{
+    "userId": "UO5",
+    "email": "john.parker@email.com",
+    "userInfo": {
+        "name": {
+            "first": "John",
+            "middle": "R",
+            "last": "Parker"
+        },
+        "gender": "M",
+        "password": "welcome1",
+        "active": true,
+        "age": 32,
+        "createdOn": 1397590281239,
+        "modifiedOn": 1397590281239
+    }
+}
+{
+    "userId": "UO1",
+    "email": "foo.bar@email.com",
+    "userInfo": {
+        "name": {
+            "first": "Foo",
+            "middle": "",
+            "last": "Bar"
+        },
+        "gender": "M",
+        "password": "welcome1",
+        "active": true,
+        "age": 36,
+        "createdOn": 1397674692401,
+        "modifiedOn": 1397674692401
+    }
+}
+{
+    "userId": "UO4",
+    "email": "andy.tug@email.com",
+    "userInfo" : {
+        "name": {
+            "first": "Andy",
+            "middle": "S",
+            "last": "Tug"
+        },
+        "gender": "M",
+        "password": "welcome1",
+        "active": true,
+        "age": 32,
+        "createdOn": 1397590281239,
+        "modifiedOn": 1397590281239
+    }
+}
+{
+    "userId": "UO6",
+    "email": "john.smith @ email.com",
+    "userInfo" : {
+        "name": {
+            "first": "John",
+            "middle": "K",
+            "last": "Smith "
+        },
+        "gender": "M",
+        "password": "welcome1",
+        "active": false,
+        "age": 15,
+        "createdOn": 1397590281239,
+        "modifiedOn": 1397590281239
+    }
+}
+{
+    "userId": "UO2",
+    "email": "john.miller @ email.com",
+    "userInfo": {
+        "name": {
+            "first": "John",
+            "middle": "",
+            "last": "Miller "
+        },
+        "gender": "M",
+        "password": "welcome1",
+        "active": true,
+        "age": 17,
+        "createdOn": 1397674717616,
+        "modifiedOn": 1397674717616
+    }
+}
+{
+    "userId": "UO7",
+    "email": "bethi.yu @ email.com",
+    "userInfo": {
+        "name": {
+            "first": "Bethi",
+            "middle": "K",
+            "last": "Yu "
+        },
+        "gender": "F",
+        "password": "welcome1",
+        "active": true,
+        "age": 32,
+        "createdOn": 1397590281239,
+        "modifiedOn": 1397590281239
+    }
+}
+{
+    "userId": "UO12",
+    "email": "susan.wang @ email.com",
+    "userInfo": {
+        "name": {
+            "first": "Susan",
+            "middle": "",
+            "last": "Wang "
+        },
+        "gender": "F",
+        "password": "welcome1",
+        "active": true,
+        "age": 15,
+        "createdOn": 1397590281239,
+        "modifiedOn": 1397590281239
+    }
+}
+{
+    "userId": "UO3",
+    "email": "sara.william @ email.com",
+    "userInfo": {
+        "name": {
+            "first": "Sara",
+            "middle": "",
+            "last": "William "
+        },
+        "gender": "F",
+        "password": "welcome1",
+        "active": true,
+        "age": 22,
+        "createdOn": 1397674745328,
+        "modifiedOn": 1397674745328
+    }
+}
+{
+    "userId": "UO11",
+    "email": "mike.smith @ email.com",
+    "userInfo": {
+        "name": {
+            "first": "Mike",
+            "middle": "K",
+            "last": "Smith "
+        },
+        "gender": "F",
+        "password": "welcome1",
+        "active": true,
+        "age": 42,
+        "createdOn": 1397590281239,
+        "modifiedOn": 1397590281239
+    }
+}
+{
+    "userId": "UOl",
+    "email": "twinkle.star @ email.com",
+    "userInfo": {
+        "name": {
+            "first": "Twinkle",
+            "middle": "",
+            "last": "Star "
+        },
+        "gender": "F",
+        "password": "welcome1",
+        "active": true,
+        "age": 31,
+        "createdOn": 1397771037184,
+        "modifiedOn": 1397771037184
+    }
+}
+{
+    "userId": "UO10",
+    "email": "adi.walia @ email.com",
+    "userInfo": {
+        "name": {
+            "first": "Adi",
+            "middle": "",
+            "last": "Walia "
+        },
+        "gender": "M",
+        "password": "welcome1",
+        "active": true,
+        "age": 32,
+        "createdOn": 1397590281239,
+        "modifiedOn": 1397590281239
+    }
+}
+{
+    "userId": "UO13",
+    "email": "cris.smith @ email.com",
+    "userInfo": {
+        "name": {
+            "first": "Cris",
+            "middle": "",
+            "last": "Smith "
+        },
+        "gender": "M",
+        "password": "welcome1",
+        "active": false,
+        "age": 16,
+        "createdOn": 1397590281239,
+        "modifiedOn": 1397590281239
+    }
+}
+{
+    "userId": "UO9",
+    "email": "jim.nelson @ email.com",
+    "userInfo": {
+        "name": {
+            "first": "Jim",
+            "middle": "K",
+            "last": "Nelson "
+        },
+        "gender": "M",
+        "password": "welcome1",
+        "active": true,
+        "age": 17,
+        "createdOn": 1397590281239,
+        "modifiedOn": 1397590281239
+    }
+}
+{
+    "userId": "UO8",
+    "email": "ravi.singh @ email.com",
+    "userInfo": {
+        "name": {
+            "first": "Ravi",
+            "middle": "V",
+            "last": "Singh "
+        },
+        "gender": "M",
+        "password": "welcome1",
+        "active": true,
+        "age": 30,
+        "createdOn": 1397590281239,
+        "modifiedOn": 1397590281239
+    }
+}
+
+
+Table: emails.folder
+{
+  "userId": "UO7",
+  "folderId": "FO19",
+  "name": "Inbox"
+}
+{
+  "userId": "UO7",
+  "folderId": "FO20",
+  "name": "Sent"
+}
+{
+  "userId": "UO7",
+  "folderId": "FO21",
+  "name": "Trash"
+}
+{
+  "userId": "UO3",
+  "folderId": "FO7",
+  "name": "Inbox"
+}
+{
+  "userId": "UO3",
+  "folderId": "FO8",
+  "name": "Sent"
+}
+{
+  "userId": "UO3",
+  "folderId": "FO9",
+  "name": "Trash"
+}
+{
+  "userId": "UOl",
+  "folderId": "FOF",
+  "name": "Inbox"
+}
+{
+  "userId": "UOl",
+  "folderId": "FOG",
+  "name": "Sent"
+}
+{
+  "userId": "UOl",
+  "folderId": "FOH",
+  "name": "Trash"
+}
+{
+  "userId": "UO2",
+  "folderId": "FO4",
+  "name": "Inbox"
+}
+{
+  "userId": "UO2",
+  "folderId": "FO5",
+  "name": "Sent"
+}
+{
+  "userId": "UO2",
+  "folderId": "FO6",
+  "name": "Trash"
+}
+{
+  "userId": "UO4",
+  "folderId": "FO10",
+  "name": "Inbox"
+}
+{
+  "userId": "UO4",
+  "folderId": "FO11",
+  "name": "Sent"
+}
+{
+  "userId": "UO4",
+  "folderId": "FO12",
+  "name": "Trash"
+}
+{
+  "userId": "UO10",
+  "folderId": "FO28",
+  "name": "Inbox"
+}
+{
+  "userId": "UO10",
+  "folderId": "FO29",
+  "name": "Sent"
+}
+{
+  "userId": "UO10",
+  "folderId": "FO30",
+  "name": "Trash"
+}
+{
+  "userId": "UO6",
+  "folderId": "FO16",
+  "name": "Inbox"
+}
+{
+  "userId": "UO6",
+  "folderId": "FO17",
+  "name": "Sent"
+}
+{
+  "userId": "UO6",
+  "folderId": "FO18",
+  "name": "Trash"
+}
+{
+  "userId": "UO8",
+  "folderId": "FO22",
+  "name": "Inbox"
+}
+{
+  "userId": "UO8",
+  "folderId": "FO23",
+  "name": "Sent"
+}
+{
+  "userId": "UO8",
+  "folderId": "FO24",
+  "name": "Trash"
+}
+{
+  "userId": "UO1",
+  "folderId": "FO1",
+  "name": "Inbox"
+}
+{
+  "userId": "UO1",
+  "folderId": "FO2",
+  "name": "Sent"
+}
+{
+  "userId": "UO1",
+  "folderId": "FO3",
+  "name": "Trash"
+}
+{
+  "userId": "UO11",
+  "folderId": "FO31",
+  "name": "Inbox"
+}
+{
+  "userId": "UO11",
+  "folderId": "FO32",
+  "name": "Sent"
+}
+{
+  "userId": "UO11",
+  "folderId": "FO33",
+  "name": "Trash"
+}
+{
+  "userId": "UO5",
+  "folderId": "FO13",
+  "name": "Inbox"
+}
+{
+  "userId": "UO5",
+  "folderId": "FO14",
+  "name": "Sent"
+}
+{
+  "userId": "UO5",
+  "folderId": "FO15",
+  "name": "Trash"
+}
+{
+  "userId": "UO9",
+  "folderId": "FO25",
+  "name": "Inbox"
+}
+{
+  "userId": "UO9",
+  "folderId": "FO26",
+  "name": "Sent"
+}
+{
+  "userId": "UO9",
+  "folderId": "FO27",
+  "name": "Trash"
+}
+{
+  "userId": "UO12",
+  "folderId": "FO34",
+  "name": "Inbox"
+}
+{
+  "userId": "UO12",
+  "folderId": "FO35",
+  "name": "Sent"
+}
+{
+  "userId": "UO12",
+  "folderId": "FO36",
+  "name": "Trash"
+}
+
+Table: emails.folder.message
+{
+  "userId": "UO3",
+  "name": "Inbox",
+  "messageId": "MO1",
+  "read": false
+}
+{
+  "userId": "UO3",
+  "name": "Sent",
+  "messageId": "MOl",
+  "read": false
+}
+{
+  "userId": "UO3",
+  "name": "Trash",
+  "messageId": "MOl",
+  "read": false
+}
+{
+  "userId": "UO8",
+  "name": "Inbox",
+  "messageId": "MOF",
+  "read": false
+}
+{
+  "userId": "UO8",
+  "name": "Sent",
+  "messageId": "MOG",
+  "read": false
+}
+{
+  "userId": "UO8",
+  "name": "Trash",
+  "messageId": "MOH",
+  "read": false
+}
+{
+  "userId": "UO1",
+  "name": "Inbox",
+  "messageId": "MOG",
+  "read": false
+}
+{
+  "userId": "UO1",
+  "name": "Sent",
+  "messageId": "MOH",
+  "read": false
+}
+{
+  "userId": "UO1",
+  "name": "Trash",
+  "messageId": "MOl",
+  "read": false
+}
+{
+  "userId": "UO1",
+  "name": "Inbox",
+  "messageId": "MO1",
+  "read": false
+}
+{
+  "userId": "UO1",
+  "name": "Sent",
+  "messageId": "MOF",
+  "read": false
+}
+{
+  "userId": "UO10",
+  "name": "Trash",
+  "messageId": "MOH",
+  "read": false
+}

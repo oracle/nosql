@@ -1,0 +1,2 @@
+#Expression is function call with size, using logical,and exists operator(not empty) and is not null in predicate
+select id,size(array) is null from sn s where size(map) is not null or exists age order by id

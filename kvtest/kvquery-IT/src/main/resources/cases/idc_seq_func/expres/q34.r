@@ -1,0 +1,11 @@
+unordered-result
+{"id1":1,"sum":null}
+{"id1":2,"sum":null}
+{"id1":3,"sum":null}
+{"id1":4,"sum":170.37}
+{"id1":5,"sum":null}
+{"id1":6,"sum":null}
+{"id1":7,"sum":null}
+{"id1":8,"sum":null}
+{"id1":9,"sum":null}
+{"id1":10,"sum":null}

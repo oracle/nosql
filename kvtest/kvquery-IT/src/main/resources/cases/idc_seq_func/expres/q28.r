@@ -1,0 +1,11 @@
+unordered-result
+{"id1":1,"MSD_sum":null}
+{"id1":2,"MSD_sum":null}
+{"id1":3,"MSD_sum":null}
+{"id1":4,"MSD_sum":1.112222E+12}
+{"id1":5,"MSD_sum":null}
+{"id1":6,"MSD_sum":null}
+{"id1":7,"MSD_sum":null}
+{"id1":8,"MSD_sum":null}
+{"id1":9,"MSD_sum":null}
+{"id1":10,"MSD_sum":null}

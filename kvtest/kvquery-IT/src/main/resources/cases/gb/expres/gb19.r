@@ -1,0 +1,9 @@
+unordered-result
+{"state":null,"count":1}
+{"state":"CA","count":6}
+{"state":"MA","count":4}
+{"state":"NM","count":1}
+{"state":"NY","count":1}
+{"state":"OR","count":4}
+{"state":"VT","count":2}
+{"state":"WA","count":3}

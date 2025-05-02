@@ -1,0 +1,2 @@
+#expression returns year using Extract Function for json array and order by id
+SELECT id,extract(year from t.json.ats9[1]) as ats1,extract(year from t.json.ats9[2]) as ats2,extract(year from t.json.ats9[3]) as ats3,extract(year from t.json.ats9[4]) as ats4,extract(year from t.json.ats9[5]) as ats5,extract(year from t.json.ats9[6]) as ats6,extract(year from t.json.ats9[7]) as ats7 ,extract(year from t.json.ats9[8]) as ats8,extract(year from t.json.ats9[9]) as ats9 FROM Extract t ORDER BY id

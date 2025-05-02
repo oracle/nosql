@@ -1,0 +1,1 @@
+SELECT * FROM DropIdentity1 ORDER BY ID

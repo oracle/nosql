@@ -1,0 +1,15 @@
+unordered-result
+{"id":4,"age":15,"child":"Anna","work":604}
+{"id":4,"age":15,"child":"Mark","work":604}
+{"id":4,"age":15,"child":"Anna","work":618}
+{"id":4,"age":15,"child":"Mark","work":618}
+{"id":1,"age":11,"child":"Anna","work":304}
+{"id":1,"age":11,"child":"Mark","work":304}
+{"id":1,"age":11,"child":"Anna","work":318}
+{"id":1,"age":11,"child":"Mark","work":318}
+{"id":5,"age":11,"child":"Anna","work":605}
+{"id":5,"age":11,"child":"Mark","work":605}
+{"id":5,"age":11,"child":"Anna","work":629}
+{"id":5,"age":11,"child":"Mark","work":629}
+{"id":6,"age":11,"child":null,"work":605}
+{"id":6,"age":11,"child":null,"work":629}

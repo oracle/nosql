@@ -1,0 +1,1296 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+
+<head>
+  <title>Oracle NoSQL Database Release Notes</title>
+</head>
+
+<body>
+
+<div class="docMain">
+<center>
+<h1>Oracle NoSQL Database ${project.version}<br>
+Release Notes</h1>
+</center>
+
+<!-- Note: project.version, release.edition and timestamp are set by mvn -->
+<p class="releaseInfo">Release ${release.version.full}, ${timestamp}</p>
+<h2><a name="contents">Contents</a></h2>
+<ul>
+<li><a href="#overview">Overview</a>
+<li><a href="#release">This Release</a>
+<li><a href="#features">New Features</a>
+<li><a href="#distributions">Distributions</a>
+<li><a href="#issues">Known Issues</a>
+</ul>
+<h2><a name="overview">Overview</a></h2>
+<p>
+Oracle NoSQL Database is a distributed key-value store capable of scaling
+horizontally to handle very large amounts of data.
+</p>
+<h2><a name="release">This Release</a></h2>
+<p>
+This is release ${release.version.full} of Oracle NoSQL Database.
+</p>
+<p>
+We strongly recommend that users of earlier versions upgrade to
+this release.  For a complete listing of all the changes made to Oracle
+NoSQL Database for this release, including all bug fixes, see
+the <a href="changelog.html">change log</a>.
+</p>
+<h3><a name="javacompatibility">Supported Java Versions</a></h3>
+<p>
+Since the 23.1 release, the Oracle NoSQL Database client and server have
+been compatible with Java SE 11. Both the client and the server require at
+least Java SE 11, and should work with more recent Java SE versions. For
+the 24.4 release, the client and server have been tested and certified
+against Oracle Java SE 21.0.4, which is a long-term support (LTS)
+release, and OpenJDK 21.0.2. We encourage you to upgrade to Java SE 21
+to take advantage of the latest bug fixes and performance improvements.
+</p>
+<p>
+Although this release works with the latest LTS release, Java 21, there
+is a limitation regarding virtual threads. See the Known Issues section.
+</p>
+<p>
+Attempting to use this release with a version of Java earlier than the
+required version will produce an error message similar to:
+</p>
+<blockquote>
+<pre>
+Exception in thread "main" java.lang.UnsupportedClassVersionError:
+  oracle/kv/impl/util/KVStoreMain has been compiled by a more recent
+  version of the Java Runtime (class file version 55.0), this version of
+  the Java Runtime only recognizes class file versions up to 52.0
+</pre>
+</blockquote>
+<h3>Product Upgrade Policy</h3>
+<p>
+Release 24.4 supports upgrades from releases for
+the prior four calendar years. To upgrade a store directly to the
+current release, the store must be running release 20.1 or later.
+</p>
+<p>
+If you have a store running a 19.x release, we recommend that you
+upgrade it to the current release by first upgrading to the 21.2 or 20.3
+release (or another 21.x or 20.x release) and then upgrading from that
+to the current release. If you have a store running an 18.x release, we
+recommend that you upgrade to the 20.3 release (or another 20.x release)
+and then upgrade from that to the current release. If you have a store
+running a 4.x release, we recommend that you first upgrade to the 19.5
+release (or another 19.x release) and then follow our recommendations
+for upgrading from 19.x. If you have a store running a release earlier
+than the 4.x release and you are an Enterprise Edition user, please
+contact support. If you are a Community Edition user with this issue,
+please post a question to the
+<a href="https://community.oracle.com/tech/developers/categories/nosql_database_discuss">NoSQL
+Database Discussions forum on Oracle Communities</a>.
+</p>
+
+<h2><a name="features">New Features</a></h2>
+<!-- Descriptions major features for the initial major release and
+     subsequent minor releases, in reverse order -->
+<h3>New in Release 24.4</h3>
+
+No new features were added in release 24.4.
+
+<h3>New in Release 24.3</h3>
+
+<h4>New Timestamp SQL functions</h4>
+Implemented new SQL functions to round a timestamp, cast a timestamp
+to/from a string, or extract information from a timestamp (calendar quarter,
+day of week/month/year, last day of month).
+
+<h4>Support of elasticity operations for multiple sharded subscribers</h4>
+The Streams API now supports elasticity operations with multiple subscribers.
+When an application creates multiple sharded subscribers as a group,
+the Streams API supports elasticity operations in the kvstore. That is, the
+Streams API will deliver data in the proper order while the topology
+of the store is being changed by an elasticity operation.
+<p>
+Please note: before this change, users could configure multiple sharded
+subscribers without a checkpoint table mapper. This API has been deprecated.
+With the new feature, the checkpoint table mapper is required for multiple
+sharded subscribers, and an exception will be thrown if the stream is
+configured without the mapper.
+
+<h4>Multi-region tables with multiple cross-region service agents now
+support elasticity operations</h4>
+When a user configures a group of cross-region service agents
+connecting different regions, multi-region tables now support elasticity
+operations in any region. That is, data in a multi-region table will be
+eventually consistent in the presence of elasticity operations in any region.
+
+<h3>New in Release 24.1</h3>
+<h4>SQL Mathematical Functions</h4>
+Implemented the following mathematical SQL functions:
+ABS, ACOS, ASIN, ATAN, ATAN2, CEIL, COS, COT, DEGREES, EXP, FLOOR,
+LOG, LOG10, POWER, RADIANS, RAND, ROUND, SIGN, SIN, SQRT, TAN, TRUNC.
+<h3>New in Release 23.3</h3>
+<h4>JSON Collections</h4>
+Added JSON Collection as a new table type. The new type makes it more
+convenient to use JSON to represent unstructured data.
+<h4>New SQL Aggregate Functions</h4>
+Implemented three new SQL aggregate functions: count(distinct),
+array_collect(), and array_collect(distinct).
+<h4>Multi-region Table Agent Groups</h4>
+Stores with multi-region tables can now achieve greater throughput for
+data transfer from remote regions by deploying multiple multi-region
+agents to replicate data from a remote region.
+<h4>Deprecating Eclipse Plugin</h4>
+The final release of the Eclipse plugin is 1.0.2. The plugin will be
+deprecated in Spring 2024.  Development and enhancements will continue
+on the Visual Studio and IntelliJ plugins.   We recommend that developers
+move over to one of those two plugins.
+<h3>New in Release 23.1</h3>
+<h4>Added Support for SQL BETWEEN Operator</h4>
+Implemented the SQL BETWEEN operator. This is a convenience operator
+that makes it easier to write queries that include range predicates with
+both a lower and an upper bound. For example, the query
+<pre>
+  select * from users where age between 20 and 30
+</pre>
+is equivalent to the query
+<pre>
+  select * from users where 20 <= age and age <= 30
+</pre>
+<h4>Java 11 is Required</h4>
+This release now requires using Java 11 or later for both client
+applications and for running the store.
+<h4>Removed Support for Hive</h4>
+Removed support for Hive, including all of the classes in the
+<code>oracle.kv.hadoop.hive.table</code> package. Hive support was
+removed because this release requires Java 11 and the Hive package has
+not been updated to support that Java release. Hive support was needed
+for BigDataSQL, which is now also no longer supported.
+<h3>New in Release 22.3</h3>
+<h4>Indexing Functions in SQL</h4>
+Indexes can now be created on the values of one or more functions over
+index paths. The set of functions that support indexes is the following
+subset of the builtin functions: modification_time, expiration_time,
+expiration_time_millis, row_storage_size, year, month, day, hour,
+minute, second, millisecond, microsecond, nanosecond, week, length,
+replace, reverse, substring, trim, ltrim, rtrim, lower, upper.
+<h3>New in Release 22.2</h3>
+<h4>Removed Import/Export Utility</h4>
+<p>
+As of release 22.2 the import/export utility is no longer part of the release.
+It was previously deprecated and its functionality has been moved to the
+data migrator utility, which is an independent download.
+Chapter 7 of the Oracle NoSQL Database Administrator's Guide contains details
+on using the data migrator as well as a comparison between the import/export
+utility and the data migrator.
+</p>
+<h4>Erasing Obsolete User Data Has Been Enabled By Default</h4>
+<p>
+Data erasure, added in 21.2, will now be enabled by default.
+This feature erases obsolete user data within a specified time
+period after becoming obsolete, without adding significant performance
+impact to the application.
+</p>
+<p>
+Two Rep Node parameters control erasure: "enableErasure" is used
+to enable erasure, which is now enabled by default, and "erasurePeriod"
+specifies the time required to complete an erasure cycle, which defaults
+to 6 days.
+</p>
+<p>
+Note: Snapshot-based backups create hard links to original files.
+Until these backups are copied to their target location and the
+corresponding hard links are removed, erasure will not process
+obsolete data in those files.  This is to preserve the integrity
+of the backups.  Erasure ignores files with hard links to them.
+</p>
+<h3>New in Release 22.1</h3>
+<h4>JSON MRCounter Types</h4>
+The MR_COUNTER SQL type can now be used in JSON fields for multi-region
+tables. The change adds support for merging independent modifications
+made in multiple regions into a single combined value to schemaless JSON
+fields.
+<h4>Elasticity for MR Tables</h4>
+Stores that contain multi-region tables now support elasticity changes
+that change the store topology.
+<h4>Child tables for MR Tables</h4>
+Multi-region tables now support child tables. Child tables always
+inherit the regions of the associated top level tables.
+<h4>KVLocal</h4>
+Applications can now create and manage a small, standalone store
+instance using the new KVLocal class.
+<h4>Deprecating Import/Export Utility</h4>
+<p>
+Release 22.1 is the final release to include the import/export utility. It
+will be removed as of the next quarterly release. We have moved the functionality
+of the import/export utility over to the data migrator. Chapter 7 of the Oracle
+NoSQL Database Administrator's Guide contains details on using the data
+migrator as well as a comparison between the import/export utility and the
+data migrator.  The import/export utility has been deprecated since the 20.3
+release and we encourage customers to move to the new data migrator utility
+now.
+</p>
+<h3>New in Release 21.2</h3>
+<h4>Unnesting of Arrays and Maps in Queries</h4>
+The UNNEST clause has been introduced, which converts an array or map
+into a series of rows. The syntax of the FROM clause has also been
+extended to allow specifying a list of expressions after the table or
+tables used by the query, which can influence which indexes the query
+runtime selects for queries that have UNNEST clauses.
+<h4>Erasing User Data</h4>
+<p>
+Added support for erasing obsolete user data within a specified time
+period after becoming obsolete, without adding significant performance
+impact to the application. This new feature, data erasure, runs in the
+background to zero out obsolete data. All data that is obsolete from the
+database point of view is removed: i.e. deleted data, older versions of
+updated records, and expired data. Data erasure also removes corresponding
+obsolete index records.
+</p>
+<p>
+Two new Rep Node parameters control erasure: "enableErasure" is used
+to enable erasure, which is disabled by default, and "erasurePeriod"
+specifies the time required to complete an erasure cycle.
+</p>
+<p>
+Note: Snapshot-based backups create hard links to original files.
+Until these backups are copied to their target location and the
+corresponding hard links are removed, erasure will not process
+obsolete data in those files.  This is to preserve the integrity
+of the backups.  Erasure ignores files with hard links to them.
+</p>
+<h4>Deprecating Property Graph Package</h4>
+Starting with release 21.2, the RDF Property Graph package is deprecated
+and is no longer certified with Oracle NoSQL Database.
+<h4>Disabling DSA (ssh-dss) SSH Keys in the Diagnostics Utility</h4>
+The diagnostics utility no longer supports DSA (ssh-dss) SSH keys due to
+security weaknesses with that algorithm. Attempting to use the
+diagnostics utility with a DSA (ssh-dss) SSH key will produce an error
+message similar to:
+<blockquote>
+<pre>
+DefaultAuthFuture[ssh-connection]: Failed (IllegalArgumentException) to
+execute: No signer could be located for key type=ssh-dss
+</pre>
+</blockquote>
+In a future version, RSA (ssh-rsa) SSH key support may also be removed
+for similar reasons. It's recommended to migrate to other SSH key
+algorithms, for example ECDSA or ED25519.
+<h3>New in Release 21.1</h3>
+<h4>MRCounter Type</h4>
+Added support for the new MR_COUNTER SQL type, which can be used with
+INTEGER, LONG and NUMBER value types in multi-region tables. The new
+type supports merging independent modifications made in multiple regions
+into a single combined value.
+<h4>Left Outer Join</h4>
+<p>
+Added support for the "LEFT OUTER JOIN" syntax to be compatible with
+standard ANSI SQL.
+</p>
+<h4>Indexes for Nested Arrays and Maps</h4>
+<p>
+This release adds support for indexing arrays and maps that are nested
+within other arrays or maps.
+</p>
+<h4>New SQL Functions</h4>
+<p>
+Added new SQL functions to access information about row storage size,
+index storage size, modification time, containing partition, and
+containing shard. Also added a function to convert a string to JSON.
+</p>
+<h3>New in Release 20.3</h3>
+<h4>Universally Unique Identifier</h4>
+<p>
+Added SQL support for randomly generated UUIDs, including the
+random_uuid() function, the new "AS UUID" option for STRING data types,
+and the new "GENERATED BY DEFAULT" option for "STRING AS UUID" data
+types. These new facilities provide an easy way to create a field that
+contains a unique ID for each row. UUID fields can be used to create
+unique primary keys in multi-region tables, since multi-region tables do
+not support the IDENTITY fields that serve this purpose for local
+tables.
+</p>
+<h4>Deprecating Import/Export Utility</h4>
+<p>
+In the Oracle NoSQL Database 20.2 release, we released a new Data
+Migrator utility. We have moved the functionality of the import/export
+utility over to the data migrator. Chapter 7 of the Oracle NoSQL Database
+Administrator's Guide contains details on using the data migrator as
+well as a comparison between the import/export utility and the data migrator.
+We are deprecating the import/export utility as of the 20.3 release and
+encourage customers to use the new data migrator utility.
+</p>
+<h3>New in Release 20.2</h3>
+<h4>Generic Order By and Group By</h4>
+<p>
+In previous releases, order-by and group-by were possible only if there
+was an index that sorted the rows by the order-by/group-by expressions.
+Furthermore, it was not possible for queries to include both order-by
+and group-by. These restrictions are lifted in this release. Note that
+generic order-by and group-by may consume a lot of driver memory,
+because of the need to materialize the full query result in driver
+memory.
+</p>
+<h4>SELECT DISTINCT</h4>
+<p>
+The DISTINCT keyword is now supported in the SELECT clause. If present,
+duplicate results will be removed from query result set. As with generic
+order-by and group-by, SELECT DISTINCT needs to cache the full result
+set in driver memory.
+</p>
+<h4>TTL in Streams API and Multi-Region Tables</h4>
+<p>
+Added support for Time to Live (TTL) in the Streams API and in
+Multi-Region Tables. The Rows supplied by the Streams API to subscribers
+will include the TTL expiration time for the operation from source
+store. For Multi-Region Tables, the TTL expiration time of each row is
+replicated to other regions, and thus a row in Multi-region table in any
+region will expire at the expiration time replicated from the region
+where and when operation is made.
+</p>
+<h3>New in Release 20.1</h3>
+<h4>IN Operator</h4>
+<p>
+Added support for the IN operator in SQL for Oracle NoSQL. The IN
+operator provides a convenient way to match one of several equality
+conditions. For example, the query
+<pre>
+select * from Foo where a in (1, 5, 4)
+</pre>
+is equivalent to
+<pre>
+select * from Foo where a = 1 or a = 5 or a = 4
+</pre>
+<h4>Untyped JSON indexes</h4>
+<p>
+Before this release, indexing a field inside a JSON document required
+that the field have a concrete JSON atomic type &mdash; one of integer,
+long, double, number, string, or boolean. If, for some document, the
+index field value did not conform to the declared type, index creation
+or the insertion of that document in a table would fail. This release
+adds support for the new anyAtomic type as a valid type for indexed JSON
+fields. A field indexed with the anyAtomic type can be of any valid JSON
+atomic type and the index will store all the heterogeneous values of
+that field.
+</p>
+<h4>General Availability of Multi-Region Tables</h4>
+<p>
+Multi-Region Tables have received several improvements in this release
+and is now considered a general availability feature.
+</p>
+<p>
+New additions and improvements:
+<ul>
+<li>Regions can now be added or removed from an existing multi-region
+table.
+<li>A multi-region table can be dropped in one region and the associated
+tables can remain in other regions.
+<li>When creating a multi-region table, the associated tables in remote
+regions no longer need to be empty.
+</ul>
+<p>
+Note that multi-region tables are now only available in the Enterprise
+Edition.
+</p>
+<h3>New in Release 19.5</h3>
+<h4>Multi-Region Tables</h4>
+<p>
+Multi-Region Tables are a new feature that lets users create
+"read-anywhere" and "write-anywhere" tables that live in multiple
+regions, where each region is a separate Oracle NoSQL Database store.
+This is a preview release to give users an early access to the new
+feature. It not recommended to deploy this version of multi-region
+tables in a production environment. A general availability version will
+be available in a future release. Data stored in multi-region tables
+created with this release may need to be discarded when upgrading to the
+general availability version. Please refer to the Admin Guide and
+related documents for more information on the new feature, and see the
+Known Issues section below for a list of limitations in this release.
+</p>
+<h4>Asynchronous Table API Methods</h4>
+<p>
+The table API now has asynchronous methods that applications can use to
+make calls without using a thread to wait for results, which can improve
+the efficiency of clients that make many concurrent calls.
+</p>
+<p>
+The client uses a new network protocol that multiplexes multiple calls
+on the same socket, which supports asynchronous operations and reduces
+the number of socket connections needed. The new client is only
+compatible with this version of the server, although the new server
+continues to support older clients.
+</p>
+<h4>String manipulation SQL functions</h4>
+<p>
+A set of new functions have been added to SQL queries to help with
+string manipulation: concatenation, substring, trim, ltrim, rtrim,
+length, contains, starts_with, ends_with, index_of, replace, reverse,
+upper, lower.
+</p>
+<h4>Deprecating "kvproxy drivers"</h4>
+<p>
+In the 19.3 release, Oracle NoSQL Database released a database proxy
+component that lets Oracle NoSQL Database drivers communicate with the
+Oracle NoSQL Database cluster, called the "HTTP proxy drivers." Prior to
+the 19.3 release, there was another set of Oracle NoSQL Database drivers
+that used a thrift based proxy for communication, called the "kvproxy
+drivers." These drivers are available in Java, C#, Javascript, and
+Python. The "HTTP proxy drivers" provide richer capabilities and will be
+usable for both on-prem and cloud applications. The "kvproxy drivers"
+have been deprecated in this release and are subject to removal from
+future versions. They should be used with that possibility in mind. The
+APIs are different between the "kvproxy drivers" and the "HTTP proxy
+drivers", so existing applications will need to be modified to use the
+"HTTP proxy drivers." Deprecated drivers will be clearly marked on the
+<a href="https://www.oracle.com/database/technologies/nosql-database-server-downloads.html">NoSQL
+Oracle Technology Network</a> download page.
+</p>
+<h3>New in Release 19.3</h3>
+<h4>String pattern matching in queries</h4>
+<p>
+Queries now support a new built-in function, regex_like, which can be
+used to specify string pattern matching in queries.
+</p>
+<h4>Hybrid Cloud Deployment</h4>
+<p>
+Oracle NoSQL Database can now by used with the drivers for the Oracle
+NoSQL Database Cloud Service by deploying the new HTTP Proxy. The JAR
+file for the HTTP Proxy is included in the Enterprise Edition
+distribution of Oracle NoSQL Database. All users can download the latest
+version of the JAR from the
+<a href="https://www.oracle.com/technetwork/database/database-technologies/nosqldb/downloads/index.html">Oracle
+Technology Network web site</a>.
+</p>
+<h3>New in Release 19.1</h3>
+<h4>JSON datatype support for Full Text Search</h4>
+<p>
+Users can create full text search indexes on a JSON field and on the
+attributes within that JSON field.
+</p>
+<h4>Export/Import Enhancement</h4>
+<p>
+The Export/Import tool has been enhanced to allow users to migrate their
+data into Oracle NoSQL Database using either JSON or MongoDB JSON
+formats.
+</p>
+<h4>Deprecating Export/Import support for Oracle Storage Cloud Services</h4>
+<p>
+Export/Import support for the Oracle Storage Cloud Service that is part
+of Oracle Cloud Infrastructure Classic has been deprecated for use as a
+source or sink. Support for the cloud storage that is part of the new
+Oracle Cloud Infrastructure will be provided in the future.
+</p>
+<h3>New in Release 18.3</h3>
+<h4>Querying GeoJson data</h4>
+<p>
+Introduced support for a number of built-in functions in SQL queries to
+interpret JSON objects that represent geographical locations as
+specified in the GeoJSON specification
+(<a href="https://tools.ietf.org/html/rfc7946">https://tools.ietf.org/html/rfc7946</a>).
+</p>
+<h4>Support for Namespaces</h4>
+<p>
+Starting this release users can create namespaces. Tables can be created
+for a particular namespace. If users do not specify a namespace at the time
+of table creation the tables are placed under the default namespace of
+sysDefault. Prior to this release there was no concept of namespace
+in Oracle NoSQL Database. All tables created using prior releases will
+be placed in sysDefault namespace on upgrade.
+</p>
+<h4>IDENTITY column support</h4>
+<p>
+Users can create a table with an IDENTITY column for which the system
+will automatically generate numeric values using a sequence generator.
+</p>
+<h4>Support for INSERT and UPSERT in SQL query</h4>
+<p>
+Support for INSERT and UPSERT statements has been added in SQL
+queries.
+</p>
+<h4>Support for sequence aggregation functions in SQL query</h4>
+<p>
+The following new functions have been added to support sequence
+aggregation operations in SQL queries: seq_count, seq_sum, seq_avg,
+seq_min, and seq_max.
+</p>
+<h4>Admin Web Service</h4>
+<p>
+Oracle NoSQL Admin can now be started as a web service that processes
+Admin CLI commands through a REST API over the HTTP and HTTPS protocol.
+The input and output to the Admin Web Service is in JSON format.
+This feature is intended to help DevOps and other NoSQL admins automate
+administrative operations.
+</p>
+<h4>Monitoring using ELK Framework</h4>
+<p>
+Oracle NoSQL Database can be setup to generate logs that can be used by
+the popular ELK (Elastic Search - Logstash - Kibana) framework to
+visually monitor NoSQL clusters.
+</p>
+<h4>Support for Encryption at rest</h4>
+<p>
+Oracle NoSQL Database can be setup to encrypt its data using dm-crypt, a
+kernel-level disk encryption mechanism available for Linux.
+</p>
+<h3>New in Release 18.1</h3>
+<H4>Support for Group-by and Aggregate Function</h4>
+<p>
+This release introduces support for the group-by clause and the
+following aggregate functions: count(*), count(expr), sum(expr),
+avg(expr), min(expr) and max (expr).
+</p>
+<H4>Joining Tables in the Same Table Hierarchy</h4>
+<p>
+Support for joining tables that belong to the same table hierarchy &mdash;
+parent-child table joins &mdash; is now available.
+</p>
+<H4>Zone Affinity</h4>
+<p>
+Users can specify master affinity for the primary zones that are in
+close proximity to the client application. This feature allows the
+system to favor placing master nodes in primary zones that have master
+affinity set so that write operations are directed to nearby zones for
+more predictable latency.
+</p>
+<h3>New in Release 4.5</h3>
+<H4>Introducing Streaming API for tables</h4>
+<p>
+Oracle NoSQL Database provides a Streams API that allows users to
+subscribe to changes made to tables by puts, updates and deletes. This
+new API is based on the Reactive Streams standard
+(http://www.reactive-streams.org).  Applications that use the Stream API
+need to be compiled with Java SE Development Kit 8, and
+require <code>kvstore.jar</code> for both compilation and at runtime.
+</p>
+<H4>Introducing C# Driver</h4>
+<p>
+The Oracle NoSQL Database C# driver allows native C# applications to access data
+stored in Oracle NoSQL Database tables using the
+basic <code>get</code>, <code>put</code>, and <code>search</code>
+operations.
+</p>
+<H4>Support for UPDATE in SQL query</h4>
+<p>
+Added UPDATE statement support to perform single-row server-side updates
+with SQL. The UPDATE command syntax supports the standard SET clause, as
+well as extensions to support ADD, REMOVE and PUT clauses for adding and
+removing elements and fields to/from arrays and maps. The existing
+Oracle NoSQL Database path expression can be used to identify the target fields
+to update both inside JSON datatype or in the strongly typed datatypes.
+</p>
+<H4>Disk usage enforcement using storage directory size parameter</h4>
+<p>
+The storage directory size parameter is now used to enforce disk
+usage. Starting with this release, if the storage disk size is not
+specified for replication nodes (RNs), the Oracle NoSQL Database storage
+engine may use all available free disk space except for 5GB of reserved
+free space. We strongly recommend that all applications:
+<ul>
+<li>Specify storage directories and sizes for all RNs, and
+<li>Monitor disk usage using the new availableLogSize statistic and
+take correction action well before this value reaches zero.
+</ul>
+<p>
+Write operations will be rejected and only read operations will be allowed
+when the storage size is in danger of being exceeded.
+</p>
+<H4>5GB minimum disk space requirement </h4>
+<p>
+Starting with this release, a minimum of 5GB disk space is required for the
+<code>kvlite</code> and <code>kvstore</code> service to start.
+</p>
+<h3>New in Release 4.4</h3>
+<H4>Introducing indexing capability for JSON data</h4>
+<p>
+Starting this release, Oracle NoSQL Database supports typed JSON
+indexes. The user can create an index on a field that is of JSON
+datatype. A type (string, numeric,..) must be specified for a
+JSON index and the system enforces the semantics for that type
+during SQL query processing.
+</p>
+<H4>SQL for NoSQL Enhancements</h4>
+<p>
+Added support for NUMBER datatype and all query expressions that work
+on numeric values have been extended to work on NUMBER. Added support
+for IS NULL and IS NOT NULL operators in SQL for NoSQL.
+</p>
+<h3>New in Release 4.3</h3>
+<H4>Oracle NoSQL Database Community Edition (CE) License Change</h4>
+<p>
+ Oracle NoSQL Database server Community Edition (CE) is now released
+ under Apache License, Version 2.0 (Apache 2.0). Previously it was
+ released under the Affero General Public License (aGPL v3). The
+ licenses for the other distributions are unchanged.
+</p>
+<h4>Oracle NoSQL Database will create secure stores by default</h4>
+<p>
+Starting this release, Oracle NoSQL Database will create all stores as
+secure stores by default, including those created by
+<code>kvlite</code>. The user will have to set
+the <code>-store-security</code> option to <code>none</code> in
+the <code>makebootconfig</code> to create non-secure
+stores. For <code>kvlite</code>, use <code>-secure-config disable</code>
+option to create non-secure store.
+</p>
+<h4>Support for querying JSON data type fields</h4>
+<p>
+SQL for Oracle NoSQL Database now supports querying and manipulating
+data stored as JSON data types in its DML queries. Creating and storing
+fields of type JSON was introduced in the previous release as a preview
+and is now made available as general release. Indexed JSON queries are
+not supported in this release and as a result some queries may experience
+performance issues.
+</p>
+<h4>Introducing TIMESTAMP data type</h4>
+<p>
+Users can create a table of type TIMESTAMP using the TABLE API and can
+query fields of type TIMESTAMP using the SQL for Oracle NoSQL query
+language.
+</p>
+<h4>Storage Engine (JE) Stats available through JMX</h4>
+<p>
+Storage Engine (JE) statistics that are written to the
+&lt;kvroot>/log/&lt;storename&gt;.stats and
+&lt;kvroot&gt;/log/&lt;storename&gt;.perf files are now made available
+through the Oracle NoSQL JMX agent via the standard
+javax.management.Notification mechanism in JSON format. This allows
+users to make a single call to obtain all the JE stats for a particular
+component as opposed to a call for every JE stat.
+</p>
+<h4>Increased parallelism in Predicate Push Down</h4>
+<p>
+The Predicate Push Down feature has been enhanced so that when the input
+splits are generated (on the client side), partition and shard
+information is now employed to produce splits that are distributed to
+the Datanodes of the Hadoop cluster. This enhancement results in optimum
+parallelization of the predicate filtering that is performed on the
+Oracle NoSQL Database server.
+</p>
+<h4>Removal of SNMP monitoring and the web-based Admin console</h4>
+<p>
+With this release, Oracle NoSQL Database no longer supports monitoring
+via SNMP, nor does it provide a web-based console for directly
+monitoring a store with a web browser.  JMX monitoring is still
+supported.
+</p>
+<h3>New in Release 4.2</h3>
+<h4>Storage Directory Based Topology Layout</h4>
+<p>
+Topology layout now takes storage directory size information into
+account.  If storage directory sizes have been specified for Storage
+Nodes, then the deploy, rebalance, redistribute, and contract topology
+commands will adjust shards and partitions to take directory sizes into
+account.
+</p>
+<h4>Improved Write Availability With RF=2</h4>
+<p>
+Stores with replication factor 2 can now continue to support writes
+after single node failures if the store includes Arbiter nodes, a new
+type of lightweight node that allows the system to select a master if
+one of the two replication nodes in a shard becomes unavailable.
+Arbiters can be used to improve availability without increasing the
+number of data replicas maintained by the store.
+</p>
+<h4>Store Contraction</h4>
+<p>
+The new <code>topology contract</code> command makes it possible to
+reduce the size of a store by eliminating storage nodes and reducing the
+number of shards.  The replication factor is not changed.
+</p>
+<h4>General Release of Query and Full Text Search</h4>
+<p>
+The query language and full text search are now general release
+features.
+</p>
+<h4>Preview release of API support for a JSON data type</h4>
+<p>
+Limited support for declaring and using a JSON data type is provided
+as a preview release. See the
+<a href="changelog.html">change log</a> for  more information.
+</p>
+<h3>New in Release 4.0</h3>
+<h4>Query</h4>
+<p>
+Added a preview release of an SQL-style declarative query language to
+support server side predicates, filtering, and projection of table
+data. The new features include the language itself, APIs for querying
+and results handling, as well as a new interactive shell to exercise
+queries.
+</p>
+<h4>Full Text Search</h4>
+<p>
+Added a preview release of integration with Elasticsearch to provide
+full text search indexing.  Text indexes can be added to tables in
+Oracle NoSQL Database, which will cause a corresponding index in an
+attached Elasticsearch cluster to be populated and maintained.
+</p>
+<h4>TTL</h4>
+<p>
+Added support for Time-To-Live (TTL), which allows applications to
+request automatic purging of records after a given time interval.  A
+default TTL can be specified for all entries in a table, and a TTL value
+can also be specified for individual table operations.  For applications
+whose data should expire over time, the TTL feature provides better
+performance than deleting records explicitly.
+</p>
+<h4>Export/Import Utility</h4>
+<p>
+Added Export and Import utilities. The new utilities allows users to
+export the contents from Oracle NoSQL Database store to either the local
+file system or to the Oracle Storage Cloud Service, and to import
+contents from the locations into an Oracle NoSQL Database store.
+</p>
+<h2><a name="distributions">Distributions</a></h2>
+<p>
+    Oracle NoSQL Database comes in three distributions: Community
+    Edition (CE), Enterprise Edition (EE), and Client.
+</p>
+<p>
+    The CE version is open source. It ships with source code and is
+    released under the Apache License, Version 2.0 (Apache 2.0). It
+    includes the client and server distribution, but does not include
+    some server features.
+</p>
+<p>
+    The EE version does not include source code and it ships with an
+    Oracle license. The EE version includes the client and server
+    distribution, and includes several features not found in the CE
+    version: Oracle External Tables support, Oracle Wallet support for
+    external password storage, and support for Kerberos authentication.
+</p>
+<p>
+    The Client version is open source. It ships with source code and is
+    released under the Apache 2.0 License (Apache 2.0).  The Client
+    version only contains the implementation of the client API, which
+    may be used to access servers running under CE or EE.
+</p>
+<p>
+  In addition, example code is provided in its own package, which can be
+  used with any of the distributions.
+</p>
+<h2><a name="issues">Known Issues</a></h2>
+<h3>Long Sync-ups Can Produce RN Failures</h3>
+<p>
+In some cases, the sync-up process that replication nodes use to
+replicate data from the master node to the replica can take an
+unexpectedly long time to find the initial sync-up point. If the amount
+of time exceeds the default 5 second timeout, the replica will restart
+and attempt the sync-up again. If the search for the sync-up point
+continues to take longer than 5 seconds, this process will prevent the
+replica from rejoining the shard.
+</p>
+<p>
+To determine if this problem is occurring, first use the ping command to
+check whether shards are healthy. If a shard continues to be unhealthy,
+check the RN logs for messages like the following:
+</p>
+<pre>
+2022-01-12 18:35:11.087 UTC INFO [rg13-rn2] JE: Inactive channel: NullNode(-1) forced close. Timeout: 5000ms.
+</pre>
+<p>
+To work around this problem, you should increase the timeout value to be
+long enough to allow the sync-up to complete successfully. Do this by
+modifying the <code>configProperties</code> RN parameter for all RNs
+to include a setting for the <code>je.rep.preHeartbeatTimeoutMs</code>
+value to specify the longer timeout. Note that this value specifies a
+time in microseconds, not milliseconds. If you already have a non-empty
+value for the <code>configProperties</code> parameter, make sure to add
+the new value to the existing values, separated by a semicolon.
+</p>
+<p>
+For example, to increase the timeout to 60 seconds, assuming that
+the <code>configProperties</code> parameter was previously empty, run
+the following Admin CLI command for each RN. For example, for RN rg1-rn1:
+</p>
+<pre>
+kv-> plan change-parameters -service rg1-rn1 -wait -params "configProperties=je.rep.preHeartbeatTimeoutMs 60000000"
+</pre>
+<p>
+[KVSTORE-2096]
+</p>
+<h3>Performance Issues with Virtual Threads</h3>
+<p>
+The Direct Java Driver API needs to be updated to optimize its
+performance if the API methods are called from the virtual threads
+introduced in Java 21. These performance issues will be addressed in a
+future release.
+</p>
+<p>
+[KVSTORE-2121]
+</p>
+<h3>Topology Changes May Fail During Software Upgrades</h3>
+<p>
+Making modifications to the store topology that include partition
+migration may fail if the modifications are performed while the store is
+being upgraded to a new software version. If you run a plan to deploy a
+new topology and the plan fails with problems during partition
+migration, check if the nodes of the store are running different
+software versions, and upgrade any nodes running old versions before
+retrying the plan.
+</p>
+<p>
+Modifying a topology using one of the following topology commands can
+result in the need for partition migration. Deploying the resulting
+topology with the 'plan deploy-topology' command can then fail if the
+plan is performed during a store software version upgrade. The topology
+commands that can produce partition migrations are:
+<ul>
+<li>topology change-repfactor
+<li>topology contract
+<li>topology rebalance
+<li>topology redistribute
+</ul>
+<p>
+Other topology commands do not produce partition migration and do not
+cause this problem.
+</p>
+<p>
+If a topology deployment fails, you can tell if it is related to
+partition migrations during a software version upgrade by looking for
+errors like the following:
+<pre>
+Plan 24 ended with errors. Use "show plan -id 24" for more information
+Plan Deploy Topo
+Id:                    24
+State:                 ERROR
+Attempt number:        1
+Started:               2020-04-10 15:19:59 UTC
+Ended:                 2020-04-10 15:24:48 UTC
+Plan failures:
+	Failure 1: 17/MigratePartition PARTITION-2 from rg1 to rg2
+	failed. target=rg2-rn1 state=ERROR java.lang.Exception:
+	Migration of PARTITION-2 failed. Giving up after 10 attempt(s)
+</pre>
+<p>
+If you see a plan failure involving partition migrations like this,
+particularly if there are similar failures for all partition migration
+tasks, use the 'ping' or 'verify topology' commands to display
+information about the store and check to see if different storage nodes
+are running different major or minor software versions. If so, upgrade
+the nodes running the older software to the latest version before
+retrying the 'plan deploy-topology' command.
+</p>
+<h3>Enterprise Manager plug-in not compatible with EM 13.4.0.0 and later</h3>
+<p>
+Oracle NoSQL's Enterprise Manager (EM) plug-in is compatible with EM
+versions up to and including EM version 13.3.0.0. Due to
+architectural changes in EM's plug-in support, the plugin is not
+compatible with EM version 13.4.0.0 and subsequent versions. Because of
+this we have stopped certifying EM as of NoSQL version 21.1.  We plan to
+deprecate the plug-in within a year.  Older versions of NoSQL can be
+used against EM 13.3.0.0.
+[KVSTORE-141]
+</p>
+<h3>Limitations on Multi-Region Tables in This Release</h3>
+<p>
+The Multi-Region Tables feature in this release has the following
+limitations:
+<ul>
+<li>Specifying a non-zero TTL when inserting or updating a row in a
+Multi-Region Table is only supported after upgrading both the driver and
+the store to release 20.3 or later, and may fail until the local store
+has been completely upgraded. In addition, TTL expiration times will be
+lost when rows are replicated to a remote region if the multi-region
+agent or store for that region have not been upgraded.
+[#28165]
+<li>The import, export, and snapshot commands should not be used to
+restore multi-region tables. The commands do not currently account for
+region information or modification times, so using these commands to
+restore a multi-region table to the contents from an earlier time may
+produce inconsistent results. [KVSTORE-444]
+</ul>
+<h3>Updating Java Memory Settings after Release 18.1 Workaround</h3>
+<p>
+Starting with release 18.3, the Java heap overhead is explicitly
+accounted for via the new Storage Node parameter named
+<code>jvmOverheadPercent</code>, with a default value of 25%. If you are
+running a store using a version earlier than 18.3, and the store was
+configured with the workarounds suggested in the
+section <a href="https://docs.oracle.com/en/database/other-databases/nosql-database/18.1/release-notes/known-issues.html#GUID-EB6234FD-9589-4DD2-B477-B4F1FC270C77__MEMORYALLOCATIONALGORITHMFAILSTOACC-7B8AFA70">Memory
+Allocation Algorithm Fails to Account for Java Memory Overhead Can
+Produce OutOfMemoryErrors</a> of the 18.1 release notes, then you should
+make the following changes during the upgrade to an 18.3 or later
+release. The changes to make depends on whether you followed the first
+or second set workarounds, based on whether your configuration has more
+than 48 GiB of memory per RN.
+</p>
+<p>
+If you used the first set of instructions in the release notes because
+your configuration no more than 48 GiB of memory per RN, then
+immediately <b>before</b> upgrading the store to release 18.3 or a later
+release, run the following Admin CLI commands:
+</p>
+<ol>
+<li><code>change-policy -params rnHeapPercent=68</code>
+<li>For each storage node, replacing <i>snX</i> as appropriate:
+<ul>
+<li><code>plan change-parameters -service </code><i>snX</i><code> -wait -params rnHeapPercent=68</code>
+</ul>
+</ol>
+<p>
+<b>After</b> the upgrade, run the following Admin CLI command for each
+storage node, replacing <i>snX</i> as appropriate:
+</p>
+<ol>
+<li value="3"><code>plan change-parameters -service </code><i>snX</i><code> -wait -params memoryMB=0</code>
+</ol>
+<p>
+You are done.
+</p>
+<p>
+If you used the second set of instructions in the release notes because
+your configuration has more than 48 GiB of memory per RN, then run the
+following Admin CLI commands <b>after</b> the upgrade:
+</p>
+<ol>
+<li><code>change-policy -params systemPercent=10</code>
+<li>For each storage node, replacing <i>snX</i> as appropriate:
+<ul>
+<li><code>plan change-parameters -service </code><i>snX</i><code> -wait -params systemPercent=10 memoryMB=0</code>
+</ul>
+</ol>
+<p>
+You are done.
+</p>
+<p>
+Note that making changes to multiple Storage Nodes to update Java memory
+settings may result in warnings in the debug logs regarding mismatched
+cache sizes such as:
+</p>
+<pre>
+  2019-11-14 15:26:40.762 UTC WARNING - [rg1-rn3] JE: Mismatched cache sizes, feeder:516738252 replica: 375809638 feeder off-heap: 0 replica off-heap: 0
+</pre>
+<p>
+Once the changes are completed for all Storage Nodes, these warnings
+should not continue to be reported, and the temporary ones should be
+harmless.
+</p>
+[#27855]
+<h3>Out-of-Order processing during Streams API and partition
+migration</h3>
+<p>
+When an application uses the Streams API with a subscription that has
+multiple subscribers, and an elasticity operation is performed that
+involves a partition migration, the application may need to coordinate
+operations across subscribers. An elasticity change can cause the events
+being delivered for a given key to switch to a different subscriber. The
+Streams API delivers events in the proper order to the two subscribers,
+but it is up to the application to make sure that the subscribers
+perform actions for those events in the correct order. We hope to remove
+the need for this coordination in a future release.
+</p>
+[#27541]
+<h3>IDENTITY column definition missing in export package</h3>
+<p>
+The Import/Export utility does not export the <code>IDENTITY</code>
+column property for a table into the export package DDL file (tableSchema.ddl).
+This is a bug and will be fixed in a future release. The user will notice the
+missing <code>IDENTITY</code> column property only during an import into an
+existing table using the export package. Here are possible scenarios:
+</p>
+<ol>
+<li>
+If the import table already exists and is non-empty, and the
+<code>IDENTITY</code> column is defined as <code>GENERATED ALWAYS</code>,
+the Oracle NoSQL Database will return an error saying that users cannot
+supply a value for <code>GENERATED ALWAYS</code>.
+</li>
+<li>If the import table already exists and is non-empty, and the
+<code>IDENTITY</code> column is defined as <code>GENERATED BY DEFAULT</code>,
+the Import/Export utility will return an error saying that the record is
+already present. The user can choose to overwrite the records by setting
+the import config file option <code>overwrite</code> to <code>true</code>.
+</li>
+<li>
+If the import table exists and is empty, and the <code>IDENTITY</code> column
+is defined as <code>GENERATED ALWAYS</code>, the Oracle NoSQL Database will
+return an error saying that users cannot supply a value for <code>GENERATED
+ALWAYS</code>.
+</li>
+<li>
+If the import table exists and is empty, and the <code>IDENTITY</code> column
+defined as <code>GENERATED BY DEFAULT</code>, the import will succeed, taking
+the values from the export package. The user can then set the
+<code>START WITH</code> value to the next value in the sequence using
+the <code>ALTER TABLE</code> command.
+</li>
+<li>
+If the import table does not exist, then import will create the table using
+the DDL in the export package that had the missing <code>IDENTITY</code>
+column property, thus losing knowledge of the original <code>IDENTITY</code>
+column. This problem will be fixed in a future release. The import will
+succeed as per the semantics of a table without an <code>IDENTITY</code>
+column.
+</li>
+</ol>
+For all of these options, you can add or modify the <code>IDENTITY</code>
+column property using the <code>ALTER TABLE</code> command. See
+<code>IDENTITY</code> column documentation for more details.
+<p>
+[#27562]
+</p>
+<h3>Export Hangs When Disk is Full at Sink</h3>
+During an export, the Import/Export tool will hang if the sink runs out
+of disk space. This issue will be fixed in a future release. Users must
+restart the export after freeing up disk space at sink. The user will
+see a <code>java.io.IOException: No space left on device</code> if they
+had started export in <code>-verbose</code> mode.
+<pre>
+java -jar /home/jinzha/mywork/kv/lib/kvtool.jar export -helper-hosts 192.168.56.1:5000 -store kvstore -export-all -config /home/jinzha/mywork/export.cfg -verbose
+Enter command: export
+2019-04-22 23:55:16.316 UTC Start migration with configuration:
+{
+  "configFileVersion" : 1,
+  "abortOnError" : true,
+  "source" : {
+    "type" : "nosqldb",
+    "helperHosts" : [ "192.168.56.1:5000" ],
+    "storeName" : "kvstore"
+  },
+  "sink" : {
+    "type" : "file",
+    "format" : "binary",
+    "path" : "/home/jinzha/mywork/data"
+  }
+}
+2019-04-22 23:55:16.338 UTC TaskWaiter thread spawned.
+2019-04-22 23:55:16.693 UTC Exporting table schema: users. TableVersion: 1
+2019-04-22 23:55:16.695 UTC Creating a new RecordStream for SchemaDefinition. File segment number: 1. Chunk sequence: abcdefghijlk
+2019-04-22 23:55:16.701 UTC WriteTask worker thread spawned for SchemaDefinition
+2019-04-22 23:55:16.704 UTC [binary]: Exported 1 record from tableSchema: 0min 0sec 361ms
+2019-04-22 23:55:16.729 UTC Exporting store data with configuration: consistency=null; requestTimeout=0ms
+2019-04-22 23:55:16.773 UTC Creating a new RecordStream for users. File segment number: 1. Chunk sequence: abcdefghijlk
+2019-04-22 23:55:16.788 UTC WriteTask worker thread spawned for users
+2019-04-22 23:55:18.954 UTC Exception exporting users. Chunk sequence: abcdefghijlk
+java.io.IOException: No space left on device
+    at java.io.FileOutputStream.writeBytes(Native Method)
+    at java.io.FileOutputStream.write(FileOutputStream.java:326)
+    at oracle.kv.util.expimp.utils.exp.LocalStoreOutput.exportDataStream(LocalStoreOutput.java:211)
+    at oracle.kv.util.expimp.utils.exp.LocalStoreOutput.doExport(LocalStoreOutput.java:149)
+    at oracle.kv.util.expimp.utils.exp.AbstractStoreOutput$WriteTask.call(AbstractStoreOutput.java:639)
+    at oracle.kv.util.expimp.utils.exp.AbstractStoreOutput$WriteTask.call(AbstractStoreOutput.java:620)
+    at java.util.concurrent.FutureTask.run(FutureTask.java:266)
+    at java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1149)
+    at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:624)
+    at java.lang.Thread.run(Thread.java:748)
+2019-04-22 23:56:06.705 UTC Exception exporting SchemaDefinition. Chunk sequence: abcdefghijlk
+java.io.IOException: No space left on device
+    at java.io.FileOutputStream.writeBytes(Native Method)
+    at java.io.FileOutputStream.write(FileOutputStream.java:326)
+    at oracle.kv.util.expimp.utils.exp.LocalStoreOutput.exportDataStream(LocalStoreOutput.java:211)
+    at oracle.kv.util.expimp.utils.exp.LocalStoreOutput.doExport(LocalStoreOutput.java:149)
+    at oracle.kv.util.expimp.utils.exp.AbstractStoreOutput$WriteTask.call(AbstractStoreOutput.java:639)
+    at oracle.kv.util.expimp.utils.exp.AbstractStoreOutput$WriteTask.call(AbstractStoreOutput.java:620)
+    at java.util.concurrent.FutureTask.run(FutureTask.java:266)
+    at java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1149)
+    at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:624)
+    at java.lang.Thread.run(Thread.java:748)
+2019-04-22 23:56:16.708 UTC [binary]: Writing continue.., wait 1 minutes
+</pre>
+[#27574]
+<h3>Need a minimum of 5GB of free disk space to deploy a storage node
+  that hosts an admin</h3>
+<p>
+If a Storage Node that hosts an admin is deployed on a system with less
+than 5GB of free disk space, the following exception will occur:
+</p>
+<pre>
+Connected to Admin in read-only mode
+(JE 18.1.8) Database AdminSchemaVersion not found. (18.1.3)
+</pre>
+<p>
+Make sure you have at least 5GB of free disk space to successfully
+deploy a storage node.  This same problem will occur when deploying
+KVLite.  We expect to remove this restriction in a future release.
+</p>
+[#26818]
+<h3>Users must manage Admin directory size, can put all admins into
+  "RUNNING,UNKNOWN" state</h3>
+<p>
+Every Admin is allocated a maximum of 3 GB of disk space by default,
+which is sufficient space for the vast majority of installations.
+However, under some rare circumstances you might want to change this 3
+GB limit, especially if the Admin is sharing a disk with a Storage Node.
+For more information, see
+<a href="oradoc-lookup:/GUID-3EB45F79-15F6-4300-A82B-1F23B9906DE6/Managing+Admin+Directory+Size">
+Oracle NoSQL Database Admistrative's Guide: Managing Admin Directory
+Size</a>.
+</p>
+<p>
+If Admins run out of disk space, then there will be entries in the Admin
+logs saying "Disk usage is not within je.maxDisk or je.freeDisk limits
+and write operations are prohibited" and the output of the ping command
+will show all the Admins in the "RUNNING,UNKNOWN" state. Follow the
+procedure described in
+<a href="oradoc-lookup:/GUID-3EB45F79-15F6-4300-A82B-1F23B9906DE6/Managing+Admin+Directory+Size">
+Oracle NoSQL Database Admistrative's Guide: Managing Admin Directory
+Size</a> to bring the Admins back to the "RUNNING,MASTER" or
+"RUNNING,REPLICA" state.
+</p>
+<p>
+Below is sample output of the ping command and log entries that indicate
+that Admin ran out of disk space.
+</p>
+<pre>
+kv-> ping
+Connected to Admin in read-only mode
+Pinging components of store kvstore based upon topology sequence #106
+90 partitions and 3 storage nodes
+Time: 2018-04-03 08:20:22 UTC   Version: 18.3.0
+Shard Status: healthy:3 writable-degraded:0 read-only:0 offline:0 total:3
+Admin Status: read-only
+Zone [name=Houston id=zn1 type=PRIMARY allowArbiters=false masterAffinity=false]
+    RN Status: online:9 offline:0 maxDelayMillis:0 maxCatchupTimeSecs:0
+Storage Node [sn1] on localhost:10000
+    Zone: [name=Houston id=zn1 type=PRIMARY allowArbiters=false masterAffinity=false]
+    Status: RUNNING   Ver: 18.3.0 2018-04-03 05:36:25 UTC  Build id: ec627ef967d6 Edition: Enterprise
+        Admin [admin1]          Status: RUNNING,UNKNOWN
+        Rep Node [rg1-rn1]      Status: RUNNING,REPLICA sequenceNumber:93 haPort:10011 delayMillis:0 catchupTimeSecs:0
+        Rep Node [rg2-rn1]      Status: RUNNING,REPLICA sequenceNumber:93 haPort:10012 delayMillis:0 catchupTimeSecs:0
+        Rep Node [rg3-rn1]      Status: RUNNING,MASTER sequenceNumber:92 haPort:10013
+Storage Node [sn2] on localhost:11000
+    Zone: [name=Houston id=zn1 type=PRIMARY allowArbiters=false masterAffinity=false]
+    Status: RUNNING   Ver: 18.3.0 2018-04-03 05:36:25 UTC  Build id: ec627ef967d6 Edition: Enterprise
+        Admin [admin2]          Status: RUNNING,UNKNOWN
+        Rep Node [rg1-rn2]      Status: RUNNING,REPLICA sequenceNumber:93 haPort:11021 delayMillis:0 catchupTimeSecs:0
+        Rep Node [rg2-rn2]      Status: RUNNING,MASTER sequenceNumber:93 haPort:11022
+        Rep Node [rg3-rn2]      Status: RUNNING,REPLICA sequenceNumber:92 haPort:11023 delayMillis:0 catchupTimeSecs:0
+Storage Node [sn3] on localhost:12000
+    Zone: [name=Houston id=zn1 type=PRIMARY allowArbiters=false masterAffinity=false]
+    Status: RUNNING   Ver: 18.3.0 2018-04-03 05:36:25 UTC  Build id: ec627ef967d6 Edition: Enterprise
+        Admin [admin3]          Status: RUNNING,UNKNOWN
+        Rep Node [rg1-rn3]      Status: RUNNING,MASTER sequenceNumber:93 haPort:12011
+        Rep Node [rg2-rn3]      Status: RUNNING,REPLICA sequenceNumber:93 haPort:12012 delayMillis:0 catchupTimeSecs:0
+        Rep Node [rg3-rn3]      Status: RUNNING,REPLICA sequenceNumber:92 haPort:12013 delayMillis:0 catchupTimeSecs:0
+
+2018-04-03 08:18:52.254 UTC SEVERE [admin1] JE: Disk usage is not within
+je.maxDisk or je.freeDisk limits and write operations are prohibited:
+maxDiskLimit=2,097,152 freeDiskLimit=5,368,709,120
+adjustedMaxDiskLimit=2,097,152 maxDiskOverage=83,086
+freeDiskShortage=-6,945,071,104 diskFreeSpace=12,313,780,224
+availableLogSize=-83,086 totalLogSize=2,180,238 activeLogSize=2,180,238
+reservedLogSize=0 protectedLogSize=0 protectedLogSizeMap={}
+
+2018-04-03 08:19:34.808 UTC SEVERE [admin2] JE: Disk usage is not within
+je.maxDisk or je.freeDisk limits and write operations are prohibited:
+maxDiskLimit=2,097,152 freeDiskLimit=5,368,709,120
+adjustedMaxDiskLimit=2,097,152 maxDiskOverage=97,346
+freeDiskShortage=-6,944,923,648 diskFreeSpace=12,313,632,768
+availableLogSize=-97,346 totalLogSize=2,194,498 activeLogSize=2,194,498
+reservedLogSize=0 protectedLogSize=0 protectedLogSizeMap={}
+
+2018-04-03 08:19:36.063 UTC SEVERE [admin3] JE: Disk usage is not within
+je.maxDisk or je.freeDisk limits and write operations are prohibited:
+maxDiskLimit=2,097,152 freeDiskLimit=5,368,709,120
+adjustedMaxDiskLimit=2,097,152 maxDiskOverage=101,698
+freeDiskShortage=-6,944,923,648 diskFreeSpace=12,313,632,768
+availableLogSize=-101,698 totalLogSize=2,198,850 activeLogSize=2,198,850
+reservedLogSize=0 protectedLogSize=0 protectedLogSizeMap={}
+</pre>
+[#26922]
+<h3>Store with Full Text Search may become unsynchronized</h3>
+<p>
+A store that has enabled support for Full Text Search may, on rare
+occasions, encounter a bug in which internal components of a master
+Replication Node become unsynchronized, causing updates from that
+Replication Node to stop flowing to the Elasticsearch engine.  This
+problem will cause data to be out of sync between the store and
+Elasticsearch.
+</p>
+<p>
+When the problem occurs, the Elasticsearch indices stop being populated.
+The problem involves the shutdown of the feeder channel for a component
+called the TextIndexFeeder, and is logged in the debug logs for the
+Replication Node.  For example:
+</p>
+<pre>
+2018-03-16 11:23:46.055 UTC INFO [rg1-rn1] JE: Inactive channel: TextIndexFeeder-rg1-rn1-b4e92291-3c73-4128-9557-62dbd4e9ac78(2147483647) forced close. Timeout: 10000ms.
+2018-03-16 11:23:46.059 UTC INFO [rg1-rn1] JE: Shutting down feeder for replica TextIndexFeeder-rg1-rn1-b4e92291-3c73-4128-9557-62dbd4e9ac78 Reason: null write time:  32ms Avg write time: 100us
+2018-03-16 11:23:46.060 UTC INFO [rg1-rn1] JE: Feeder Output for TextIndexFeeder-rg1-rn1-b4e92291-3c73-4128-9557-62dbd4e9ac78 soft shutdown initiated.
+2018-03-16 11:23:46.064 UTC WARNING [rg1-rn1] internal exception Expected bytes: 6 read bytes: 0
+com.sleepycat.je.utilint.InternalException: Expected bytes: 6 read bytes: 0
+    at com.sleepycat.je.rep.subscription.SubscriptionThread.loopInternal(SubscriptionThread.java:719)
+    at com.sleepycat.je.rep.subscription.SubscriptionThread.run(SubscriptionThread.java:180)
+Caused by: java.io.IOException: Expected bytes: 6 read bytes: 0
+    at com.sleepycat.je.rep.utilint.BinaryProtocol.fillBuffer(BinaryProtocol.java:446)
+    at com.sleepycat.je.rep.utilint.BinaryProtocol.read(BinaryProtocol.java:466)
+    at com.sleepycat.je.rep.subscription.SubscriptionThread.loopInternal(SubscriptionThread.java:656)
+    ... 1 more
+
+2018-03-16 11:23:46.064 UTC INFO [rg1-rn1] SubscriptionProcessMessageThread soft shutdown initiated.
+2018-03-16 11:23:46.492 UTC INFO [rg1-rn1] JE: Feeder output for TextIndexFeeder-rg1-rn1-b4e92291-3c73-4128-9557-62dbd4e9ac78 shutdown. feeder VLSN: 4,066 currentTxnEndVLSN: 4,065
+</pre>
+<p>
+If the TextIndexFeeder channel is shutdown, then the user can restore it
+by creating a dummy full text search index.  Here is an example of how
+you can do that.
+</p>
+<p>
+Assuming that Elasticsearch is already registered, execute the
+following commands from the Admin CLI:
+</p>
+<pre>
+execute 'CREATE TABLE dummy (id INTEGER,title STRING,PRIMARY KEY (id))'
+
+execute 'CREATE FULLTEXT INDEX dummytextindex ON dummy (title)'
+
+execute 'DROP TABLE dummy'
+</pre>
+<p>
+Note that <i>dummy</i> is the name of a temporary table that should not
+exist previously.
+</p>
+<p>
+Creating a full text search index reestablishes the channel from the
+store to Elasticsearch and ensures that data is synced up to date.
+</p>
+[#26859]
+<h3>Data Verifier is disabled by default </h3>
+<p>
+The data verifier is turned off by default. In some cases, the data
+verifier was using a lot of I/O bandwidth and causing the system to slow
+down. Users can turn on the data verifier by issuing the following two
+commands from the Admin CLI:
+</p>
+<pre>
+plan change-parameters -wait -all-rns -params "configProperties=je.env.runVerifier=false"
+
+change-policy -params "configProperties=je.env.runVerifier=false"
+</pre>
+<p>
+Note that, if the store has services with preexisting settings for the
+configProperties parameter, then users will need to get the current
+values and merge them with the new setting to disable the verifier:
+</p>
+<pre>
+show param -service rg1-rn1
+show param -policy
+</pre>
+<p>
+For example, suppose rg1-rn1 has set the following cleaner parameter:
+</p>
+<pre>
+kv-> show param -service rg1-rn1
+[...]
+configProperties=je.cleaner.minUtilization=40
+</pre>
+<p>
+When updating the configProperties parameter, the new setting for the verifier
+should be added, separating the existing settings with semicolons:
+</p>
+<pre>
+plan change-parameters -wait -all-rns -params "configProperties=je.cleaner.minUtilization=40;je.env.runVerifier=false"
+</pre>
+[KVSTORE-639]
+<h3>Subscription cannot connect and fails with InternalException</h3>
+<p>
+If a master transfer occurs due to a failure after the publisher is started
+and before a subscriber connects, an <code>InternalException</code>
+can occur when the subscriber tries to connect. The exception message
+will read "Failed to connect, will retry after sleeping 3000 ms". Restart
+the publisher to work around this problem.
+</p>
+[#27723]
+<br>
+<font size="1">Copyright (c) 1996, 2025 Oracle and/or its affiliates.  All rights reserved.</font>
+</div>
+<!-- end docMain -->
+</body>
+</html>

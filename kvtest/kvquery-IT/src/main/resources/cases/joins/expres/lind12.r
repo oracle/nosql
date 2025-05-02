@@ -1,0 +1,11 @@
+unordered-result
+{"b_ida":0,"b_idb":0,"c_ida":0,"c_idb":0,"c_idc":0}
+{"b_ida":0,"b_idb":0,"c_ida":0,"c_idb":0,"c_idc":5}
+{"b_ida":0,"b_idb":5,"c_ida":0,"c_idb":5,"c_idc":10}
+{"b_ida":0,"b_idb":5,"c_ida":0,"c_idb":5,"c_idc":15}
+{"b_ida":0,"b_idb":5,"c_ida":0,"c_idb":5,"c_idc":20}
+{"b_ida":0,"b_idb":5,"c_ida":0,"c_idb":5,"c_idc":25}
+{"b_ida":0,"b_idb":10,"c_ida":null,"c_idb":null,"c_idc":null}
+{"b_ida":0,"b_idb":15,"c_ida":0,"c_idb":15,"c_idc":25}
+{"b_ida":10,"b_idb":4,"c_ida":null,"c_idb":null,"c_idc":null}
+{"b_ida":41,"b_idb":10,"c_ida":null,"c_idb":null,"c_idc":null}

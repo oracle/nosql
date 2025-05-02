@@ -1,0 +1,10 @@
+unordered-result
+{"acctno":345,"year":2000,"count":5,"sales":36.0}
+{"acctno":345,"year":2001,"count":1,"sales":30.0}
+{"acctno":346,"year":2000,"count":1,"sales":30.0}
+{"acctno":346,"year":2001,"count":1,"sales":30.0}
+{"acctno":346,"year":null,"count":1,"sales":80.0}
+{"acctno":347,"year":2001,"count":3,"sales":33.333333333333336}
+{"acctno":348,"year":2000,"count":3,"sales":25.0}
+{"acctno":349,"year":2000,"count":2,"sales":20.0}
+{"acctno":349,"year":2001,"count":2,"sales":20.0}

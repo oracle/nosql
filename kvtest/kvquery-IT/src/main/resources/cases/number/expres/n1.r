@@ -1,0 +1,12 @@
+unordered-result
+{"id":3,"num":-1.677722E+7,"json":[3,2,{"foo":3}],"map":{},"rec":{"fmap":null},"arrrec":[{"fmap":null}]}
+{"id":8,"num":null,"json":[3,2,{}],"map":{},"rec":{"fmap":null},"arrrec":[{"fmap":null}]}
+{"id":2,"num":1.677722E+7,"json":[],"map":{"key1":[1,2],"key2":[4,5],"key3":[]},"rec":{"fmap":{"key1":[1,2],"key2":[4,5],"key3":[]}},"arrrec":[{"fmap":{"key1":[1,2],"key2":[4,5],"key3":[]}}]}
+{"id":6,"num":1.7976931348623157E+308,"json":[10,20,30,40,50],"map":{"key1":[1E+1,2E+1,4E+1],"key2":[4,5]},"rec":null,"arrrec":[]}
+{"id":7,"num":4.9E-324,"json":[],"map":{"key1":[1,2],"key2":[4,5],"key3":[]},"rec":{"fmap":{"key1":[1,2],"key2":[4,5],"key3":[]}},"arrrec":[{"fmap":{"key1":[1,2],"key2":[4,5],"key3":[]}}]}
+{"id":5,"num":-9.99E+20,"json":[[1.5,2.3,null]],"map":{"key1":[1,2,3],"key2":[4,5],"key3":[]},"rec":null,"arrrec":[{"fmap":{}}]}
+{"id":9,"num":1142355653432433554,"json":[1,2,[3,-1,0]],"map":{"key4":[1,2,3],"key5":[1,2,3,4],"key6":[1,2]},"rec":{"fmap":{}},"arrrec":[{"fmap":{}},{"fmap":{"key4":[1,2,3],"key5":[1,2,3,4],"key7":[1,2]}}]}
+{"id":0,"num":0,"json":[[1.5,2.3,"ABC"]],"map":{"key1":[1,2,3],"key2":[4,5],"key3":[]},"rec":null,"arrrec":[{"fmap":{}}]}
+{"id":4,"num":9.99E+20,"json":[1,2,[3]],"map":{"key4":[1,2,3],"key5":[1,2,3,4],"key6":[1,2]},"rec":{"fmap":{}},"arrrec":[{"fmap":{}},{"fmap":{"key4":[1,2,3],"key5":[1,2,3,4],"key7":[1,2]}}]}
+{"id":1,"num":1,"json":null,"map":{"key1":[1E+1,2E+1,4E+1],"key2":[4,5]},"rec":null,"arrrec":[]}
+{"id":1E+1,"num":null,"json":[1.0E-16,2.0E-17,[3.0E-16,-1,0]],"map":null,"rec":null,"arrrec":null}

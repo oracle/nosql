@@ -1,0 +1,11 @@
+unordered-result
+{"id1":1,"stats_sum":null}
+{"id1":2,"stats_sum":null}
+{"id1":3,"stats_sum":null}
+{"id1":4,"stats_sum":null}
+{"id1":5,"stats_sum":null}
+{"id1":6,"stats_sum":922337203685594}
+{"id1":7,"stats_sum":-92233720368547635}
+{"id1":8,"stats_sum":2.88469E+27}
+{"id1":9,"stats_sum":null}
+{"id1":10,"stats_sum":42448}

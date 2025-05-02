@@ -1,0 +1,68 @@
+
+Table: Foo
+
+{
+"id1":0, "int":0, "lng":0, "dbl":10.5, "flt":3.5,
+"str":"abc", 
+"bool":true, 
+"enm":"tok1",
+"arr" : [1, 2, 3],
+"map" : {"key1":[1,2,3], "key2":[4,5], "key3":[]},
+"rec" : null,
+"arrrec" : [{"fmap":{}}]
+}
+
+{
+"id1":1, "int":1, "lng":1, "dbl":1.0, "flt":3.5,
+"str":"abd",
+"bool":false,
+"enm":"tok2",
+"arr" : [10, 20, 30],
+"map" : {"key1":[10, 20, 40], "key2":[4,5]},
+"rec" : null,
+"arrrec" : []
+}
+
+{
+"id1":2, "int":10, "lng":-2, "dbl":3.5, "flt":3.5,
+"str":null,
+"bool":true,
+"enm":"tok2",
+"arr" : [],
+"map" : {"key1":[1,2], "key2":[4,5], "key3":[]},
+"rec" : {"fmap" : {"key1":[1.0,2.0], "key2":[4.0,5.0], "key3":[]}},
+"arrrec" : [{"fmap":{"key1":[1.0,2.0], "key2":[4.0,5.0], "key3":[]}}]
+}
+
+{
+"id1":3, "int":0, "lng":null, "dbl":-2.5, "flt":0,
+"str":"tok1",
+"bool":true,
+"enm":"tok3",
+"arr" : [3, 2, 1],
+"map" : {},
+"rec" : {"fmap":null},
+"arrrec" : [{"fmap":null}]
+}
+
+{
+"id1":4, "int":5, "lng":1142355653432433554, "dbl":-2.5, "flt":-2.5,
+"str":"abcc",
+"bool":false,
+"enm":"tok3",
+"arr" : [1, 2, 3],
+"map" : {"key4":[1,2,3], "key5":[1,2,3,4], "key6":[1,2]},
+"rec" : {"fmap":{}},
+"arrrec" : [{"fmap":{}}, {"fmap":{"key4":[1,2,3], "key5":[1,2,3,4], "key7":[1,2]}}]
+}
+
+{
+"id1":5, "int":null, "lng":null, "dbl":-25.0, "flt":0,
+"str":"tok2",
+"bool":true,
+"enm":"tok1",
+"arr" : [3, 2, 1],
+"map" : {"key6":[2]},
+"rec" : {"fmap":null},
+"arrrec" : [ {"fmap":null}, {"key6":{"key6":[2]}} ]
+}

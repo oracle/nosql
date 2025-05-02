@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>com.oracle.nosql</groupId>
+    <artifactId>kvtest</artifactId>
+    <version>25.2.0-SNAPSHOT</version>
+  </parent>
+
+  <artifactId>kvquery-IT</artifactId>
+
+  <name>Oracle NoSQL Database Query Test</name>
+  <url>https://www.oracle.com/database/nosql/</url>
+
+  <properties>
+    <!-- Prevent ocibuild from publishing this module -->
+    <skipPublish>true</skipPublish>
+    <test.filterOut/>
+    <test.mrtableExpectedFailure>
+      joins/q;
+      joins2/q;
+      joins3/q;
+      joins4/q;
+      json1/q;
+      child_tables/q;
+      upd2/q;
+      idc_sg/q;
+      idc_regex_like1/q;
+    </test.mrtableExpectedFailure>
+  </properties>
+
+  <profiles>
+    <profile>
+      <id>skip-kvquery-test</id>
+      <activation>
+        <activeByDefault>true</activeByDefault>
+      </activation>
+      <build>
+        <plugins>
+          <plugin>
+            <artifactId>maven-antrun-plugin</artifactId>
+            <configuration>
+              <skip>true</skip>
+            </configuration>
+          </plugin>
+          <plugin>
+            <artifactId>maven-failsafe-plugin</artifactId>
+            <configuration>
+              <skipITs>true</skipITs>
+            </configuration>
+          </plugin>
+          <plugin>
+            <groupId>org.jacoco</groupId>
+            <artifactId>jacoco-maven-plugin</artifactId>
+            <configuration>
+              <skip>true</skip>
+            </configuration>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+
+    <profile>
+      <id>IT</id>
+    </profile>
+
+    <profile>
+      <id>it.kvquery</id>
+    </profile>
+  </profiles>
+
+  <dependencies>
+    <!-- For Test -->
+    <dependency> <groupId>junit</groupId> <artifactId>junit</artifactId> </dependency>
+
+    <dependency> <groupId>com.oracle.nosql</groupId> <artifactId>kvstore</artifactId> <version>${project.version}</version> </dependency>
+    <dependency> <groupId>com.oracle.nosql</groupId> <artifactId>kvstore-IT</artifactId> <version>${project.version}</version> </dependency>
+
+    <!-- checker lib during compile, but will be excluded from tar ball, due to provided scope -->
+    <dependency> <groupId>org.checkerframework</groupId> <artifactId>checker-qual</artifactId> <scope>provided</scope> </dependency>
+  </dependencies>
+
+  <build>
+    <plugins>
+      <plugin>
+        <artifactId>maven-clean-plugin</artifactId>
+      </plugin>
+      <plugin>
+        <artifactId>maven-resources-plugin</artifactId>
+        <configuration>
+          <skip>true</skip>
+        </configuration>
+      </plugin>
+      <plugin>
+        <artifactId>maven-compiler-plugin</artifactId>
+      </plugin>
+      <plugin>
+        <artifactId>maven-jar-plugin</artifactId>
+      </plugin>
+      <plugin>
+        <artifactId>maven-antrun-plugin</artifactId>
+      </plugin>
+      <plugin>
+        <artifactId>maven-failsafe-plugin</artifactId>
+        <configuration>
+          <systemPropertyVariables>
+            <qtf.cases>${project.resources[0].directory}/cases</qtf.cases>
+            <test.filterMRTable>
+              ${test.filterOut};
+              ${test.mrtableExpectedFailure};
+            </test.filterMRTable>
+          </systemPropertyVariables>
+          <argLine>-Dfile.encoding=UTF-8</argLine>
+        </configuration>
+      </plugin>
+      <plugin>
+        <groupId>org.jacoco</groupId>
+        <artifactId>jacoco-maven-plugin</artifactId>
+      </plugin>
+      <plugin>
+        <artifactId>maven-install-plugin</artifactId>
+      </plugin>
+      <plugin>
+        <artifactId>maven-deploy-plugin</artifactId>
+      </plugin>
+    </plugins>
+  </build>
+</project>

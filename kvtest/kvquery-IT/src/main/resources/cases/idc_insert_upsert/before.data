@@ -1,0 +1,140 @@
+Table: playerinformation
+{
+	"id": 100,
+        "id1": 1,
+	"firstName": "Virat Kohli",
+	"age": 30,
+	"ballsbowled": 5266,
+	"ballsplayed": 50432,
+	"strikerate": 83.5,
+	"tier1rated": true,
+	"avg": 56.87,
+	"fbin": "SGVsbG8gSG93IGFyZSBZb3U/",
+	"bin": "Tm9TcWw=",
+	"century": 100,
+	"country": "India",
+	"type": "international",
+	"dob": "1988-11-05T10:45:00",
+	"stats1": {
+		"Tests": {
+			"matches": 77,
+			"inns": 131,
+			"notout": 8,
+			"runs": 6613,
+			"hs": 243,
+			"avg": 53.76,
+			"bf": 11549,
+			"sr": 57.26,
+			"century": 25,
+			"fifty": 20,
+			"fours": 731,
+			"sixes": 19
+		},
+		"Odi": {
+			"matches": 77,
+			"inns": 131,
+			"notout": 8,
+			"runs": 6613,
+			"hs": 243,
+			"avg": 53.76,
+			"bf": 11549,
+			"sr": 57.26,
+			"century": 25,
+			"fifty": 20,
+			"fours": 731,
+			"sixes": 19
+		},
+		"T20": {
+			"matches": 77,
+			"inns": 131,
+			"notout": 8,
+			"runs": 6613,
+			"hs": 243,
+			"avg": 53.76,
+			"bf": 11549,
+			"sr": 57.26,
+			"century": 25,
+			"fifty": 20,
+			"fours": 731,
+			"sixes": 19
+		}
+	},
+	"stats2": [{
+		"test": [12, 23, 33, 56, 98, 109]
+	}, {
+		"odi": [123, 98, 34, 22]
+	}, {
+		"t20": [22, 98, 67, 10]
+	}],
+	"address": {
+		"city": "San Fransisco",
+		"state": "CA",
+		"phones": [{
+			"work": 504,
+			"home": 50
+		}, {
+			"work": 518,
+			"home": 51
+		}, {
+			"work": 528,
+			"home": 52
+		}, {
+			"work": 538,
+			"home": 53
+		}, {
+			"work": 548,
+			"home": 54
+		}],
+		"ptr": "city"
+	},
+	"json": {
+		"Virat": {
+			"name": "Virat Kohli",
+			"age": 30,
+			"ballsbowled": 5266,
+			"ballsplayed": 50432,
+			"strikerate": 83.5,
+			"tier1rated": true,
+			"avg": 56.87,
+			"fbin": "SGVsbG8gSG93IGFyZSBZb3U/",
+			"bin": "Tm9TcWw=",
+			"century": 100,
+			"country": "India",
+			"type": "international",
+			"map": {
+				"IDP": [{
+					"DL": "Yes",
+					"Passport": "No"
+				}, {
+					"Aadhar": "OK"
+				}]
+			},
+			"array": [{
+				"HDFC": [559404, 40000, -456]
+			}, {
+				"AXIS": [346, -45693]
+			}],
+			"address": {
+				"city": "San Fransisco",
+				"state": "CA",
+				"phones": [{
+					"work": 504,
+					"home": 50
+				}, {
+					"work": 518,
+					"home": 51
+				}, {
+					"work": 528,
+					"home": 52
+				}, {
+					"work": 538,
+					"home": 53
+				}, {
+					"work": 548,
+					"home": 54
+				}],
+				"ptr": "city"
+			}
+		}
+	}
+}

@@ -1,0 +1,2 @@
+UPDATE empttl set TTL 1 HOURS WHERE ID = 2
+

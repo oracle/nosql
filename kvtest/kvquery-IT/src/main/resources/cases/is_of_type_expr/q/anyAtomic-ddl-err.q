@@ -1,0 +1,1 @@
+CREATE TABLE Foo ( a ARRAY( MAP( ARRAY(AnyAtomic) )) , PRIMARY KEY(a) )

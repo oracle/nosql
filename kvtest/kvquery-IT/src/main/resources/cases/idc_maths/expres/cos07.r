@@ -1,0 +1,2 @@
+unordered-result
+{"iv":-5.0,"Column_2":0.2836621,"lv":-1.2345678901234E13,"Column_4":-0.2474263,"fv":-3.1400001,"Column_6":-0.9999987,"dv":-2.7182818,"Column_8":-0.9117339,"nv":-123.456,"Column_10":-0.5947139,"jsoniv":-5.0,"cosjsoniv":0.2836621,"jsonlv":-1.2345678901234E13,"cosjsonlv":-0.2474263,"jsonfv":-3.14,"cosjsonfv":-0.9999987,"jsondv":-2.7182818,"cosjsondv":-0.9117339,"jsonnv":-123.456,"cosjsonnv":-0.5947139}

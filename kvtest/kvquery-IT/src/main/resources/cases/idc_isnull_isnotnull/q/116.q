@@ -1,0 +1,2 @@
+#Expression is map filter step with .values() and and $value implicit variable with is not null in predicate
+select id,s.children.values() from sn s where  s.children.values($value = "age") is not null

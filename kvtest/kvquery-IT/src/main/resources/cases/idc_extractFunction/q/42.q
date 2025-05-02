@@ -1,0 +1,2 @@
+#expression returns microsecond using Extract Function for non json map
+SELECT id,extract(microsecond from t.mts9.k1) as mts1,extract(microsecond from t.mts9.k2) as mts2,extract(microsecond from t.mts9.k3) as mts3,extract(microsecond from t.mts9.k4) as mts4,extract(microsecond from t.mts9.k5) as mts5,extract(microsecond from t.mts9.k6) as mts6,extract(microsecond from t.mts9.k7) as mts7 ,extract(microsecond from t.mts9.k8) as mts8,extract(microsecond from t.mts9.k9) as mts9 FROM Extract t 

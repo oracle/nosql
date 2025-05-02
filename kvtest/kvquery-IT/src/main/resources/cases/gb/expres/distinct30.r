@@ -1,0 +1,15 @@
+unordered-result
+{"Column_1":[3,3,3]}
+{"Column_1":[4]}
+{"Column_1":[3,1,1]}
+{"Column_1":[3,6,6]}
+{"Column_1":[10]}
+{"Column_1":[3]}
+{"Column_1":[2]}
+{"Column_1":[1]}
+{"Column_1":[2,2,4]}
+{"Column_1":[2,3]}
+{"Column_1":[3,1]}
+{"Column_1":[5]}
+{"Column_1":[3,6]}
+{"Column_1":[]}

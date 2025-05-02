@@ -1,0 +1,8 @@
+select a.ida as a_ida,
+       c.ida as c_ida, c.idb as c_idb, c.idc as c_idc,
+       d.ida as d_ida, d.idb as d_idb, d.idc as d_idc, d.idd as d_idd
+from A a left outer join A.B.C c on a.ida = c.ida
+         left outer join A.B.C.D d on c.ida = d.ida and c.idb = d.idb and 
+                                      c.idc = d.idc
+where a.ida != 40
+order by a.ida

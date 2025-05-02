@@ -1,0 +1,2 @@
+#expression returns nanosecond using Extract Function for non json array 
+SELECT id,extract(nanosecond from t.ats9[0]) as ats0,extract(nanosecond from t.ats9[1]) as ats1,extract(nanosecond from t.ats9[2]) as ats2,extract(nanosecond from t.ats9[3]) as ats3,extract(nanosecond from t.ats9[4]) as ats4,extract(nanosecond from t.ats9[5]) as ats5,extract(nanosecond from t.ats9[6]) as ats6,extract(nanosecond from t.ats9[7]) as ats7 ,extract(nanosecond from t.ats9[8]) as ats8 FROM Extract t 

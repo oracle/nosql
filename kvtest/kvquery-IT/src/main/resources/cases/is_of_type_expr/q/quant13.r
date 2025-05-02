@@ -1,0 +1,11 @@
+unordered-result
+{"id":0,"typeof":false}
+{"id":1,"typeof":true}
+{"id":2,"typeof":true}
+{"id":3,"typeof":false}
+{"id":4,"typeof":false}
+{"id":5,"typeof":false}
+{"id":6,"typeof":true}
+{"id":7,"typeof":true}
+{"id":8,"typeof":false}
+{"id":9,"typeof":false}

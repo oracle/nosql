@@ -1,0 +1,167 @@
+################
+day.q
+################
+SELECT day(t.ts0), day(t.rec.ts3), day(t.mts6.values($key="k1")), day(t.ats9[0])  FROM Foo t ORDER BY id
+
+
+################
+day02.q
+################
+SELECT id,
+       day_of_week(t.ts0) as d0,
+       day_of_month(t.rec.ts3) as d1,
+       day_of_year(t.mts6.values($key="k1")) as d2,
+       day_of_week(t.ats9[0]) as d3
+FROM Foo t
+ORDER BY id
+
+
+################
+err1.q
+################
+SELECT year(s) from Foo
+
+
+################
+extract.q
+################
+SELECT extract(year from t.ts0) as year,
+	   extract(month from t.ts0) as month,
+	   extract(day from t.ts0) as day,
+	   extract(hour from t.ts0) as hour,
+	   extract(minute from t.ts0) as min,
+	   extract(second from t.ts0) as sec,
+	   extract(millisecond from t.ats9[0]) as ms,
+	   extract(microsecond from t.ats9[0]) as us,
+	   extract(nanosecond from t.ats9[0]) as ns,
+	   extract(week from t.rec.ts1) as week,
+	   extract(isoweek from t.rec.ts1) as isoweek,
+	   extract(quarter from t.rec.ts1) as quarter,
+	   extract(day_of_week from t.ts0) as day_of_week,
+	   extract(day_of_month from t.rec.ts1) as day_of_month,
+	   extract(day_of_year from t.ats9[0]) as day_of_year
+FROM Foo t
+ORDER BY id
+
+
+################
+fracsecond.q
+################
+SELECT millisecond(t.ts0), microsecond(t.ts0), nanosecond(t.ts0),
+	   millisecond(t.rec.ts1), microsecond(t.rec.ts1), nanosecond(t.rec.ts1),
+       millisecond(t.rec.ts3), microsecond(t.rec.ts3), nanosecond(t.rec.ts3)
+FROM Foo t WHERE id = 1
+
+
+################
+hour.q
+################
+SELECT hour(t.ts0), hour(t.rec.ts3), hour(t.mts6.values($key="k1")), hour(t.ats9[0]) FROM Foo t ORDER BY id
+
+
+################
+isoweek.q
+################
+SELECT isoweek(t.ts0), isoweek(t.rec.ts3), isoweek(t.mts6.values($key="k1")), isoweek(t.ats9[0]) FROM Foo t ORDER BY id
+
+
+################
+microsecond.q
+################
+SELECT microsecond(t.mts6.values($key="k1")) as us_mts6_k1,
+	   microsecond(t.mts6.values($key="k2")) as us_mts6_k2,
+	   microsecond(t.mts6.values($key="k3")) as us_mts6_k3,
+	   microsecond(t.mts6.values($key="k4")) as us_mts6_k4,
+	   microsecond(t.mts6.values($key="k5")) as us_mts6_k5,
+	   microsecond(t.mts6.values($key="k6")) as us_mts6_k6,
+	   microsecond(t.ats9[0]) as us_ats9_0,
+	   microsecond(t.ats9[1]) as us_ats9_1,
+	   microsecond(t.ats9[2]) as us_ats9_2,
+	   microsecond(t.ats9[3]) as us_ats9_3,
+	   microsecond(t.ats9[4]) as us_ats9_4,
+	   microsecond(t.ats9[5]) as us_ats9_5,
+	   microsecond(t.ats9[6]) as us_ats9_6,
+	   microsecond(t.ats9[7]) as us_ats9_7,
+	   microsecond(t.ats9[8]) as us_ats9_8
+FROM Foo t WHERE id = 3
+
+
+################
+millisecond.q
+################
+SELECT millisecond(t.mts6.values($key="k1")) as ms_mts6_k1,
+	   millisecond(t.mts6.values($key="k2")) as ms_mts6_k2,
+	   millisecond(t.mts6.values($key="k3")) as ms_mts6_k3,
+	   millisecond(t.mts6.values($key="k4")) as ms_mts6_k4,
+	   millisecond(t.mts6.values($key="k5")) as ms_mts6_k5,
+	   millisecond(t.mts6.values($key="k6")) as ms_mts6_k6,
+	   millisecond(t.ats9[0]) as ms_ats9_0,
+	   millisecond(t.ats9[1]) as ms_ats9_1,
+	   millisecond(t.ats9[2]) as ms_ats9_2,
+	   millisecond(t.ats9[3]) as ms_ats9_3,
+	   millisecond(t.ats9[4]) as ms_ats9_4,
+	   millisecond(t.ats9[5]) as ms_ats9_5,
+	   millisecond(t.ats9[6]) as ms_ats9_6,
+	   millisecond(t.ats9[7]) as ms_ats9_7,
+	   millisecond(t.ats9[8]) as ms_ats9_8
+FROM Foo t WHERE id = 3
+
+
+################
+minute.q
+################
+SELECT minute(t.ts0), minute(t.rec.ts3), minute(t.mts6.values($key="k1")), hour(t.ats9[0]) FROM Foo t ORDER BY id
+
+
+################
+month.q
+################
+SELECT month(t.ts0), month(t.rec.ts3), month(t.mts6.values($key="k1")), month(t.ats9[0]) FROM Foo t ORDER BY id
+
+
+################
+nanosecond.q
+################
+SELECT nanosecond(t.mts6.values($key="k1")) as ns_mts6_k1,
+	   nanosecond(t.mts6.values($key="k2")) as ns_mts6_k2,
+	   nanosecond(t.mts6.values($key="k3")) as ns_mts6_k3,
+	   nanosecond(t.mts6.values($key="k4")) as ns_mts6_k4,
+	   nanosecond(t.mts6.values($key="k5")) as ns_mts6_k5,
+	   nanosecond(t.mts6.values($key="k6")) as ns_mts6_k6,
+	   nanosecond(t.ats9[0]) as ns_ats6_0,
+	   nanosecond(t.ats9[1]) as ns_ats6_1,
+	   nanosecond(t.ats9[2]) as ns_ats6_2,
+	   nanosecond(t.ats9[3]) as ns_ats6_3,
+	   nanosecond(t.ats9[4]) as ns_ats6_4,
+	   nanosecond(t.ats9[5]) as ns_ats6_5,
+	   nanosecond(t.ats9[6]) as ns_ats6_6,
+	   nanosecond(t.ats9[7]) as ns_ats6_7,
+	   nanosecond(t.ats9[8]) as ns_ats6_8
+FROM Foo t WHERE id = 3
+
+
+################
+quarter.q
+################
+SELECT extract(quarter from ts0) as quarter
+FROM Foo
+
+
+################
+second.q
+################
+SELECT second(t.ts0), second(t.rec.ts3), second(t.mts6.values($key="k1")), second(t.ats9[0]) FROM Foo t ORDER BY id
+
+
+################
+week.q
+################
+select week(t.ts0), week(t.rec.ts3), week(t.mts6.values($key="k1")), week(t.ats9[0]) from Foo t order by id
+
+
+################
+year.q
+################
+SELECT year(t.ts0), year(t.rec.ts3), year(t.mts6.values($key="k1")), year(t.ats9[0]) FROM Foo t ORDER BY id
+
+

@@ -1,0 +1,2 @@
+unordered-result
+{"ic":42,"flooric":42,"lc":12345678901234,"floorlc":12345678901234,"fc":3.14,"floorfc":3.0,"dc":2.7182823456,"floordc":2.0,"nc":123.456,"floornc":123,"icjson":42,"flooricjson":42,"lcjson":12345678901234,"floorlcsjon":12345678901234,"fcjson":3.14159,"floorfcsjon":3.0,"dcjson":2.7182823456,"floordcsjon":2.0,"ncjson":123.456,"floorncsjon":123.0}

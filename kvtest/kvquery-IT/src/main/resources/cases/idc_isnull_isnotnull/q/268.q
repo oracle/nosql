@@ -1,0 +1,2 @@
+#Expression is map filter step on a nested map with .values().values() and $ ,$key as implicit variable with is not null in projection
+select id,s.children.values().values($.age=10 and $key="age") is not null from sn s

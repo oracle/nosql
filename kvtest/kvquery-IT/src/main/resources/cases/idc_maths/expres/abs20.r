@@ -1,0 +1,2 @@
+unordered-result
+{"nestedNumMapInArray":null,"absnestedNumMapInArray":null,"nestedDouMapInArray":null,"absnestedDouMapInArray":null,"nestedNumArrayInMap":null,"absnestedNumArrayInMap":null,"nestedDouArrayInMap":null,"absnestedDouArrayInMap":null,"docnestedNumMapInArray":[{"a":null},{"b":-2}],"absdocnestedNumMapInArray":null,"docnestedDouMapInArray":[{"c":NaN}],"absdocnestedDouMapInArray":null,"docnestedNumArrayInMap":{"x":[null,-2],"y":[null]},"absdocnestedNumArrayInMap":null,"docnestedDouArrayInMap":{"z":[NaN,-6.6]},"absdocnestedDouArrayInMap":null}

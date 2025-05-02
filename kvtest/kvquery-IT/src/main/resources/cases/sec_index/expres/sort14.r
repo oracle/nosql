@@ -1,0 +1,10 @@
+unordered-result
+{"id":7,"name":"NULL"}
+{"id":3,"name":"NULL"}
+{"id":4,"name":null}
+{"id":5,"name":null}
+{"id":8,"name":"EMPTY"}
+{"id":6,"name":"EMPTY"}
+{"id":1,"name":"john"}
+{"id":2,"name":"dave"}
+{"id":0,"name":"alex"}

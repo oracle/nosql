@@ -1,0 +1,2 @@
+unordered-result
+{"iv":2.147483647E9,"Column_2":1.2304174954646193E11,"lv":9.223372036854776E18,"Column_4":5.2846029059076024E20,"fv":3.4028234663852886E38,"Column_6":1.9496742305195398E40,"dv":Infinity,"Column_8":Infinity,"nv":Infinity,"Column_10":Infinity,"jsoniv":2.147483647E9,"degreesjsoniv":1.2304174954646193E11,"jsonlv":9.223372036854776E18,"degreesjsonlv":5.2846029059076024E20,"jsonfv":3.4028235E38,"degreesjsonfv":1.9496742497793505E40,"jsondv":Infinity,"degreesjsondv":Infinity,"jsonnv":Infinity,"degreesjsonnv":Infinity}

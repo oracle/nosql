@@ -1,0 +1,906 @@
+###
+# Table and records can be on multiple lines but they must be delimited by an
+# empty line.
+#
+# Line  "Table: table-name" defines the table name to be used and it must
+# precede the records. Multiple tables can be populated in the same file.
+###
+
+Table: Foo
+
+{ 
+  "id1":0, "id2":0, "id3":10,
+  "record" : { "long" : 10, "int" : 2, "double" : 4, "str" : "aef", "bool" : true },
+  "xact" :
+  {
+    "acctno" : 345,
+    "year" : 2000, "month" : 10, "day" : 23,
+    "state" : "CA", "city" : "San Jose", "storeid" : 76,
+    "prodcat" : "dairy",
+    "item" : { "prodid" : "p35",
+               "qty" : 3,
+               "price" : 10,
+               "discount":0.1,
+               "price2" : 12
+             }
+  },
+  "mixed" :
+  {
+    "a" : 3, "b" : 6, "x" : 34, "y" : 42 
+  }
+}
+
+{ 
+  "id1":0, "id2":0, "id3":14,
+  "record" : { "long" : null, "int" : 0, "double" : 3, "str" : "aef", "bool" : true },
+  "xact":
+  {
+    "acctno" : 349,
+    "year" : 2000, "month" : 11, "day" : 23,
+    "state" : "CA", "city" : "San Jose", "storeid" : 78,
+    "prodcat" : "dairy",
+    "item" : { "prodid" : "p35",
+               "qty" : 10,
+               "price" : 1,
+               "discount":0.2,
+               "price2" : 34
+             }
+  },
+  "mixed" :
+  {
+    "b" : 6.0, "x" : 4, "y" : 4
+  }
+}
+
+{ 
+  "id1":0, "id2":0, "id3":17,
+  "record" : { "long" : 10, "int" : 20, "double" : 6, "str" : "aef", "bool" : false },
+  "xact":
+  {
+    "acctno" : 348,
+    "year" : 2000, "month" : 10, "day" : 23,
+    "state" : "CA", "city" : "San Jose", "storeid" : 76,
+    "prodcat" : "fruits",
+    "item" : { "prodid" : "p35",
+               "qty" : 3,
+               "price" : 10,
+               "discount":0.1,
+               "price2" : 45
+             }
+  },
+  "mixed" :
+  {
+    "a" : 3.4, "b" : 6, "x" : "vv", "y" : 5.3 
+  }
+}
+
+{ 
+  "id1":0, "id2":0, "id3":19,
+  "record" : { "long" : 10, "int" : 0, "double" : 5, "str" : "aef", "bool" : true },
+  "xact":
+  {
+    "acctno" : 345,
+    "year" : 2000, "month" : 11, "day" : 23,
+    "state" : "CA", "city" : "San Jose", "storeid" : 76,
+    "prodcat" : "vegies",
+    "item" : { "prodid" : "p35",
+               "qty" : 3,
+               "price" : 10,
+               "discount":"xy",
+               "price2" : 16
+             }
+  },
+  "mixed" :
+  {
+    "a" : 3, "b" : 6.0, "y" : 42 
+  }
+}
+
+{ 
+  "id1":0, "id2":1, "id3":11,
+  "record" : { "long" : 20, "int" : 4, "double" : 2, "str" : "aef", "bool" : true },
+  "xact" :
+  {
+    "acctno" : 346,
+    "year" : null, "month" : 12, "day" : 23,
+    "state" : "CA", "city" : "San Jose", "storeid" : 77,
+    "prodcat" : "dairy",
+    "item" : { "prodid" : "p35",
+               "qty" : 4,
+               "price" : 20,
+               "price2" : 4
+             }
+  },
+  "mixed" :
+  {
+    "a" : 3.4, "b" : 6, "x" : 30.2, "y" : 15 
+  }
+}
+
+
+{ 
+  "id1":0, "id2":1, "id3":12,
+  "record" : { "long" : 30, "int" : 1, "double" : 4.0, "str" : "aef", "bool" : true },
+  "xact":
+  {
+    "acctno" : 347,
+    "year" : 2001, "month" : 10, "day" : 23,
+    "state" : "CA", "city" : "San Jose", "storeid" : 78,
+    "prodcat" : "vegies",
+    "item" : { "prodid" : "p35",
+               "qty" : 1,
+               "price" : 10,
+               "price2" : 8
+             }
+  },
+  "mixed" :
+  {
+    "a" : "foo", "b" : true, "x" : "xx", "y" : false 
+  }
+}
+
+{ 
+  "id1":0, "id2":1, "id3":15,
+  "record" : { "long" : 20, "int" : 10, "double" : 5, "str" : "aef", "bool" : true },
+  "xact":
+  {
+    "acctno" : 345,
+    "year" : 2000, "month" : 10, "day" : 23,
+    "state" : "CA", "city" : "San Jose", "storeid" : 77,
+    "prodcat" : "fruits",
+    "item" : { "prodid" : "p35",
+               "qty" : 3,
+               "price" : 20,
+               "discount":0.1,
+               "price2" : 0
+             }
+  },
+  "mixed" :
+  {
+    "a" : 3, "b" : 8, "x" : true, "y" : 4 
+  }
+}
+
+{ 
+  "id1":0, "id2":1, "id3":18,
+  "record" : { "long" : null, "int" : 2, "double" : 1, "str" : "aef", "bool" : true },
+  "xact":
+  {
+    "acctno" : 347,
+    "year" : 2001, "month" : 10, "day" : 23,
+    "state" : "CA", "city" : "San Jose", "storeid" : 77,
+    "prodcat" : "dairy",
+    "item" : { "prodid" : "p35",
+               "qty" : 4,
+               "price" : 15,
+               "discount":0.1,
+               "price2" : 11
+             }
+  },
+  "mixed" :
+  {
+    "a" : "foo", "b" : 8, "x" : 7, "y" : 5 
+  }
+}
+
+{ 
+  "id1":0, "id2":2, "id3":13,
+  "record" : { "long" : 10, "int" : 3, "double" : 3.0, "str" : "aef", "bool" : true },
+  "xact":
+  {
+    "acctno" : 348,
+    "year" : 2000, "month" : 11, "day" : 23,
+    "state" : "CA", "city" : "San Jose", "storeid" : 76,
+    "prodcat" : "fruits",
+    "item" : { "prodid" : "p35",
+               "qty" : 3,
+               "price" : 5,
+               "discount":0.1,
+               "price2" : 5
+             }
+  },
+  "mixed" :
+  {
+    "a" : 3, "x" : 3.4, "y" : 4.2 
+  }
+}
+
+{ 
+  "id1":0, "id2":2, "id3":16,
+  "record" : { "long" : 20, "int" : null, "double" : 4, "str" : "aef", "bool" : false },
+  "xact":
+  {
+    "acctno" : 346,
+    "year" : 2001, "month" : 12, "day" : 23,
+    "state" : "CA", "city" : "San Jose", "storeid" : 76,
+    "prodcat" : "vegies",
+    "item" : { "prodid" : "p35",
+               "qty" : 2,
+               "price" : 15,
+               "discount":0.2,
+               "price2" : 22
+               }
+  },
+  "mixed" :
+  {
+    "a" : "foo", "b" : 8, "x" : 13.5, "y" : 4.5 
+  }
+}
+
+{ 
+  "id1":0, "id2":2, "id3":20,
+  "record" : { "long" : null, "int" : 3, "double" : 4, "str" : "aef", "bool" : false },
+  "xact":
+  {
+    "acctno" : 349,
+    "year" : 2001, "month" : 12, "day" : 23,
+    "state" : "CA", "city" : "San Jose", "storeid" : 77,
+    "prodcat" : "fruits",
+    "item" : { "prodid" : "p35",
+               "qty" : 1,
+               "price" : 10,
+               "discount":0.1,
+               "price2" : 5
+             }
+  },
+  "mixed" :
+  {
+    "b" : "bar", "x" : 34, "y" : 42 
+  }
+}
+
+
+{ 
+  "id1":1, "id2":11, "id3":20,
+  "record" : { "long" : 30, "int" : -2, "double" : 10, "str" : "aef", "bool" : false },
+  "xact":
+  {
+    "year" : 2000, "month" : 11, "day" : 23,
+    "state" : "CA", "city" : "San Jose", "storeid" : 78,
+    "prodcat" : "dairy",
+    "item" : { "prodid" : "p35",
+               "qty" : 1,
+               "price" : 20,
+               "discount":0.1,
+               "price2" : 9
+             }
+  },
+  "mixed" :
+  {
+    "a" : 3, "b" : "bar", "x" : 3, "y" : 2.5 
+  }
+}
+
+
+{ 
+  "id1":1, "id2":11, "id3":21,
+  "record" : { "long" : 30, "int" : 20, "double" : 1, "str" : "aef", "bool" : true },
+  "xact":
+  {
+    "acctno" : 348,
+    "year" : 2000, "month" : 11, "day" : 23,
+    "state" : "CA", "city" : "San Jose", "storeid" : 76,
+    "prodcat" : "fruits",
+    "item" : { "prodid" : "p35",
+               "qty" : 3,
+               "price" : 10,
+               "discount":"abc",
+                "price2" : 2
+             }
+  },
+  "mixed" :
+  {
+    "a" : 3, "b" : "bar", "x" : true, "y" : false
+  }
+}
+
+
+{ 
+  "id1":1, "id2":12, "id3":22,
+  "record" : { "long" : 20, "int" : 4, "double" : 4, "str" : "aef", "bool" : false },
+  "xact":
+  {
+    "year" : 2001, "month" : 10, "day" : 23,
+    "state" : "CA", "city" : "San Jose", "storeid" : 77,
+    "prodcat" : "vegies",
+    "item" : { "prodid" : "p35",
+               "qty" : 3,
+               "price" : 10,
+               "discount":0.2,
+               "price2" : 8
+             }
+  },
+  "mixed" :
+  {
+    "a" : 3, "b" : 6, "x" : 7, "y" : 423
+  }
+}
+
+
+{ 
+  "id1":1, "id2":13, "id3":23,
+  "record" : { "long" : 10, "int" : 10, "double" : 10, "str" : "aef", "bool" : false },
+  "xact":
+  {
+    "acctno" : 349,
+    "year" : 2001, "month" : 12, "day" : 23,
+    "state" : "CA", "city" : "San Jose", "storeid" : 78,
+    "prodcat" : "fruits",
+    "item" : { "prodid" : "p35",
+               "qty" : 3,
+               "price" : 10,
+               "discount":0.1,
+               "price2" : 14
+             }
+  },
+  "mixed" :
+  {
+    "a" : 3, "b" : 6.0, "x" : 10, "y" : 10 
+  }
+}
+
+
+{ 
+  "id1":1, "id2":13, "id3":24,
+ "record" : { "long" : 20, "int" : 1, "double" : 50, "str" : "aef", "bool" : true },
+  "xact":
+  {
+    "acctno" : 345,
+    "year" : 2000, "month" : 12, "day" : 23,
+    "state" : "CA", "city" : "San Jose", "storeid" : 76,
+    "prodcat" : "vegies",
+    "item" : { "prodid" : "p35",
+               "qty" : 3,
+               "price" : 10,
+               "price2" : 5
+             }
+  },
+  "mixed" :
+  {
+    "a" : 3.4, "b" : 8.0, "x" : 3, "y" : 5 
+  }
+}
+
+{ 
+  "id1":1, "id2":14, "id3":25,
+  "record" : { "long" : 10, "int" : 5, "double" : 4, "str" : "aef", "bool" : true },
+  "xact":
+  {
+    "acctno" : 347,
+    "year" : 2001, "month" : 10, "day" : 23,
+    "state" : "CA", "city" : "San Jose", "storeid" : 76,
+    "prodcat" : "fruits",
+    "item" : { "prodid" : "p35",
+               "qty" : 3,
+               "price" : 10,
+               "price2" : 20
+             }
+  },
+  "mixed" :
+  {
+    "a" : "foo", "b" : 6, "x" : 7, "y" : 4.2 
+  }
+}
+
+{ 
+  "id1":1, "id2":14, "id3":26,
+  "record" : { "long" : null, "int" : 20, "double" : 1, "str" : "aef", "bool" : false },
+  "xact":
+  {
+    "acctno" : 346,
+    "year" : 2000, "month" : 1, "day" : 23,
+    "state" : "CA", "city" : "San Jose", "storeid" : 76,
+    "prodcat" : "fruits",
+    "item" : { "prodid" : "p35",
+               "qty" : 3,
+               "price" : 10,
+               "discount":0.05,
+               "price2" : 11
+             }
+  },
+  "mixed" :
+  {
+    "a" : "foo", "b" : 6, "x" : 1, "y" : 1.3 
+  }
+}
+
+{ 
+  "id1":1, "id2":15, "id3":27,
+  "record" : { "long" : 20, "int" : 2, "double" : 3, "str" : "aef", "bool" : true },
+  "xact":
+  {
+    "acctno" : 345,
+    "year" : 2001, "month" : 9, "day" : 23,
+    "state" : "CA", "city" : "San Jose", "storeid" : 76,
+    "prodcat" : "fruits",
+    "item" : { "prodid" : "p35",
+               "qty" : 3,
+               "price" : 10,
+               "discount":0.05,
+               "price2" : 7
+             }
+  },
+  "mixed" :
+  {
+    "a" : null, "b" : null, "x" : 34, "y" : 42 
+  }
+}
+
+{ 
+  "id1":1, "id2":16, "id3":28,
+  "record" : { "long" : 20, "int" : 2, "double" : 3.0, "str" : "aef", "bool" : true },
+  "xact":
+  {
+    "acctno" : 345,
+    "year" : 2000, "month" : 11, "day" : 23,
+    "state" : "CA", "city" : "San Jose", "storeid" : 76,
+    "prodcat" : "fruits",
+    "item" : { "prodid" : "p35",
+               "qty" : 3,
+               "price" : 10,
+               "discount":0.2,
+               "price2" : 9
+             }
+  },
+  "mixed" :
+  {
+     "x" : 34, "y" : 42 
+  }
+}
+
+{ 
+  "id1":1, "id2":16, "id3":29,
+  "record" : { "long" : 30, "int" : 20, "double" : 1, "str" : "aef", "bool" : false },
+  "xact":
+  {
+    "acctno" : 349,
+    "year" : 2000, "month" : 10, "day" : 23,
+    "state" : "CA", "city" : "San Jose", "storeid" : 78,
+    "prodcat" : "vegies",
+    "item" : { "prodid" : "p35",
+               "qty" : 3,
+               "price" : 10,
+               "discount":0.1,
+               "price2" : 14
+             }
+  }
+}
+
+
+Table: Bar
+
+{ 
+  "id1":0, "id2":0, "id3":10,
+  "xact" :
+  {
+    "acctno" : 345,
+    "year" : 2000, "month" : 10, "day" : 23,
+    "state" : "CA", "city" : "San Jose", "storeid" : 76,
+    "prodcat" : "dairy",
+    "items" : [ { "prod" : "milk",   "qty" : 3, "price" : 5 },
+                { "prod" : "cheese", "qty" : 3, "price" : 50 },
+                { "prod" : "yogurt", "qty" : 3, "price" : 20 }
+              ]
+  }
+}
+
+
+{ 
+  "id1":0, "id2":1, "id3":11,
+  "xact" :
+  {
+    "acctno" : 346,
+    "year" : null, "month" : 12, "day" : 23,
+    "state" : "CA", "city" : "San Jose", "storeid" : 76,
+    "prodcat" : "dairy",
+    "items" : { "prod" : "cheese", "qty" : 4, "price" : 20 }
+  }
+}
+
+
+{ 
+  "id1":0, "id2":1, "id3":12,
+  "xact":
+  {
+    "acctno" : 347,
+    "year" : 2001, "month" : 10, "day" : 23,
+    "state" : "OR", "city" : "San Jose", "storeid" : 76,
+    "prodcat" : "vegies",
+    "items" : [ { "prod" : "onions",   "qty" : 3, "price" : 1 },
+                { "prod" : "pepers",   "qty" : 1, "price" : 20 },
+                { "prod" : "zuchinis", "qty" : 1, "price" : 10 }
+              ]
+  }
+}
+
+
+{ 
+  "id1":0, "id2":2, "id3":13,
+  "xact":
+  {
+    "acctno" : 348,
+    "year" : 2000, "month" : 11, "day" : 23,
+    "state" : "OR", "city" : "San Jose", "storeid" : 76,
+    "prodcat" : "fruits",
+    "items" : [ { "prod" : "peaches", "qty" : 3, "price" : 15 },
+                { "prod" : "oranges", "qty" : 6, "price" : 5 },
+                { "prod" : "cheries", "qty" : 6, "price" : 5 }
+              ]
+  }
+}
+
+
+{ 
+  "id1":0, "id2":0, "id3":14,
+  "xact":
+  {
+    "acctno" : 349,
+    "year" : 2000, "month" : 11, "day" : 23,
+    "state" : "WA", "city" : "San Jose", "storeid" : 76,
+    "prodcat" : "dairy",
+    "items" : { "prod" : "cheese", "qty" : 10, "price" : 1 }
+  }
+}
+
+
+{ 
+  "id1":0, "id2":1, "id3":15,
+  "xact":
+  {
+    "acctno" : 345,
+    "year" : 2000, "month" : 10, "day" : 23,
+    "state" : "WA", "city" : "San Jose", "storeid" : 76,
+    "prodcat" : "fruits",
+    "items" : { "prod" : "figs", "qty" : 3, "price" : 20 }
+  }
+}
+
+
+{ 
+  "id1":0, "id2":2, "id3":16,
+  "xact":
+  {
+    "acctno" : 346,
+    "year" : 2001, "month" : 12, "day" : 23,
+    "state" : "MA", "city" : "San Jose", "storeid" : 76,
+    "prodcat" : "vegies",
+    "items" : { "prod" : "tomatoes", "qty" : 2, "price" : 15 }
+  }
+}
+
+
+{ 
+  "id1":0, "id2":0, "id3":17,
+  "xact":
+  {
+    "acctno" : 348,
+    "year" : 2000, "month" : 10, "day" : 23,
+    "state" : "MA", "city" : "San Jose", "storeid" : 76,
+    "prodcat" : "fruits",
+    "items" : { "prod" : "apples", "qty" : 3, "price" : 10 }
+  }
+}
+
+
+{ 
+  "id1":0, "id2":1, "id3":18,
+  "xact":
+  {
+    "acctno" : 347,
+    "year" : 2001, "month" : 10, "day" : 23,
+    "state" : "VT", "city" : "San Jose", "storeid" : 76,
+    "prodcat" : "dairy",
+    "items" : { "prod" : "milk", "qty" : 4, "price" : 15 }
+  }
+}
+
+
+{ 
+  "id1":0, "id2":0, "id3":19,
+  "xact":
+  {
+    "acctno" : 345,
+    "year" : 2000, "month" : 11, "day" : 23,
+    "state" : "VT", "city" : "San Jose", "storeid" : 76,
+    "prodcat" : "vegies",
+    "items" : { "prod" : "eggplant", "qty" : 3, "price" : 10 }
+  }
+}
+
+
+{ 
+  "id1":0, "id2":2, "id3":20,
+  "xact":
+  {
+    "acctno" : 349,
+    "year" : 2001, "month" : 12, "day" : 23,
+    "state" : "CA", "city" : "San Jose", "storeid" : 76,
+    "prodcat" : "fruits",
+    "items" : { "prod" : "berries", "qty" : 1, "price" : 10 }
+  }
+}
+
+
+{ 
+  "id1":1, "id2":11, "id3":20,
+  "xact":
+  {
+    "year" : 2000, "month" : 11, "day" : 23,
+    "state" : "CA", "city" : "San Jose", "storeid" : 76,
+    "prodcat" : "dairy",
+    "items" : { "prod" : "milk", "qty" : 1, "price" : 20 }
+  }
+}
+
+
+{ 
+  "id1":1, "id2":12, "id3":21,
+  "xact":
+  {
+    "acctno" : 348,
+    "year" : 2000, "month" : 11, "day" : 23,
+    "state" : "OR", "city" : "San Jose", "storeid" : 76,
+    "prodcat" : "fruits",
+    "items" : { "prod" : "peaches", "qty" : 3, "price" : 10 }
+  }
+}
+
+
+{ 
+  "id1":1, "id2":13, "id3":22,
+  "xact":
+  {
+    "year" : 2001, "month" : 10, "day" : 23,
+    "state" : "CA", "city" : "San Jose", "storeid" : 76,
+    "prodcat" : "vegies",
+    "items" : { "prod" : "carrots", "qty" : 3, "price" : 10  }
+  }
+}
+
+
+{ 
+  "id1":1, "id2":14, "id3":23,
+  "xact":
+  {
+    "acctno" : 349,
+    "year" : 2001, "month" : 12, "day" : 23,
+    "state" : "NY", "city" : "San Jose", "storeid" : 76,
+    "prodcat" : "fruits",
+    "items" : [ { "prod" : "grapes",  "qty" : 2, "price" : 10.0 },
+                { "prod" : "peaches", "qty" : 2, "price" : 15.0 },
+                { "prod" : "figs",    "qty" : 4, "price" :  5.0 }
+              ]
+  }
+}
+
+
+{ 
+  "id1":1, "id2":15, "id3":24,
+  "xact":
+  {
+    "acctno" : 345,
+    "year" : 2000, "month" : 12, "day" : 23,
+    "state" : "CA", "city" : "San Jose", "storeid" : 76,
+    "prodcat" : "vegies",
+    "items" : [ { "prod" : "kale", "qty" : 3, "price" : 10 } ]
+  }
+}
+
+{ 
+  "id1":1, "id2":16, "id3":25,
+  "xact":
+  {
+    "acctno" : 347,
+    "year" : 2001, "month" : 10, "day" : 23,
+    "state" : "NM", "city" : "San Jose", "storeid" : 76,
+    "prodcat" : "fruits",
+    "items" : [ { "prod" : 5, "qty" : 2, "price" : 10 },
+                { "prod" : 6, "qty" : 3, "price" : 30 }
+              ]
+  }
+}
+
+{ 
+  "id1":1, "id2":17, "id3":26,
+  "xact":
+  {
+    "acctno" : 346,
+    "year" : 2000, "month" : 1, "day" : 23,
+    "state" : "MA", "city" : "San Jose", "storeid" : 76,
+    "prodcat" : "fruits",
+    "items" : [ { "prod" : "apples",  "qty" : 3, "price" : 10 },
+                { "prod" : "berries", "qty" : 1, "price" : 40 }
+              ]
+  }
+}
+
+{ 
+  "id1":1, "id2":18, "id3":27,
+  "xact":
+  {
+    "acctno" : 345,
+    "year" : 2001, "month" : 9, "day" : 23,
+    "state" : "MA", "city" : "San Jose", "storeid" : 76,
+    "prodcat" : "fruits",
+    "items" : { "prod" : "oranges", "qty" : 5, "price" : 10.0 }
+  }
+}
+
+{ 
+  "id1":1, "id2":19, "id3":28,
+  "xact":
+  {
+    "acctno" : 345,
+    "year" : 2000, "month" : 11, "day" : 23,
+    "state" : "WA", "city" : "San Jose", "storeid" : 76,
+    "prodcat" : "fruits",
+    "items" : [ { "prod" : "grapes", "qty" : 3, "price" : 20.0 },
+                { "prod" : "apples", "qty" : 6, "price" : 10.0 }
+              ]
+  }
+}
+
+{ 
+  "id1":1, "id2":20, "id3":29,
+  "xact":
+  {
+    "acctno" : 349,
+    "year" : 2000, "month" : 10, "day" : 23,
+    "state" : "OR", "city" : "San Jose", "storeid" : 76,
+    "prodcat" : "vegies",
+    "items" : [ { "prod" : "tomatoes", "qty" : 3, "price" : 10.0 },
+                { "prod" : "carrots",  "qty" : 1, "price" :  5.0 },
+                { "prod" : "pepers",   "qty" : 1, "price" : 15.0 }
+              ]
+  }
+}
+
+{ 
+  "id1":1, "id2":21, "id3":30
+}
+
+
+Table: tsminmax
+
+{
+  "id" : 1,
+  "ts3" : "2019-06-03T10:42:09.718",
+  "mts6" : {
+    "t1" : "2019-06-03T10:42:09.718001",
+    "t2" : "2019-06-03T10:42:09.719002",
+    "t3" : "2019-06-03T10:42:09.720003"
+  }
+}
+
+{
+  "id" : 2,
+  "ts3" : "2019-06-03T10:42:09.719",
+  "mts6" : {
+    "t1" : "2019-06-03T10:42:09.719001",
+    "t2" : "2019-06-03T10:42:09.720002",
+    "t3" : "2019-06-03T10:42:09.721003"
+  }
+}
+
+{
+  "id" : 3,
+  "ts3" : "2019-06-03T10:42:09.720",
+  "mts6" : {
+    "t1" : "2019-06-03T10:42:09.720001",
+    "t2" : "2019-06-03T10:42:09.721002",
+    "t3" : "2019-06-03T10:42:09.722003"
+  }
+}
+
+
+Table: numbers
+
+{ "id" : 0, "number" : 82342350345345345345324535.0, "decimal" : 82342350345345345345324535.00 }
+
+{ "id" : 1, "number" : 12, "decimal" : 3.0 }
+
+{ "id" : 2, "number" : 82342350345345, "decimal" : 3.00 }
+
+{ "id" : 3, "number" : -82342350345345, "decimal" : 3.00000 }
+
+{ "id" : 4, "number" : -12, "decimal" : 3 }
+
+{ "id" : 5, "number" : 12, "decimal" : 3.0000000000000000000000000000000000001 }
+
+{ "id" : 6, "number" : 82342350345345, "decimal" : 3.7 }
+
+{ "id" : 7, "number" : -82342350345345, "decimal" : 3.7 }
+
+{ "id" : 8, "number" : 82342350345345, "decimal" : 3 }
+
+{ "id" : 9, "number" : -12, "decimal" : 3.0000000000000000000000000000000000001 }
+
+{ "id" : 10, "number" : -12, "decimal" : -234234234.23453453245324523453245345 }
+
+{ "id" : 11, "number" : 82342350345345, "decimal" : 3.0 }
+
+{ "id" : 12, "number" : 12, "decimal" : -234234234.23453453245324523453245345 }
+
+{ "id" : 13, "number" : -82342350345345, "decimal" : 3.0 }
+
+{ "id" : 14, "number" : 12, "decimal" : -234234234.23453453245324523453245345 }
+
+{ "id" : 15, "number" : 12, "decimal" : 3.0 }
+
+
+{ "id" : 16, "number" : 82342350345345345345324535.0, "decimal" : 82342350345345345345324535.0 }
+
+{ "id" : 17, "number" : 82342350345345.0, "decimal" : 82342350345345.0 }
+
+{ "id" : 18, "number" : 82342350345345.4, "decimal" : 82342350345345.400 }
+
+{ "id" : 19, "number" : 12.0, "decimal" : 12.000 }
+
+{ "id" : 20, "number" : -12.0, "decimal" : -12.00 }
+
+{ "id" : 21, "number" : -82342350345345.0, "decimal" : -82342350345345.0 }
+
+{ "id" : 22, "number" : 82342350345345.4, "decimal" : 82342350345345.400 }
+
+{ "id" : 23, "number" : 82342350345345345345324535.0, "decimal" : 82342350345345345345324535.00 }
+
+{ "id" : 24, "number" : 12.34534532453245, "decimal" : 12.34534532453245 }
+
+{ "id" : 25, "number" : 82342350345345.0, "decimal" : 82342350345345.000 }
+
+{ "id" : 26, "number" : -82342350345345.0, "decimal" : -82342350345345 }
+
+{ "id" : 27, "number" : 82342350345345.4, "decimal" : 82342350345345.4 }
+
+{ "id" : 28, "number" : -82342350345345.0, "decimal" : -82342350345345.0 }
+
+{ "id" : 29, "number" : 82342350345345.0, "decimal" : 82342350345345.000 }
+
+
+Table : Boo
+
+{ 
+  "id1":1,
+  "acctno" : 346,
+  "xact":
+  {
+    "year" : 2000, "month" : 1, "day" : 23
+  }
+}
+
+{ 
+  "id1":2,
+  "acctno" : 346,
+  "xact":
+  {
+    "year" : 2000, "month" : 2, "day" : 23
+  }
+}
+
+{ 
+  "id1":3,
+  "acctno" : 347,
+  "xact":
+  {
+     "month" : 2, "day" : 23
+  }
+}
+
+{ 
+  "id1":4,
+  "acctno" : 347
+}
+
+{ 
+  "id1":8,
+  "acctno" : 348,
+  "xact":
+  {
+     "month" : 2, "day" : 23
+  }
+}
+
+
+Table : XYZ
+
+{ "id" : 1, "s" : "s1" }

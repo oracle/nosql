@@ -1,0 +1,1 @@
+SELECT * FROM employee ORDER BY ID

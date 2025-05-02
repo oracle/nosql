@@ -1,0 +1,15 @@
+ordered-result
+{"acctno":345,"month":9}
+{"acctno":345,"month":10}
+{"acctno":345,"month":11}
+{"acctno":345,"month":12}
+{"acctno":346,"month":1}
+{"acctno":346,"month":12}
+{"acctno":347,"month":10}
+{"acctno":348,"month":10}
+{"acctno":348,"month":11}
+{"acctno":349,"month":10}
+{"acctno":349,"month":11}
+{"acctno":349,"month":12}
+{"acctno":null,"month":10}
+{"acctno":null,"month":11}

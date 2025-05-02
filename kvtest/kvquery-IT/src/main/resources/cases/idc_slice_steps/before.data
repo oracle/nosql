@@ -1,0 +1,94 @@
+###
+# Table and records can be on multiple lines but they must be delimited by an
+# empty line.
+#
+# Line  "Table: table-name" defines the table name to be used and it must
+# precede the records. Multiple tables can be populated in the same file.
+###
+
+Table: Complex
+
+{ "id":0, "firstName":"first0", "lastName":"last0","age":10,"ptr":"firstName",
+  "address":
+  {
+    "city": "San Fransisco",
+    "state"  : "CA",
+    "phones" : [ { "work" : 504,  "home" : 50 },
+                 { "work" : 518,  "home" : 51 },
+                 { "work" : 528,  "home" : 52 },
+                 { "work" : 538,  "home" : 53 },
+                 { "work" : 548,  "home" : 54 } ],
+    "ptr"    : "city"
+  },
+  "children":
+  {
+    "John" : { "age" : 10, "friends" : ["Anna", "John", "Maria"]},
+    "Lisa" : { "age" : 12, "friends" : ["Ada"]}
+  },
+  "arrbool": [true,false,true,false,true],
+  "arrint": [0,1,-2,55,-10],
+  "arrflt": [0.8,1.9,-2.09,55.8,-10.009],
+  "arrdbl": [0.0011,1.5564,-2.90987,55.233,-10.9],
+  "map" : {"key1":[1,2,3], "key2":[4,5], "key3":[]},
+  "lng":0, "flt":10.5, "dbl":3.5,"bool":true, "enm":"tok1", "bin" :"dGVzdGJpbmFyeQ==", "fbin":"dGVzdGJpbmFyeQ=="
+}
+
+{ "id":1, "firstName":"first1", "lastName":"last1","age":11,"ptr":"lastName",
+  "address":
+  {
+    "city"   : "Boston",
+    "state"  : "MA",
+    "phones" : [ { "work" : 304,  "home" : 30 },
+                 { "work" : 318,  "home" : 31 } ],
+    "ptr"    : "state"
+  },
+  "children":
+  {
+    "Anna" : { "age" : 9, "friends" : ["Bobby", "John"]},
+    "Mark" : { "age" : 4, "friends" : ["George"]}
+  },
+  "arrbool": [false,true,false,true],
+  "arrint": [10,901,-209,5511,-10098],
+  "arrflt": []
+}
+
+{ "id":2, "firstName":"first2", "lastName":"last2","age":12,"ptr":"firstName",
+  "address":
+  {
+    "city"   : "Portland",
+    "state"  : "OR",
+    "phones" : [ { "work" : 104,  "home" : 10 },
+                 { "work" : 118,  "home" : 11 },
+                 { "work" : null, "home" : null } ],
+    "ptr"    : "phones"
+  },
+  "children":
+  {
+  },
+  "arrbool": [true,false,true,false],
+  "arrint": [ ],
+  "arrflt": [ ],
+  "arrdbl": [ ],
+  "map"   : { },
+  "bool"  : null
+}
+
+{ "id":3, "firstName":"first3", "lastName":"last3","age":13,"ptr":"lastName",
+  "address":
+  {
+    "city"   : "Seattle",
+    "state"  : "WA",
+    "phones" : [ ],
+    "ptr"    : "phones"
+  },
+  "children":
+  {
+    "George" : { "age" : 7,  "friends" : ["Bill", "Mark"]},
+    "Matt" :   { "age" : 14, "friends" : ["Bill"]}
+  },
+  "arrbool": [true,false,false,true],
+  "arrint": [-10,-100,-2,-155,-10],
+  "arrflt": [8.9, -9.0],
+  "arrdbl": [111.2, 15.64],
+  "map" : {"key1":[1,2,3], "key2":[4,5], "key3":[]}
+}

@@ -1,0 +1,1 @@
+SELECT id IS OF TYPE ( string, array(integer) ) from Foo

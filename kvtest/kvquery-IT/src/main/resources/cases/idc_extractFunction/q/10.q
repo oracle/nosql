@@ -1,0 +1,2 @@
+#expression returns nanosecond using Extract Function with timestamp of all nine precision
+SELECT id,extract(nanosecond from t.ts0) as ts0,extract(nanosecond from t.ts1) as ts1,extract(nanosecond from t.ts2) as ts2,extract(nanosecond from t.ts3) as ts3,extract(nanosecond from t.ts4) as ts4,extract(nanosecond from t.ts5) as ts5,extract(nanosecond from t.ts6) as ts6,extract(nanosecond from t.ts7) as ts7 ,extract(nanosecond from t.ts8) as ts8 ,extract(nanosecond from t.ts9) as ts9 FROM Extract t

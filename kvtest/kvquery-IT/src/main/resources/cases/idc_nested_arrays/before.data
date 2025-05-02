@@ -1,0 +1,257 @@
+###
+# Table and records can be on multiple lines but they must be delimited by an
+# empty line.
+#
+# Line  "Table: table-name" defines the table name to be used and it must
+# precede the records. Multiple tables can be populated in the same file.
+###
+
+Table: nestedTable
+
+
+{
+   "id":0,
+   "firstName":"first0",
+   "lastName":"last0",
+   "age":17,
+   "addresses":[
+      	{
+         	"city":" San Fransisco",
+         	"state":"CA",
+         	"phones":[
+            		[{"areacode":408, "number":50, "kind":"home"},
+               		 {"areacode":418, "number":51, "kind":"work"},
+               		 {"areacode":515, "number":52, "kind":"home"},
+               		 {"areacode":640, "number":54}],
+            	        [{"areacode":480, "number":44},
+               		 {"areacode":419, "number":52, "kind":"home"}],
+            	        [{"areacode":567, "number":36, "kind":"work"},
+               		 {"areacode":356, "number":63, "kind":"work"}],
+                        [] 
+                ]
+         },
+         {	
+         	"city":"San Fransisco",
+         	"state":"CA",
+         	"phones":[
+            		[{"areacode":104, "number":60, "kind":"home"},
+               		 {"areacode":118, "number":61, "kind":"work"}]
+         	]
+      	},
+      	{
+         	"city":"San Jose",
+         	"state":"CA",
+         	"phones":[
+            		[{"areacode":367, "number":560, "kind":"home"}],
+            		[{"areacode":null, "number":71, "kind":"home"}]
+         	]
+      	}
+   ],
+   "array1":[
+     	 [ {"a":1}, {"a":3} ],
+      	 [ {"a":4}, {"a":5} ]
+   ],
+   "array2":[
+     	[1, 2, 3],
+      	[4, 3, 8]
+   ],
+   "maps":[
+      	{
+         	"key1":{
+            	"foo":"sdf",
+            	"bar":34,
+            	"array":[
+               		[1, 2, 3],
+               		[4, 3, 8]
+            	]
+         },
+         	"key2":{
+            	"foo":"hhh",
+            	"bar":34,
+            	"array":[
+               		[1, 2, 3]
+            	]
+         }
+      }
+   ]
+}
+
+{
+   "id":1,
+   "firstName":"first1",
+   "lastName":"last1",
+   "age":30,
+   "addresses":[
+      	{
+         	"city":"Boston",
+         	"state":"MA",
+         	"phones":[
+            		[{"areacode":304, "number":30, "kind":"work"},
+               		 {"areacode":318, "number":31, "kind":"home"}],
+               		[{"areacode":480, "number":44, "kind":"null"},
+               		 {"areacode":null, "number":52, "kind":"home"}]
+                ]
+         },
+         {	
+         	"city":"Portland",
+         	"state":"OR",
+         	"phones":[
+            		[{"areacode":104, "number":60, "kind":"home"},
+               		 {"areacode":118, "number":61, "kind":"work"}]
+         	]
+      	}
+   ],
+   "array1":[
+     	 [ {"a":1}, {"a":3} ],
+      	 [ {"a":4}, {"a":5} ]
+   ],
+   "array2":[
+     	[1, 2, 3],
+      	[4, 3, 8]
+   ],
+   "maps":[
+      	{
+         	"key1":{
+            	"foo":"sdf",
+            	"bar":34,
+            	"array":[
+               		[1, 2, 3],
+               		[4, 3, 8]
+            	]
+         },
+         	"key2":{
+            	"foo":"hhh",
+            	"bar":34,
+            	"array":[
+               		[1, 2, 3]
+            	]
+         }
+      }
+   ]
+}
+
+{
+   "id":2,
+   "firstName":"first2",
+   "lastName":"last2",
+   "age":25,
+   "addresses":[
+        {
+                "city":"Santa Cruz",
+                "state":"CA",
+                "phones":[
+                        [{"areacode":480, "number":44, "kind":"null"},
+                         {"areacode":null, "number":52, "kind":"home"}]
+                ]        
+         },     
+         {      
+                "city":"Portland",
+                "state":"OR",
+                "phones":[
+                        [{"areacode":104, "number":60, "kind":"home"},
+                         {"areacode":118, "number":61, "kind":"work"}]
+                ]        
+        }       
+   ],   
+   "array1":[
+         [ {"a":4}, {"a":5} ]
+   ],    
+   "array2":[
+        [1, 2, 3],
+        [4, 3, 8]
+   ],   
+   "maps":[
+        {
+                "key2":{
+                "foo":"hhh",
+                "bar":34,
+                "array":[
+                        [1, 2, 3]
+                ]       
+         }      
+      }  
+   ]  
+} 
+
+{
+   "id":3,
+   "firstName":"first3",
+   "lastName":"last3",
+   "age":20,
+   "addresses":[
+        {
+                "city":"Santa Cruz",
+                "state":"CA",
+                "phones":[
+                        [{"areacode":480, "number":44, "kind":"null"},
+                         {"areacode":null, "number":52, "kind":"home"}]
+                ]        
+         }
+   ],   
+   "array1":[],    
+   "array2":[
+        [4, 3, 8]
+   ],   
+   "maps":[
+        {
+                "key2":{
+                "foo":"hhh",
+                "bar":34,
+                "array":[
+                        [1, 2, 3],
+                        [4, 5, 6]
+                ]       
+         }      
+      }  
+   ]  
+}
+
+{
+   "id":4,
+   "firstName":"first4",
+   "lastName":"last4",
+   "age":15,
+   "addresses":[
+        {
+                "city":"Santa Cruz",
+                "state":"CA",
+                "phones":[
+                        [{"areacode":480, "number":44, "kind":"null"}]
+                ]        
+         }
+   ],   
+   "array1":[],    
+   "array2":[],   
+   "maps":[
+        {
+                "key2":{
+                "foo":"hhh",
+                "bar":34,
+                "array":[
+                        [1, 2, 3],
+                        [4, 5, 6]
+                ]       
+         }      
+      }  
+   ]  
+}
+
+{
+   "id":5,
+   "firstName":"first5",
+   "lastName":"last5",
+   "age":23,
+   "addresses":[
+        {
+                "city":"Portland",
+                "state":"OR",
+                "phones":[
+                        [{"areacode":104, "number":60, "kind":"home"}]
+                ]
+         }
+   ],   
+   "array1":[],    
+   "array2":[],   
+   "maps":[]  
+}
+

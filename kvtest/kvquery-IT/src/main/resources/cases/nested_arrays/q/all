@@ -1,0 +1,782 @@
+################
+net01.q
+################
+select 
+  {
+    "user_id" : user_id, 
+    "value" :
+        { "contentStreamed" : seq_transform(n.value.contentStreamed.seriesInfo,
+                              { "seriesInfo" : seq_transform($[],
+                                               { "seasonNum" : $.seasonNum,
+                                                 "numEpisodes" : $.numEpisodes } )
+                              } )
+        }
+  }  
+from netflix n
+where user_id = 1
+
+
+#db.netflix.find({ user_id : 1}, {user_id:1, "value.contentStreamed.seriesInfo.numEpisodes" : 1, "value.contentStreamed.seriesInfo.seasonNum"})
+
+# ???? Can mongo do array filtering in projection? Seems so: $elemMatch, $, $slice
+
+# mongo has HAVING clause
+
+
+
+################
+net02.q
+################
+
+select count(*)
+from netflix f
+where f.value.contentStreamed.showId =any 15 and
+      size(f.value.contentStreamed[$element.showId = 15].seriesInfo) = f.value.contentStreamed[$element.showId = 15].numSeasons and
+      not seq_transform(f.value.contentStreamed[$element.showId = 15].seriesInfo[], $.numEpisodes = size($.episodes)) =any false and
+      seq_sum(seq_transform(f.value.contentStreamed[$element.showId = 15].seriesInfo.episodes[], $.lengthMin - $.minWatched)) = 0
+
+
+
+################
+net03.q
+################
+select $shows.showId, count(*) as cnt
+from netflix n, unnest(n.value.contentStreamed[] as $shows)
+group by $shows.showId
+order by count(*) desc
+
+
+
+################
+net04.q
+################
+select /* FORCE_PRIMARY_INDEX(netflix) */
+       $shows.showId, sum($shows.seriesInfo.episodes.minWatched) as total_time
+from netflix n, unnest(n.value.contentStreamed[] as $shows)
+group by $shows.showId
+order by sum($shows.seriesInfo.episodes.minWatched)
+
+
+
+################
+net05.q
+################
+select $shows.showId, $shows.showName, count(*) as cnt
+from netflix n, unnest(n.value.contentStreamed[] as $shows)
+group by $shows.showId, $shows.showName
+order by count(*) desc
+
+
+
+################
+net06.q
+################
+select $shows.showId,
+       sum(n.value.contentStreamed[$element.showId = $shows.showId].
+           seriesInfo.episodes.minWatched) as total_time
+from netflix n, unnest(n.value.contentStreamed[] as $shows)
+group by $shows.showId
+order by sum(n.value.contentStreamed[$element.showId = $shows.showId].
+             seriesInfo.episodes.minWatched)
+
+
+
+################
+net07.q
+################
+select $shows.showId, count(*) as cnt
+from netflix n, unnest(n.value.contentStreamed[] as $shows)
+where n.value.country = "USA"
+group by $shows.showId
+order by count(*) desc
+
+
+
+################
+net08.q
+################
+select /* FORCE_PRIMARY_INDEX(netflix) */ acct_id, user_id
+from netflix n, unnest(n.value.contentStreamed[] as $shows)
+where $shows.showId = 15 and $shows.seriesInfo[].episodes[].minWatched >any 40
+
+
+
+################
+net09.q
+################
+select /* FORCE_PRIMARY_INDEX(netflix) */
+       $show.showId,
+       $seriesInfo.seasonNum,
+       sum($seriesInfo.episodes.minWatched) as length
+from netflix n, unnest(n.value.contentStreamed[] as $show,
+                       $show.seriesInfo[] as $seriesInfo)
+group by $show.showId, $seriesInfo.seasonNum
+order by sum($seriesInfo.episodes.minWatched)
+
+
+
+################
+net10.q
+################
+select /* FORCE_PRIMARY_INDEX(netflix) */
+       $show.showId,
+       $seriesInfo.seasonNum,
+       sum(n.value.contentStreamed[$element.showId = $show.showId].
+           seriesInfo[$element.seasonNum = $seriesInfo.seasonNum].
+           episodes.minWatched) as length
+from netflix n, unnest(n.value.contentStreamed[] as $show,
+                       $show.seriesInfo[] as $seriesInfo)
+group by $show.showId, $seriesInfo.seasonNum
+order by sum(n.value.contentStreamed[$element.showId = $show.showId].
+           seriesInfo[$element.seasonNum = $seriesInfo.seasonNum].
+           episodes.minWatched)
+
+
+
+################
+q01.q
+################
+select id
+from foo f
+where f.info.addresses.phones[].areacode =any 408
+
+
+
+################
+q02.q
+################
+select id
+from foo f
+where exists f.info.addresses.phones[][][][$element.areacode = 408 and $element.kind = "home"]
+
+
+
+################
+q03.q
+################
+select id
+from foo f
+where exists f.info.addresses[$element.state = "CA"].
+             phones[][][$element.areacode = 408 and $element.kind = "work"]
+
+
+
+################
+q04.q
+################
+select /*+ FORCE_INDEX(foo idx_areacode_number_long) */ id
+from foo f
+where exists f.info.addresses[$element.state="CA"].
+             phones[][][$element.areacode = 408 and $element.kind = "work"]
+
+
+
+################
+q05.q
+################
+select id
+from foo f
+where exists f.info.addresses.phones[][][$element.areacode = 408 and $element.number > 30]
+
+
+
+################
+q06.q
+################
+select /* FORCE_PRIMARY_INDEX(foo) */ id
+from foo f
+where exists f.info.addresses.phones[$element.areacode = 408 and $element.kind = "home"]
+
+
+
+################
+q07.q
+################
+select /* FORCE_PRIMARY_INDEX(foo) */ id
+from foo f
+where exists f.info.addresses.phones[][$element.areacode = 500]
+
+
+
+################
+q08.q
+################
+select /* FORCE_PRIMARY_INDEX(foo) */ id
+from foo f
+where exists f.info.addresses.phones[][$element.areacode =any 500]
+
+
+
+################
+q09.q
+################
+select /* FORCE_PRIMARY_INDEX(foo) */ id
+from foo f
+where exists f.info.addresses.phones[$element.areacode =any 500]
+
+
+
+################
+q10.q
+################
+select /* FORCE_INDEX(foo idx_areacode_number_long) */ id
+from foo f
+where exists f.info.addresses[$element.state="CA"].
+             phones[][][$element.areacode = 408]
+
+
+
+################
+q11.q
+################
+select /* FORCE_PRIMARY_INDEX(foo) */ id
+from foo f
+where exists f.info.addresses.phones[exists $element[$element.areacode =any 500]]
+
+
+
+################
+q12.q
+################
+select /* FORCE_PRIMARY_INDEX(foo) */ id
+from foo f
+where exists f.info.addresses.phones[$element[][].areacode = 500]
+
+
+
+################
+q13.q
+################
+select id
+from foo f
+where exists f.info.addresses.phones[$element.areacode =any 408][][$element.number > 30]
+
+
+
+################
+q14.q
+################
+select id
+from foo f
+where f.info.addresses.phones.areacode = 408
+
+
+
+################
+q15.q
+################
+select /* FORCE_PRIMARY_INDEX(foo) */ id
+from foo f
+where exists f.info.addresses.phones[$element.areacode =any 500][]
+
+
+
+################
+q16.q
+################
+select /* FORCE_PRIMARY_INDEX(foo) */ id
+from foo f
+where exists f.info.addresses.phones[not exists $element[$element.areacode =any 500]]
+
+
+
+################
+q17.q
+################
+select /* FORCE_PRIMARY_INDEX(foo) */ id
+from foo f
+where exists f.info.addresses.phones[not exists $element[$element.areacode =any 500]][]
+
+
+
+################
+q18.q
+################
+select /* FORCE_PRIMARY_INDEX(foo) */ id
+from foo f
+where exists f.info.addresses.phones[].areacode
+
+
+
+################
+q19.q
+################
+select id
+from foo f
+where exists f.info.addresses.phones[$element.areacode =any 415].number
+
+
+
+################
+q20.q
+################
+select id
+from foo f
+where exists f.info.addresses.phones[][][$element.areacode = 415].number
+
+
+
+################
+q21.q
+################
+select id
+from foo f
+where exists f.info.addresses.phones[][][$element.areacode = 415 and exists $element.number]
+
+
+
+################
+q22.q
+################
+select /* FORCE_PRIMARY_INDEX(foo) */ id
+from foo f
+where f.info[$element.addresses.phones[][][$element.kind = "work"].areacode >any 408].age = 10
+
+# long  50       :    1, 2,    4, 5,    15
+# areacode > 408 : 0, 1,    3, 4,    6,     16
+# work             0, 1,       4,           16
+
+
+
+################
+q23.q
+################
+select /* FORCE_PRIMARY_INDEX(foo) */ id
+from foo f
+where f.info[$element.addresses.phones[][][$element.number >= 54].areacode >any 408].age = 10
+
+
+
+################
+q24.q
+################
+select /* FORCE_PRIMARY_INDEX(foo) */ id
+from foo f
+where f.info[exists $element.addresses.phones[][][$element.areacode = 408 and
+                                                  $element.kind = "work"]].age = 10
+
+
+
+################
+q25.q
+################
+select /* FORCE_PRIMARY_INDEX(foo) */ id
+from foo f
+where f.info.age = 10 and 
+      f.info.addresses.phones[][][$element.areacode = 408].kind =any "work"
+
+
+
+################
+q26.q
+################
+select /* FORCE_PRIMARY_INDEX(foo) */ id
+from foo f
+where f.info.age = 10 and 
+      f.info.addresses.phones[][][$element.areacode > 408].kind =any "work"
+
+
+
+################
+q27.q
+################
+select /* FORCE_PRIMARY_INDEX(foo) */ id
+from foo f
+where f.info.age = 10 and 
+      f.info.addresses.phones[][][$element.areacode in (408, 510, 650)].kind =any "work"
+
+
+
+################
+q28.q
+################
+select /* FORCE_INDEX(Foo idx_areacode_kind) */id
+from foo f
+where f.info.addresses[exists $element.phones[$element.areacode =any 408]].phones.areacode >any 510
+
+
+
+################
+q29.q
+################
+select id
+from foo f
+where f.info.addresses[exists $element.phones[$element.kind =any "work"]].phones.areacode =any 408
+
+
+
+################
+q30.q
+################
+select id
+from foo f
+where exists f.info[$element.age = 10].addresses.phones[][][$element.areacode > 500] and
+      f.info.addresses.phones.kind =any "home"
+
+
+
+################
+q31.q
+################
+select id
+from foo f
+where f.info.maps.values().array[][][] =any 3
+
+
+
+################
+q32.q
+################
+select id
+from foo f
+where f.info.maps.key1.array[][][] =any 3
+
+
+
+################
+q33.q
+################
+select id
+from foo f
+where exists f.info.maps.key1.array[][][15 < $element and $element < 20]
+
+
+
+################
+q34.q
+################
+select id
+from foo f
+where exists f.info.maps.values().array[][][15 < $element and $element < 20]
+
+
+
+################
+q35.q
+################
+select id
+from foo f
+where exists f.info.maps.values().array[]
+
+
+
+################
+q36.q
+################
+select id
+from foo f
+where f.info.maps.key1.array[][][] = 3
+
+
+
+################
+q37.q
+################
+select id
+from foo f
+where f.info.maps.values($key > "key7").array[][][$element < 7] =any 3
+
+
+
+################
+q38.q
+################
+select id
+from foo f
+where exists f.info.maps.values($key > "key7").array[][][$element < 7]
+
+
+
+################
+q39.q
+################
+select id
+from foo f
+where exists f.info.maps.values($key = "key7").array[$element[] =any 15][][$element < 7]
+
+
+
+################
+q40.q
+################
+select id
+from foo f
+where exists f.info.maps.values($key = "key7").array[][][$element < 7]
+
+
+
+################
+q41.q
+################
+select id
+from foo f
+where exists f.info.addresses[$element.state = "CA" and $element.city > "M"]
+
+
+
+################
+q42.q
+################
+select id
+from foo f
+where f.info.addresses[$element.phones[][][$element.areacode = 408 and $element.kind = "work"]].state =any "MA"
+
+
+
+################
+q43.q
+################
+select id
+from foo f
+where exists f.info.addresses[$element.state = "CA" and
+                              exists $element.phones[][][$element.areacode = 408 and
+                                                         $element.kind = "work"]]
+
+
+
+################
+q44.q
+################
+select /*+ FORCE_INDEX(foo idx_state_areacode_kind) */ id
+from foo f
+where exists f.info[exists $element.addresses[$element.state = "CA"] and
+                    exists $element.addresses.phones[][][$element.areacode = 408 and
+                                                         $element.kind = "work"]]
+
+
+
+################
+q45.q
+################
+select id
+from foo f
+where exists f.info[exists $element.addresses[$element.state = "CA"] and
+                    exists $element.addresses.phones[][][$element.areacode = 408 and
+                                                         $element.kind = "work"]]
+
+
+
+################
+q46.q
+################
+select id, f.info.addresses.state
+from foo f
+where exists f.info[exists $element.addresses[$element.state = "OR"]] and
+      exists f.info.addresses.phones[][][$element.areacode = 118 and
+                                         $element.kind = "work"]
+
+
+
+################
+q47.q
+################
+select id
+from foo f
+where exists f.info[$element.maps.key1.array[][][] = 6]
+
+
+
+################
+q48.q
+################
+select id, f.info.maps.key1.array[][][]
+from foo f
+where exists f.info[$element.maps.key1.array[][][] >any 6] and
+      f.info.maps.key1.array[][][] <any 3
+
+
+
+################
+q49.q
+################
+select id
+from foo f
+where f.info.maps[].values().foo =any "hhh"
+
+
+
+################
+q50.q
+################
+select id
+from foo f
+where exists f.info.maps[$element.values().foo =any "hhh"]
+
+
+
+################
+q51.q
+################
+select id
+from foo f
+where exists f.info.maps[$element.values().foo = "hhh"]
+
+
+
+################
+temp.q
+################
+select /*+ FORCE_PRIMARY_INDEX(bar) */id, $phone.areacode
+from bar as $t, unnest($t.info.addresses[].phones[][][] as $phone)
+where id = 7
+
+
+
+################
+tmp01.q
+################
+select id
+from foo f
+where f.info.array1[].a =any 3
+
+
+
+################
+tmp02.q
+################
+select id
+from foo f
+where f.info.array1[].a =any 4
+
+
+
+################
+tmp03.q
+################
+select id
+from foo f
+where f.info.array2[] =any 3
+
+
+
+################
+tmp04.q
+################
+select id
+from foo f
+where f.info.array2[] =any 4
+
+
+
+################
+tmp05.q
+################
+select id
+from foo f
+where f.info.array2[][] =any 4
+
+
+
+################
+tmp06.q
+################
+select id
+from foo f
+where exists f.info.array1[][ 3 <= $element.a and $element.a <= 4]
+
+
+
+################
+tmp07.q
+################
+select id
+from foo f
+where exists f.info.array1[ 3 <=any $element.a and $element.a <=any 4 ]
+
+
+
+################
+tmp08.q
+################
+select id
+from foo f
+where exists f.info.array1[ 3 <= $element.a and $element.a <= 4 ]
+
+
+
+################
+unnest01.q
+################
+select /* FORCE_PRIMARY_INDEX(Foo) */id
+from bar as $t, unnest($t.info.addresses[].phones[][][] as $phone)
+where $phone.areacode = 600
+
+
+
+################
+unnest02.q
+################
+select /* FORCE_PRIMARY_INDEX(bar) */id, $phone.areacode
+from bar as $t, unnest($t.info.addresses[].phones[][][] as $phone)
+order by $phone.areacode, id
+
+
+
+################
+unnest03.q
+################
+select /* FORCE_PRIMARY_INDEX(Foo) */id
+from bar as $t, unnest($t.info.addresses[].phones[][][] as $phone)
+where $phone.areacode = 400
+
+
+
+################
+unnest04.q
+################
+select /* FORCE_PRIMARY_INDEX(bar) */id
+from bar as $t, unnest($t.info.addresses[] as $address, $address.phones[][][] as $phone)
+where $phone.areacode = 600 and $address.state = "CA"
+
+
+
+################
+unnest05.q
+################
+select /* FORCE_PRIMARY_INDEX(bar) */id
+from bar as $t, unnest($t.info.addresses[] as $address, $address.phones[][][] as $phone)
+where $phone.areacode > 400 and $address.state = "MA"
+
+
+
+################
+unnest06.q
+################
+select /* FORCE_PRIMARY_INDEX(bar) */id
+from bar as $t, unnest($t.info.addresses[] as $address, $address.phones[][][] as $phone)
+where $phone.areacode = 400 and $address.state > "C"
+
+
+
+################
+unnest07.q
+################
+select /* FORCE_PRIMARY_INDEX(bar) */
+       count($phone.number) as cnt,
+       sum($phone.number) as sum
+from bar as $t, unnest($t.info.addresses[] as $address, $address.phones[][][] as $phone)
+where $address.state > "C"
+group by $address.state
+
+
+
+################
+unnest08.q
+################
+select /* FORCE_PRIMARY_INDEX(bar) */
+       $address.state, count($phone.kind) as cnt
+from bar as $t, unnest($t.info.addresses[] as $address, $address.phones[][][] as $phone)
+where $address.state > "C"
+group by $address.state
+
+
+
+################
+unnest09.q
+################
+select /*+ FORCE_INDEX(bar idx_areacode_number_long) */id
+from bar as $t, unnest($t.info.addresses[] as $address, $address.phones[][][] as $phone)
+where $phone.areacode > 400 and $address.state = "MA"
+
+
+

@@ -1,0 +1,472 @@
+################
+ins01.q
+################
+insert into viewers values(1, 1, { "a" : 1, "b" : 2})
+returning *
+
+
+
+
+################
+ins02.q
+################
+insert into viewers (acct_id, user_id, a, b) values(2, 1, 10, "xyz")
+returning *
+
+
+
+
+################
+ins03.q
+################
+insert into viewers (acct_id, user_id, a, b)
+values(3, 1,
+       [10, 11, 12],
+       { "c" : "xyz", "d" : { "e" : [1]}}
+      )
+returning *
+
+
+
+################
+ins04.q
+################
+insert into viewers values(4, 1, { "a" : $a, "b" : [3, "a"], "c" : $c, "d" : 0})
+returning *
+
+
+
+################
+ins05.q
+################
+insert into viewers values($id5, 1, $doc1, $doc2)
+returning *
+
+
+
+################
+ins06.q
+################
+insert into viewers values($id6, 1, { "ab" : 7 }, $doc2)
+returning *
+
+
+
+################
+ins07.q
+################
+insert into viewers (acct_id, user_id, a, b) values($id7, 1, { "ab" : 7 }, $doc2)
+returning *
+
+
+
+################
+ins08.q
+################
+insert into viewers
+       (acct_id, user_id, a, b)
+       values(2,
+              1,
+              10,
+              cast("2023-05-14T01:01:01" as timestamp(0)))
+returning *
+
+
+
+################
+ins09.q
+################
+insert into viewers
+       (acct_id, user_id, "a with space", b)
+       values(8,
+              1,
+              10,
+              7)
+returning *
+
+
+
+################
+ins10.q
+################
+insert into jsoncol $j values ("ab", "cd", "min6", { "a" : 3, "b" : 5 })
+returning $j, remaining_days($j)
+
+
+
+################
+mupd01.q
+################
+update jsoncol $j
+put $j {"address":{"city":"Burlington", "State":"MA"}},
+set firstThread = true,
+remove index,
+set ttl 8 days
+where majorKey1 = "k1" and majorKey2 = "k2"
+
+select $j, remaining_days($j) as remaining_days
+from jsoncol $j
+where majorKey1 = "k1" and majorKey2 = "k2"
+
+
+
+################
+q01.q
+################
+select acct_id, user_id, lastName
+from viewers v
+where v.shows.seasons.episodes.date <any "2021-01-01"
+
+
+
+################
+q02.q
+################
+select acct_id, user_id, lastName
+from viewers v
+where country = "USA" and v.shows.genres[] =any "comedy"
+
+
+
+################
+q03.q
+################
+select acct_id, user_id, lastName
+from viewers v
+where v.shows.genres[] =any "comedy"
+
+
+
+################
+q04.q
+################
+select count(*) as cnt
+from viewers v
+where v.country = "USA" and
+      exists v.shows[$element.showId = 18]
+
+
+
+################
+q05.q
+################
+select count(*) as cnt
+from viewers v
+where v.country = "USA" and
+      exists v.shows[$element.showId = 16].
+             seasons.episodes[$element.date > "2021-04-01"]
+
+
+
+################
+q06.q
+################
+select count(*) as cnt
+from viewers v
+where v.country = "USA" and 
+      exists v.shows[
+          exists $element.genres[$element in ("french", "danish")] and
+          exists $element.seasons.episodes["2021-01-01" <= $element.date and
+                                           $element.date <= "2021-12-31"]
+      ]
+
+
+
+################
+q07.q
+################
+select acct_id, user_id,
+       $show.showName, $season.seasonNum, $episode.episodeID, $episode.date
+from viewers v, v.shows[] as $show,
+                $show.seasons[] as $season,
+                $season.episodes[] as $episode
+where v.country = "USA" and
+      $show.showId = 16 and
+      $show.seasons.episodes.date >any "2021-04-01"
+
+
+
+################
+q08.q
+################
+select $show.showId, count(*) as cnt
+from viewers v, UNNEST(v.shows[] as $show)
+where v.country = "USA"
+group by $show.showId
+order by count(*) desc
+
+
+
+################
+q09.q
+################
+select $show.showId,
+       $season.seasonNum,
+       sum($season.episodes.minWatched) as totalTime
+from viewers v, UNNEST(v.shows[] as $show,
+                       $show.seasons[] as $season)
+where v.country = "USA"
+group by $show.showId, $season.seasonNum
+order by sum($season.episodes.minWatched) desc
+
+
+
+
+################
+q10.q
+################
+select $show.showId,
+       sum($show.seasons.episodes.minWatched) as total_time
+from viewers $v, UNNEST($v.shows[] as $show)
+where $v.country = "USA"
+group by $show.showId
+order by sum($show.seasons.episodes.minWatched)
+
+
+
+################
+q11.q
+################
+select lastName
+from viewers v
+where v.shows.seasons.episodes.date <any "2021-01-01"
+
+
+
+################
+q12.q
+################
+select *
+from viewers
+
+
+
+################
+q13.q
+################
+select *
+from viewers
+where acct_id > 100
+
+
+
+################
+q14.q
+################
+select *
+from viewers v
+where exists v."a with space"
+
+
+
+################
+q16.q
+################
+select *
+from jsoncol jc
+where jc.address.name = "rupali"
+
+
+
+################
+q17.q
+################
+select $jc, remaining_days($jc) as rem_days
+from jsoncol $jc
+where $jc.address.name = "rupali"
+
+
+
+################
+upd01.q
+################
+update viewers v
+set v.firstName = "Jonathan",
+add v.shows 
+    {
+      "showName": "Casa de papel",
+      "showId": 18,
+      "type": "tvseries",
+      "genres" : ["action", "spanish"]
+     },
+set v.shows[0].seasons[0].numEpisodes = 3,
+add v.shows[0].seasons[0].episodes
+    {
+      "episodeID": 40,
+      "lengthMin": 52,
+      "minWatched": 45,
+      "date": "2021-05-23"
+    },
+remove v.shows[1].seasons[1]
+where acct_id = 200 and user_id = 1
+
+
+select v.firstName, v.shows
+from viewers v
+where acct_id = 200 and user_id = 1
+
+
+
+################
+upd02.q
+################
+update viewers $v
+put $v { "new" : 3}
+where acct_id = 100 and user_id = 2
+
+select acct_id, user_id, v.new
+from viewers v
+where acct_id = 100 and user_id = 2
+
+
+
+################
+upd03.q
+################
+update viewers v
+set v.firstName = "Manolo",
+remove v.new,
+remove v.notExists
+where acct_id = 100 and user_id = 2
+returning *
+
+
+
+################
+upd04.q
+################
+update viewers v
+remove acct_id
+where acct_id = 100 and user_id = 2
+
+
+
+
+################
+upd05.q
+################
+update viewers $v
+put $v { "acct_id" : 3}
+where acct_id = 100 and user_id = 2
+
+
+select acct_id, user_id
+from viewers v
+where acct_id = 100 and user_id = 2
+
+
+
+################
+upd06.q
+################
+update jsoncol $j
+set $j.address.name = "JAIN",
+set $j.index = 9970001
+where majorKey1 = "cc" and majorKey2 = "ib" and minorKey = "min1"
+returning $j, remaining_days($j)
+
+
+
+################
+upd07.q
+################
+update viewers $v
+json merge $v with patch { "new" : 3}
+where acct_id = 300 and user_id = 1
+
+select *
+from viewers v
+where acct_id = 300 and user_id = 1
+
+
+
+################
+upd08.q
+################
+update viewers $v
+json merge $v with patch 3
+where acct_id = 300 and user_id = 1
+
+select *
+from viewers v
+where acct_id = 300 and user_id = 1
+
+
+
+################
+upd09.q
+################
+update viewers $v
+json merge $v with patch { "acct_id" : 3 }
+where acct_id = 300 and user_id = 1
+
+select *
+from viewers v
+where acct_id = 300 and user_id = 1
+
+
+
+################
+upd10.q
+################
+update viewers $v
+json merge $v with patch { "acct_id" : 3, "user_id" : 2 }
+where acct_id = 300 and user_id = 1
+
+select *
+from viewers v
+where acct_id = 300 and user_id = 1
+
+
+
+################
+upd11.q
+################
+update foo $f
+json merge $f with patch { "id" : 10 }
+where id = 1
+
+
+
+################
+upd12.q
+################
+update viewers $v
+put $v { "country" : "France" }
+where acct_id = 300 and user_id = 1
+
+select acct_id, user_id
+from viewers v
+where country = "France"
+
+
+
+################
+xdel01.q
+################
+delete
+from viewers
+where acct_id = 100 and user_id = 2
+
+
+
+################
+xdel02.q
+################
+delete
+from jsoncol $j
+where majorKey1 = "cc"
+returning *
+
+
+
+################
+xdel03.q
+################
+delete
+from jsoncol $j
+where majorKey1 = "99"
+returning $j, remaining_days($j)
+
+
+

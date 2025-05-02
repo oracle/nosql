@@ -1,0 +1,2 @@
+#expression returns year,month,day using Extract Function with AND opertor.Operation on Atomic and json Map
+SELECT id,extract(year from cast(t.ts5 as timestamp)) as ts5, extract(month from cast(t.json.k.k4 as timestamp)) as jkk4,extract(day from cast(t.ts3 as timestamp)) as ts3 FROM Extract t where extract(year from cast(t.s as timestamp))<any 2015 AND extract(day from cast(t.json.k.k4 as timestamp))>05 AND id=10

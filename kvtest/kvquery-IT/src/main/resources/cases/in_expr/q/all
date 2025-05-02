@@ -1,0 +1,926 @@
+################
+ext_q01.q
+################
+declare $k1 integer; // 6
+        $k2 integer; // 3
+select id
+from foo f
+where f.info.bar1 in ($k1, $k2, seq_concat(), null)
+
+
+
+################
+ext_q02.q
+################
+declare $k1 integer; // 6
+        $k2 integer; // 3
+        $k3 double;  // 3.4
+select id
+from foo f
+where f.info.bar1 in ($k1, $k2, seq_concat(), null) and
+      f.info.bar2 in (3.5, 3.6, null, seq_concat(), $k3, 3.0)
+
+
+
+################
+ext_q08.q
+################
+#
+# typed int field, vs string key
+#
+declare $k8 json; // "p"
+select id
+from foo f
+where foo1 in (6, $k8)
+
+
+
+################
+ext_q09.q
+################
+#
+# typed int field, vs long key: the long key cannot be removed because foo1 is nullable
+#
+declare $k9 long; // 8589934592
+select id
+from foo f
+where foo1 in (6, $k9)
+
+
+
+################
+ext_q11.q
+################
+#
+# json double field, vs int key
+#
+declare $k2 integer; // 3
+select id
+from foo f
+where (f.info.bar1, f.info.bar2) in ((6, 3.4), (7, $k2))
+
+
+
+################
+ext_q14.q
+################
+#
+# json int field, vs json null key
+#
+declare $k10 json; // null
+select id
+from foo f
+where f.info.bar1 in (6, $k10)
+
+
+
+################
+pq01.q
+################
+select /*+ FORCE_PRIMARY_INDEX(foo) */ 
+     id
+from foo f
+where foo1 in (f.info.phones[].num)
+
+
+
+################
+pq02.q
+################
+select /*+ FORCE_PRIMARY_INDEX(foo) */ 
+     id
+from foo f
+where f.info.bar1 in (6, 3, seq_concat(), null)
+
+
+
+
+################
+pq03.q
+################
+declare $arr2 array(json);
+select /*+ FORCE_PRIMARY_INDEX(foo) */ 
+       id
+from foo f
+where f.info.bar1 in $arr2[]
+
+
+
+################
+pq04.q
+################
+select /*+ FORCE_PRIMARY_INDEX(foo) */ 
+       id
+from foo f
+where (foo1, foo2) in ((6, 3.8), (4, 3.5), (4, 3.6))
+
+
+
+################
+pq05.q
+################
+declare $arr1 array(json);
+select /*+ FORCE_PRIMARY_INDEX(foo) */ 
+       id
+from foo f
+where (f.info.bar1, f.info.bar2) in $arr1[]
+
+
+
+################
+q01.q
+################
+select id
+from foo f
+where f.info.bar1 in (6, 3, seq_concat(), null)
+
+
+
+
+################
+q02.q
+################
+select id
+from foo f
+where f.info.bar1 in (6, 3, seq_concat(), null) and
+      f.info.bar2 in (3.5, 3.6, null, seq_concat(), 3.4, 3.0)
+
+
+
+
+################
+q03.q
+################
+select id
+from foo f
+where f.info.bar1 in (6, 3, seq_concat(), null) and
+      f.info.bar2 in (3.5, 3.6, null, seq_concat(), 3.4, 3.0) and
+      exists f.info.bar3
+
+
+
+################
+q04.q
+################
+select id
+from foo f
+where f.info.bar1 in (4, 3, seq_concat(), null) and
+      f.info.bar2 in (3.5, 3.6, null, seq_concat(), 3.1, 3.2) and
+      "c" <= f.info.bar3 and f.info.bar3 < "p" 
+
+
+
+################
+q05.q
+################
+select id
+from foo f
+where (f.info.bar1, f.info.bar3) in ((8, "a"), (4, "a"), (6, ""),
+                                     (seq_concat(), "d"), (null, null)) and
+      f.info.bar2 in (3.9, null, seq_concat(), 3.1, 3.2) and
+      101 <= f.info.bar4 and f.info.bar4 < 108 
+
+
+
+################
+q06.q
+################
+select id
+from foo f
+where f.info.bar1 in (6, "3")
+
+
+
+################
+q07.q
+################
+select id
+from foo f
+where f.info.bar1 in (6, 3.0, 3.4)
+
+
+
+################
+q08.q
+################
+#
+# typed int field, vs string key
+#
+select id
+from foo f
+where foo1 in (6, "3")
+
+
+
+################
+q09.q
+################
+#
+# typed int field, vs long key: the long key cannot be removed because foo1 is nullable
+#
+select id
+from foo f
+where foo1 in (6, 8589934592)
+
+
+
+################
+q10.q
+################
+#
+# typed int field, vs long key
+#
+select id
+from foo f
+where foo1 in (6, cast(4 as long))
+
+
+
+################
+q11.q
+################
+#
+# typed int field, vs double key
+#
+select id
+from foo f
+where foo1 in (6, 3.0)
+
+
+
+################
+q12.q
+################
+#
+# typed int field, vs EMPTY key
+#
+select id
+from foo f
+where foo1 in (6, seq_concat())
+
+
+
+################
+q13.q
+################
+#
+# typed int field, vs json null key
+#
+select id
+from foo f
+where foo1 in (6, null)
+
+
+
+################
+q14.q
+################
+#
+# json int field, vs json null key
+#
+select id
+from foo f
+where f.info.bar1 in (6, null)
+
+
+
+################
+q15.q
+################
+#
+# json int field, vs EMPTY key
+#
+select id
+from foo f
+where f.info.bar1 in (6, seq_concat())
+
+
+
+################
+q16.q
+################
+select id
+from foo f
+where f.info.bar1 in (7, 2, seq_concat(), null) and
+      (foo1, f.info.bar2) in ((7, 3.5), (4, 3.9)) and
+      "a" <= f.info.bar3 and f.info.bar3 < "p" 
+
+
+
+################
+q17.q
+################
+select id
+from foo f
+where f.info.bar1 in (7, 2, seq_concat(), null) and
+      (foo1, f.info.bar3) in ((4, "d"), (3, "g")) and
+      100 <= f.info.bar4 and f.info.bar4 < 108 
+
+
+
+################
+q18.q
+################
+select id
+from foo f
+where (f.info.bar1, f.info.bar3, f.info.bar4) in ((8, "u", 100), (4, "v", 109), (6, "", 103))
+
+
+
+################
+q19.q
+################
+select id
+from foo f
+where (f.info.bar1, f.info.bar4) in ((8, 100), (4, 109), (6, 103)) and
+      f.info.bar1 in (4, 5)
+
+
+
+################
+q20.q
+################
+select id
+from foo f
+where (f.info.bar1, f.info.bar2) in ((8, 3.4), (2, 3.9), (9, 3.0)) and
+      f.info.bar2 in (3.4, 3.5)
+
+
+
+################
+q21.q
+################
+select id
+from foo f
+where f.info.bar1 = 7 and
+      f.info.bar2 in (3.0, 3.1, 3.5, 3.9) and
+      (f.info.bar2, f.info.bar3) in ((3.1, "g"), (3.9, "d"))
+
+
+
+################
+q22.q
+################
+select id
+from foo f
+where f.info.bar1 = 7 and
+      f.info.bar2 in (3.0, 3.1, 3.5, 3.9) and
+      (f.info.bar2, f.info.bar4) in ((3.1, 107), (3.9, 106))
+
+
+
+################
+q23.q
+################
+select id
+from foo f
+where 
+      f.info.bar2 in (3.0, 3.1, 3.5, 3.9) and
+      (f.info.bar2, f.info.bar4) in ((3.1, 107), (3.9, 106))
+
+
+
+################
+q24.q
+################
+select id
+from foo f
+where f.info.bar1 = 7 and
+      f.info.bar1 in (7, 4, 3) and
+      f.info.bar2 in (3, 3.4, 3.6) and
+      f.info.bar2 >= 3.4
+
+
+
+
+################
+q25.q
+################
+select id
+from foo f
+where f.info.bar1 = 7 and
+      (f.info.bar1, f.info.bar2) in ((7, 3), (4, 3.4), (3, 3.6)) and
+      3.1 <= f.info.bar2 and f.info.bar2 < 3.8
+
+
+
+################
+q26.q
+################
+select id
+from foo f
+where f.info.bar1 = 7 and
+      (f.info.bar1, f.info.bar2) in ((7, 3), (7, 3.5), (3, 3.6)) and
+      3 <= f.info.bar2 and f.info.bar2 <= 3.5 and
+      f.info.bar3 <= "t"
+
+
+
+################
+q27.q
+################
+select id
+from foo f
+where f.info.bar1 = 7 and
+      (f.info.bar1, f.info.bar2) in ((7, 3), (7, 3.5), (3, 3.6)) and
+      3.7 <= f.info.bar2 and f.info.bar2 <= 4.5 and
+      f.info.bar3 <= "t"
+
+
+
+################
+q28.q
+################
+select id
+from foo f
+where f.info.bar1 in (7, 2, seq_concat(), null) and
+      (foo1, ltrim(f.info.bar3)) in ((4, "d"), (3, "g")) and
+      100 <= f.info.bar4 and f.info.bar4 < 108 
+
+
+
+################
+q29.q
+################
+select id
+from foo f
+where f.info.bar1 in (7, 2, seq_concat(), null) and
+      (foo1, f.info.bar2, ltrim(f.info.bar3)) in ((4, 3.9, "d"), (3, 4, "g")) and
+      100 <= f.info.bar4 and f.info.bar4 < 108
+
+
+
+################
+q301.q
+################
+declare $arr3 array(json); // [6, 3, null]
+select id
+from foo f
+where f.info.bar1 in $arr3[]
+
+
+
+################
+q302.q
+################
+declare $arr3 array(json); // [ 6, 3, null ]
+        $arr4 array(json); // [ 3.5, 3.6, null, 3.4, 3.0 ]
+select id
+from foo f
+where f.info.bar1 in $arr3[] and
+      f.info.bar2 in $arr4[]
+
+
+
+################
+q303.q
+################
+declare $arr3 array(json); // [ 6, 3, null ]
+        $arr4 array(json); // [ 3.5, 3.6, null, 3.4, 3.0 ]
+select id
+from foo f
+where f.info.bar1 in $arr3[] and
+      f.info.bar2 in $arr4[] and
+      exists f.info.bar3
+
+
+
+################
+q304.q
+################
+declare $arr5 array(json); // [ 4, 3, null ]
+        $arr6 array(json); // [ 3.5, 3.6, null, 3.1, 3.2 ]
+        $k4 string; // "p"
+select id
+from foo f
+where f.info.bar1 in $arr5[] and
+      f.info.bar2 in $arr6[] and
+      "c" <= f.info.bar3 and f.info.bar3 < $k4
+
+
+
+################
+q305.q
+################
+declare $arr7 array(json); // [ (8, "a"), (4, "a"), (6, ""), (9, null), (null, null) ]
+        $arr8 array(json); // [ 3.9, null, 3.1, 3.2 ]
+select id
+from foo f
+where (f.info.bar1, f.info.bar3) in $arr7[] and
+      f.info.bar2 in $arr8[] and
+      101 <= f.info.bar4 and f.info.bar4 < 108 
+
+
+
+################
+q30.q
+################
+select id
+from foo f
+where exists f.info.phones[$element.num in (3, 5)]
+
+
+
+################
+q316.q
+################
+declare $arr9 array(json);  // [ 7, 2, null ]
+        $arr10 array(json); // [ (7, 3.5), (4, 3.9) ]
+select id
+from foo f
+where f.info.bar1 in $arr9[] and
+      (foo1, f.info.bar2) in $arr10[] and
+      "a" <= f.info.bar3 and f.info.bar3 < "p"
+
+
+
+################
+q317.q
+################
+declare $arr9 array(json);  // [ 7, 2, null ]
+        $arr11 array(json); // [ (4, "d"), (3, "g") ]
+        $k5 integer; // 100
+        $k6 integer; // 108
+select id
+from foo f
+where f.info.bar1 in $arr9[] and
+      (foo1, f.info.bar3) in $arr11[] and
+      $k5 <= f.info.bar4 and f.info.bar4 < $k6
+
+
+
+################
+q318.q
+################
+declare $arr12 array(json); // [ (8, "u", 100), (4, "v", 109), (6, "", 103) ]
+select id
+from foo f
+where (f.info.bar1, f.info.bar3, f.info.bar4) in $arr12[]
+
+
+
+################
+q319.q
+################
+declare $arr13 array(json); // [(8, 100), (4, 109), (6, 103)]
+        $arr14 array(json); // [ 4, 5 ]
+select id
+from foo f
+where (f.info.bar1, f.info.bar4) in $arr13[] and
+      f.info.bar1 in $arr14[]
+
+
+
+################
+q31.q
+################
+select id
+from foo f
+where exists f.info.phones[($element.num, $element.kind) in ((3, "a"), (5, "b"))]
+
+
+
+################
+q320.q
+################
+declare $arr15 array(json); // [ (8, 3.4), (2, 3.9), (9, 3.0) ]
+        $arr16 array(json); // [ 3.4, 3.5 ]
+select id
+from foo f
+where (f.info.bar1, f.info.bar2) in $arr15[] and
+      f.info.bar2 in $arr16[]
+
+
+
+
+################
+q321.q
+################
+declare $arr17 array(double); // [ 3.0, 3.1, 3.5, 3.9 ]
+        $arr18 array(json);   // [ (3.1, "g"), (3.9, "d") ]
+select id
+from foo f
+where f.info.bar1 = 7 and
+      f.info.bar2 in $arr17[] and
+      (f.info.bar2, f.info.bar3) in $arr18[]
+
+
+
+################
+q322.q
+################
+declare $arr17 array(double); // [ 3.0, 3.1, 3.5, 3.9 ]
+        $arr19 array(json);   // [ (3.1, 107), (3.9, 106) ]
+select id
+from foo f
+where f.info.bar1 = 7 and
+      f.info.bar2 in $arr17[] and
+      (f.info.bar2, f.info.bar4) in $arr19[]
+
+
+
+################
+q323.q
+################
+declare $arr17 array(double); // [ 3.0, 3.1, 3.5, 3.9 ]
+        $arr19 array(json);   // [ (3.1, 107), (3.9, 106) ]
+select id
+from foo f
+where f.info.bar2 in $arr17[] and
+      (f.info.bar2, f.info.bar4) in $arr19[]
+
+
+
+################
+q324.q
+################
+declare $arr20 array(integer); // [ 7, 4, 3]
+        $arr21 array(json);    // [ 3.0, 3.4, 3.6 ]
+        $k7 integer; // 7
+select id
+from foo f
+where f.info.bar1 = $k7 and
+      f.info.bar1 in $arr20[] and
+      f.info.bar2 in $arr21[] and
+      f.info.bar2 >= 3.4
+
+
+
+################
+q325.q
+################
+declare $arr22 array(json); // [ (7, 3.0), (4, 3.4), (3, 3.6) ]
+        $k11 double; // 3.8
+select id
+from foo f
+where f.info.bar1 = 7 and
+      (f.info.bar1, f.info.bar2) in $arr22[] and
+      3.1 <= f.info.bar2 and f.info.bar2 < $k11
+
+
+
+################
+q326.q
+################
+declare $arr23 array(json); // [ (7, 3.0), (7, 3.5), (3, 3.6) ]
+        $k12 string; // 't'
+        $k7 integer; // 7
+select id
+from foo f
+where f.info.bar1 = $k7 and
+      (f.info.bar1, f.info.bar2) in $arr23[] and
+      3 <= f.info.bar2 and f.info.bar2 <= 3.5 and
+      f.info.bar3 <= $k12
+
+
+
+################
+q328.q
+################
+declare $arr9 array(json); // [ 7, 2, null ]
+        $arr11 array(json); // [ 4, "d", 3, "g" ]
+select id
+from foo f
+where f.info.bar1 in $arr9[] and
+      (foo1, ltrim(f.info.bar3)) in $arr11[] and
+      100 <= f.info.bar4 and f.info.bar4 < 108 
+
+
+
+################
+q329.q
+################
+declare $arr9 array(json); // [ 7, 2, null ]
+        $arr24 array(json); // [ (4, 3.9, "d"), (3, 4.0, "g") ]
+select id
+from foo f
+where f.info.bar1 in $arr9[] and
+      (foo1, f.info.bar2, ltrim(f.info.bar3)) in $arr24[] and
+      100 <= f.info.bar4 and f.info.bar4 < 108
+
+
+
+################
+q32.q
+################
+select id
+from foo f
+where exists f.info.phones[$element.num in (3, 5) and $element.kind in ("a", "b")]
+
+
+
+################
+q330.q
+################
+declare $arr25 array(integer); // [3, 5]
+select id
+from foo f
+where exists f.info.phones[$element.num in $arr25[]]
+
+
+
+################
+q331.q
+################
+declare $arr26 array(json); // [ (3, "a"), (5, "b") ] 
+select id
+from foo f
+where exists f.info.phones[($element.num, $element.kind) in $arr26[]]
+
+
+
+################
+q332.q
+################
+declare $arr25 array(json); // [ 3, 5 ]
+        $arr27 array(json); // [ "a", "b" ]
+select id
+from foo f
+where exists f.info.phones[$element.num in $arr25[] and $element.kind in $arr27[]]
+
+
+
+################
+q333.q
+################
+declare $arr27 array(json); // [ "a", "b" ]
+select id
+from foo f
+where exists f.info.phones[$element.kind in $arr27[]]
+
+
+
+################
+q334.q
+################
+declare $arr27 array(json); // [ "a", "b" ]
+        $arr25 array(json); // [ 3, 5 ]
+select id
+from foo f
+where exists f.info.phones[$element.num in $arr25[]] and
+      exists f.info.phones[$element.kind in $arr27[]]
+
+
+
+################
+q335.q
+################
+declare $arr25 array(json); // [ 3, 5 ]
+        $arr28 array(json); // [ (4, "h"), (6, "c"), (6, "s")]
+select id
+from foo f
+where exists f.info.phones[$element.num in $arr25[]] and
+      exists f.info.phones[($element.num, $element.kind) in $arr28[]]
+
+
+
+################
+q336.q
+################
+declare $arr25 array(json); // [ 3, 5 ]
+select id
+from foo f
+where exists f.info.phones[$element.num in $arr25[] and $element.kind > "f"]
+
+
+
+################
+q337.q
+################
+declare $arr29 array(json); // [ "a", "b", "c" ]
+select id
+from foo f
+where exists f.info.phones[$element.num = 5 and $element.kind in $arr29[]]
+
+
+
+################
+q338.q
+################
+declare $arr3 array(json); // [ 6, 3, null ]
+select id
+from foo f
+where f.info.bar1 in $arr3[] and
+      f.info.bar2 in (3.5, 3.6, null, 3.4, 3.0)
+
+
+
+################
+q339.q
+################
+declare $arr4 array(json); // [ 3.5, 3.6, null, 3.4, 3.0 ]
+select id
+from foo f
+where f.info.bar1 in ( 6, 3, null ) and
+      f.info.bar2 in $arr4[] and
+      exists f.info.bar3
+
+
+
+################
+q33.q
+################
+select id
+from foo f
+where exists f.info.phones[$element.kind in ("a", "b")]
+
+
+
+################
+q340.q
+################
+declare $arr7 array(json); // [ (8, "a"), (4, "a"), (6, ""), (9, null), (null, null) ]
+        $arr8 array(json); // 
+select id
+from foo f
+where (f.info.bar1, f.info.bar3) in $arr7[] and
+      f.info.bar2 in (3.9, null, 3.1, 3.2) and
+      101 <= f.info.bar4 and f.info.bar4 < 108 
+
+
+
+################
+q341.q
+################
+declare $arr9 array(json);  // [ 7, 2, null ]
+select id
+from foo f
+where f.info.bar1 in $arr9[] and
+      (foo1, f.info.bar2) in ((7, 3.5), (4, 3.9)) and
+      "a" <= f.info.bar3 and f.info.bar3 < "p"
+
+
+
+################
+q342.q
+################
+declare $arr11 array(json); // [ (4, "d"), (3, "g") ]
+        $k5 integer; // 100
+        $k6 integer; // 108
+select id
+from foo f
+where f.info.bar1 in (7, 2, null) and
+      (foo1, f.info.bar3) in $arr11[] and
+      $k5 <= f.info.bar4 and f.info.bar4 < $k6
+
+
+
+################
+q343.q
+################
+declare $arr13 array(json); // [(8, 100), (4, 109), (6, 103)]
+select id
+from foo f
+where (f.info.bar1, f.info.bar4) in $arr13[] and
+      f.info.bar1 in (4, 5)
+
+
+
+################
+q344.q
+################
+declare $arr30 array(json); // []
+select id
+from foo f
+where f.info.bar1 in $arr30[]
+
+
+
+################
+q34.q
+################
+select id
+from foo f
+where exists f.info.phones[$element.num in (3, 5)] and
+      exists f.info.phones[$element.kind in ("a", "b")]
+
+
+
+################
+q35.q
+################
+select id
+from foo f
+where exists f.info.phones[$element.num in (3, 5)] and
+      exists f.info.phones[($element.num, $element.kind) in ((4, "h"), (6, "c"), (6, "s"))]
+
+
+
+################
+q36.q
+################
+select id
+from foo f
+where exists f.info.phones[$element.num in (3, 5) and $element.kind > "f"]
+
+
+
+################
+q37.q
+################
+select id
+from foo f
+where exists f.info.phones[$element.num = 5 and $element.kind in ("a", "b", "c")]
+
+
+

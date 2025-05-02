@@ -1,0 +1,5 @@
+DROP TABLE users
+
+DROP TABLE select
+
+DROP TABLE from

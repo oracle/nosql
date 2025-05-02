@@ -1,0 +1,620 @@
+###
+# Table and records can be on multiple lines but they must be delimited by an
+# empty line.
+#
+# Line  "Table: table-name" defines the table name to be used and it must
+# precede the records. Multiple tables can be populated in the same file.
+###
+
+# addresses ARRAY(RECORD(city STRING,
+#                         state STRING,
+#                         phones MAP(RECORD(...))))
+# map1 MAP(RECORD(foo STRING,
+#                  bar INTEGER
+#                  map2 MAP(INTEGER)))
+
+Table: Foo
+
+{ 
+  "id":0,
+  "record" : { "int" : 20, "string" : "aef" },
+  "info":
+  {
+    "firstName":"first0", "lastName":"last0","age":17,
+    "addresses" : [
+      {
+        "city": "San Fransisco",
+        "state"  : "CA",
+        "phones" : {
+          "map1" : {
+            "phone1" : { "areacode" : 408,  "number" : 50, "kind" : "home" },
+            "phone2" : { "areacode" : 650,  "number" : 51, "kind" : "work" },
+            "phone3" : { "areacode" : null, "number" : 52, "kind" : "home" },
+            "phone4" : { "areacode" : 415,  "number" : 54 },
+            "phone5" : "650-234-4556",
+            "phone6" :  650234455
+          },
+          "map2" : {
+            "phone1" : { "areacode" : 651,  "number" : 34, "kind" : null },
+            "phone2" : { "areacode" : null, "number" : 52, "kind" : "home" },
+            "phone3" : { "areacode" : 652,  "number" : 36, "kind" : "work" },
+            "phone4" : { "areacode" : 653,  "number" : 63, "kind" : "work" },
+            "phone5" : {},
+            "phone6" : null
+          }
+        }
+      },
+      {
+        "city": "San Fransisco",
+        "state"  : "CA",
+        "phones" : {
+          "map1" : {
+            "phone3" : { "areacode" : 408,  "number" : 60, "kind" : "home" },
+            "phone4" : { "areacode" : 651,  "number" : 61, "kind" : "work" }
+          }
+        }
+      },
+      {
+        "city": "San Jose",
+        "state"  : "CA",
+        "phones" : {
+          "map2" : {
+            "phone3" : { "areacode" : 408,  "number" : 560, "kind" : "home" },
+            "phone4" : { "areacode" : 409,  "number" : 71,  "kind" : "home" }
+          }
+        }
+      }
+    ],
+    "map1" : {
+      "key1" : {
+        "foo" : "sdf",
+        "bar" : 34,
+        "map2" : {
+          "key1" : 35,
+          "key2" : 43,
+          "key3" : 56
+        }
+      },
+      "key2" : {
+        "foo" : "hhh",
+        "bar" : 34,
+        "map2" : {
+          "key1" : 10,
+          "key2" : 20,
+          "key3" : 30
+        } 
+      },
+     "key3" : {
+        "foo" : "hhh",
+        "bar" : 54,
+        "map2" : {
+          "key1" : 35,
+          "key2" : 43,
+          "key3" : 56
+        }
+      } 
+    } 
+  }
+}
+
+{ 
+  "id":1,
+  "record" : { "long" : 50, "int" : 20, "string" : "xyz" },
+  "info":
+  {
+    "firstName":"first1", "lastName":"last1","age":10,
+    "addresses" : [
+      {
+        "city"   : "Boston",
+        "state"  : "MA",
+        "phones" : {
+          "map4" : {
+            "phone3" : { "areacode" : 304,  "number" : 30, "kind" : "work" },
+            "phone1" : { "areacode" : 318,  "number" : 31, "kind" : "work" }
+          },
+          "map6" : {
+            "phone1" : { "areacode" : 400,  "number" : 41, "kind" : "home" },
+            "phone7" : { "areacode" : 450,  "number" : 43, "kind" : "home" },
+            "phone3" : { "areacode" : 480,  "number" : 44, "kind" : "work" }
+          },
+          "map4" : {
+            "phone3" : { "areacode" : 520,  "number" : 52, "kind" : "home" },
+            "phone1" : { "areacode" : 550,  "number" : 53, "kind" : "home" },
+            "phone8" : { "areacode" : 560,  "number" : 53, "kind" : "work" }
+          },
+          "map5" : 3
+        }
+      },
+      {
+        "city"   : "Portland",
+        "state"  : "OR",
+        "phones" : {
+          "map34" : { "areacode" : 104,  "number" : 50, "kind" : "home" },
+          "map35" : { "areacode" : 118,  "number" : 11, "kind" : "work" },
+          "map36" : 650,
+          "map37" : {
+            "phone3" : { "areacode" : 408,  "number" : 10, "kind" : "home" },
+            "phone4" : { "areacode" : 104,  "number" : 51, "kind" : "work" }
+          }
+        }
+      }
+    ],
+    "map1" : {
+      "key1" : {
+        "foo" : "cvd",
+        "bar" : 37,
+        "map2" : {
+          "key1" : 35,
+          "key2" : 43,
+          "key3" : 56
+        }
+      },
+      "key7" : {
+        "foo" : "",
+        "bar" : 4,
+        "map2" : {
+          "key1" : 10,
+          "key2" : 20,
+          "key3" : 30
+        } 
+      },
+     "key9" : {
+        "foo" : "hje",
+        "bar" : -54,
+        "map2" : {
+          "key1" : 5,
+          "key2" : 43,
+          "key3" : 560
+        }
+      }
+    }
+  }
+}
+
+{ 
+  "id":2,
+  "record" : { "long" : 50, "int" : 50, "string" : "abc"},
+  "info":
+  {
+    "firstName":"first2", "lastName":"last2","age":10,
+    "addresses" : [
+      {
+        "city"   : "Portland",
+        "state"  : "OR",
+        "phones" : {
+          "map4" : { "areacode" : 104,  "number" : 10, "kind" : "home" },
+          "map3" : {
+            "phone1" : { "areacode" : 118,  "number" : 11, "kind" : "work" },
+            "phone3" : { "areacode" : 408, "kind" : "work" },
+            "phone7" : { "areacode" : 380,  "number" : 25, "kind" : "work" }
+          }
+        }  
+      },
+      {
+        "city"   : "Santa Cruz",
+        "state"  : "CA",
+        "phones" : [
+            {
+              "map8" : {
+                "phone1" : { "areacode" : 408,  "number" : "", "kind" : "work" },
+                "phone9" : { "areacode" : 408,  "number" : "", "kind" : "work" }
+              }
+            },
+            {
+              "map8" : {
+                "phone1" : { "areacode" : 510,  "number" : "" },
+                "phone9" : { "areacode" : 410,  "number" : "", "kind" : "home" }
+              },
+              "map9" : {
+                "phone1" : { "areacode" : 510,  "kind" : "work" },
+                "phone9" : { "areacode" : 410,  "number" : 55, "kind" : "home" }
+              }
+            }
+        ]
+      }
+    ],
+    "map1" : {
+      "key9" : {
+        "foo" : "dfg",
+        "bar" : 57,
+        "map2" : {
+          "key1" : 38,
+          "key2" : 4,
+          "key3" : 61
+        }
+      },
+      "key2" : {
+        "foo" : "jk",
+        "bar" : 23,
+        "map2" : {
+          "key1" : 100,
+          "key2" : -20,
+          "key3" : -30
+        } 
+      },
+     "key8" : {
+        "foo" : "hhh",
+        "bar" : 77,
+        "map2" : {
+          "key1" : 12,
+          "key2" : 54,
+          "key3" : 98
+        }
+      } 
+    }
+  }
+}
+
+{ 
+  "id":3,
+  "record" : { "long" : 10, "int"  : 200, "string" : "tr"},
+  "info":
+  {
+    "firstName":"first3", "lastName":"last3","age":13,
+    "addresses" : [
+      {
+        "city"   : "Seattle",
+        "state"  : "WA",
+        "phones" : null
+      },
+      {
+        "city"   : "Campbell",
+        "state"  : "CA",
+        "phones" : {
+          "map34" : {
+            "phone6" : { "areacode" : 650,  "number" : 10, "kind" : "home" },
+            "phone2" : { "areacode" : 408,  "number" : 11, "kind" : "work" },
+            "phone3" : null,
+            "phone4" : "foo",
+            "phone5" :  408
+          }
+        }
+      }
+    ],
+    "map1" : {
+      "key1" : {
+        "foo" : "www",
+        "bar" : 34,
+        "map2" : {
+          "key1" : 36,
+          "key2" : 40,
+          "key3" : 55
+        }
+      },
+      "key2" : {
+        "foo" : "ttt",
+        "bar" : -34,
+        "map2" : {
+          "key1" : 1,
+          "key2" : 2,
+          "key3" : 3
+        } 
+      },
+     "key3" : {
+        "foo" : "ooo",
+        "bar" : 540,
+        "map2" : {
+          "key1" : 5,
+          "key2" : 3,
+          "key3" : 6
+        }
+      }
+    }
+  }
+}
+
+{ 
+  "id":4,
+  "record" : { "long" : 50, "int" : 10, "string" : "abc"},
+  "info":
+  {
+    "firstName":"first4", "lastName":"last4","age":10,
+    "addresses" : [
+      {
+        "city"   : "Salem",
+        "state"  : "MA",
+        "phones" : {
+          "map4" : {
+            "phone4" : { "areacode" : 500,  "number" : 50, "kind" : "work" },
+            "phone0" : { "areacode" : 500,  "number" : 54, "kind" : 45 }
+          },
+          "map3" : {
+            "phone0" : { "areacode" : 500,  "number" : 10, "kind" : "work" }
+          },
+          "map7" : {
+            "phone4" : { "areacode" : 400,  "number" : 41, "kind" : "home" },
+            "phone1" : { "areacode" : 460,  "number" : 44, "kind" : "work" },
+            "phone9" : { "areacode" : 500,  "number" : 50, "kind" : "work" },
+            "phone0" : { "areacode" : 570,  "number" : 51 },
+            "phone3" : { "areacode" : 580,  "number" : "51" }
+          }
+        }
+      },
+      {
+        "city"   : "Boston",
+        "state"  : "MA",
+        "phones" : [ { "areacode" : 400,  "number" : 14, "kind" : "work" },
+                     { "areacode" : 500,  "number" : 23, "kind" : "work" } ]
+      },
+      {
+        "city"   : "Madison",
+        "state"  : "WI",
+        "phones" : {
+          "map1" : {
+            "phone1" : { "areacode" : 460,  "number" : 44.5, "kind" : "home" }
+          },
+          "map2" : {
+            "phone1" : { "areacode" : 341,  "number" : 10.3, "kind" : "work" }
+          }
+        }
+      }
+    ],
+    "map1" : null
+  }
+}
+
+{ 
+  "id":5,
+  "record" : { "long" : 50, "int" : 10, "string" : "abc"},
+  "info":
+  {
+    "firstName":"first4", "lastName":"last4","age":10,
+    "addresses" : [
+      {
+        "city"   : "Salem",
+        "state"  : "MA",
+        "phones" : {
+          "map3" : {
+            "phone5" : { "number" : 50, "kind" : "work" },
+            "phone10": { "number" : 54, "kind" : 45 }
+          },
+          "map1" : {
+            "phone6" : { "number" : 10, "kind" : "work" }
+          },
+          "map4" : {
+            "phone5" : { "number" : "51" }
+          }
+        }
+      },
+      {
+        "city"   : "Boston",
+        "state"  : "MA",
+        "phones" : {
+          "map7" : {
+            "phone1" : { "number" : 14, "kind" : "work" },
+            "phone2" : { "number" : 23, "kind" : "work" }
+          }
+        }
+      },
+      {
+        "city"   : "Madison",
+        "state"  : "WI",
+        "phones" : {
+          "map3" : {
+            "phone1" : { "number" : 44.5, "kind" : "home" },
+            "phone2" : { "number" : 10.3, "kind" : "work" }
+          }
+        }
+      }
+    ],
+    "map1" : {
+      "key3" : {
+        "foo" : "sdf",
+        "bar" : 37
+      },
+      "key5" : {
+        "foo" : "thk",
+        "bar" : 38,
+        "map2" : null
+      },
+     "key4" : {
+        "foo" : "thk",
+        "bar" : 77,
+        "map2" : {
+          "key1" : 35,
+          "key2" : 43,
+          "key3" : 56
+        }
+      } 
+    } 
+  }
+}
+
+{ 
+  "id":6,
+  "record" : { "long" : 51, "int" : 110, "string" : "abc"},
+  "info":
+  {
+    "firstName":"first3", "lastName":"last40","age":10,
+    "addresses" : [
+      {
+        "city"   : "Portland",
+        "state"  : "OR",
+        "phones" : {
+          "map8" : {
+            "phone5" : { "areacode" : 415, "kind" : "home" },
+            "phone6" : { "number" : 54, "kind" : 45 }
+          },
+          "map1" : {
+            "phone9" : { "number" : 10, "kind" : "work" },
+            "phone1" : { "number" : "51" }
+          }
+        }
+      },
+      {
+        "city"   : "Boston",
+        "state"  : "MA",
+        "phones" : [ { "number" : 14, "kind" : "work" },
+                     { "number" : 23, "kind" : "work" } ]
+      },
+      {
+        "city"   : "New York",
+        "state"  : "NY",
+        "phones" : [
+          {
+            "map1" : {
+              "phone1" : { "number" : 44.5, "kind" : "home" }
+            },
+            "map2" : {
+              "phone1" : { "number" : 10.3, "kind" : "work" }
+            }
+          },
+          {
+            "map1" : {
+              "phone1" : { "areacode" : 666, "number" : 44.5, "kind" : "home" }
+            },
+            "map2" : {
+              "phone1" : { "areacode" : 555, "number" : 10.3, "kind" : "work" }
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "map1" : {
+  }
+}
+
+{ 
+  "id":14,
+  "record" : { "long" : 500, "int" : -50, "string" : "abc"},
+  "info":
+  {
+    "firstName":"first4", "lastName":"last20","age" : 53,
+    "addresses" : [
+      {
+        "city"   : "Salem",
+        "state"  : "MA",
+        "phones" : {
+          "map2" : {
+          }
+        }
+      }
+    ],
+    "map1" : {
+      "key9" : {
+        "foo" : "www",
+        "bar" : 44,
+        "map2" : {
+          "key2" : 36,
+          "key3" : 40,
+          "key4" : 55
+        }
+      },
+      "key8" : {
+        "foo" : "ttt",
+        "bar" : 55,
+        "map2" : {
+          "key5" : 1,
+          "key6" : 2,
+          "key7" : 3
+        } 
+      },
+     "key4" : {
+        "foo" : "ooo",
+        "bar" : 5,
+        "map2" : {
+          "key8" : 5,
+          "key9" : 3,
+          "key10" : 6
+        }
+      }
+    } 
+  }
+}
+
+
+{ 
+  "id":15,
+  "record" : { "long" : 50, "int" : 50, "string" : "abc"},
+  "info":
+  {
+    "firstName":"first2", "lastName":"last2","age":10,
+    "addresses" : [
+      {
+        "city"   : "Portland",
+        "state"  : "OR",
+        "phones" : {
+          "map1" : {
+            "phone1" : { "areacode" : 104,  "number" : "adf", "kind" : "home" }
+          }
+        }
+      },
+      {
+        "city"   : "Madison",
+        "state"  : "WI",
+        "phones" : {
+          "map2" : {
+            "phone2" : { "areacode" : 104,  "number" : 15, "kind" : 456 }
+          }
+        }
+      },
+      {
+        "city"   : "Boulder",
+        "state"  : "CO",
+        "phones" : {
+          "map3" : { "areacode" : 104,  "number" : 1, "kind" : "work" }
+        }
+      }
+    ],
+    "map1" : {
+    }
+  }
+}
+
+{ 
+  "id":16,
+  "record" : { "long" : 55, "int" : 11, "string" : "ght"},
+  "info":
+  {
+    "firstName":"first16", "lastName":"last4","age":23,
+    "addresses" : {
+      "city"   : "Salem",
+      "state"  : "MA",
+      "phones" : {
+        "map4" : {
+          "phone1" : { "areacode" : 400,  "number" : 41, "kind" : "home" },
+          "phone2" : { "areacode" : 460,  "number" : 44, "kind" : "work" }
+        },
+        "map3" : {
+          "phone2" : { "areacode" : 500,  "number" : 50, "kind" : "work" },
+          "phone3" : { "areacode" : 570,  "number" : 51 }
+        },
+        "map4" : {
+          "phone1" : { "areacode" : 580,  "number" : "56" },
+          "phone2" : 408,
+          "phone3" : { "" : 1, "a" : 2, "b" : 3 },
+          "phone4" : { "areacode" : 510,  "number" : 50, "kind" : "work" }
+        },
+        "map5" : {
+          "phone6" : { "areacode" : 650,  "number" : 60, "kind" : "work" }
+        }
+      }
+    },
+    "map1" : {
+    }
+  }
+}
+
+{ 
+  "id":17,
+  "record" : { "long" : 0, "int" : 20, "string" : "abc"}, 
+  "info":
+  {
+    "firstName" : "first8", "lastName" : "last8", "age" : 10,
+    "addresses" : "somewhere",
+    "map1" : {
+    }
+  }
+}
+
+{ 
+  "id":18,
+  "record" : { "long" : 0, "int" : 20, "string" : "abc"}, 
+  "info": null
+}
+
+{ 
+  "id":19,
+  "record" : { "long" : 0, "int" : 20, "string" : "abc"}
+}

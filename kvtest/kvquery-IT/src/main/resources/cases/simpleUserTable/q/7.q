@@ -1,0 +1,1 @@
+select id, firstName, lastName, age from Users where age > 12.5

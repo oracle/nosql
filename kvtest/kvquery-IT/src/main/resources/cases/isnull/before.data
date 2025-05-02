@@ -1,0 +1,154 @@
+###
+# Table and records can be on multiple lines but they must be delimited by an
+# empty line.
+#
+# Line  "Table: table-name" defines the table name to be used and it must
+# precede the records. Multiple tables can be populated in the same file.
+###
+
+Table: Foo
+
+{ "id":0, "firstName":"first0", "lastName":"last0","age":null,
+  "address":
+  {
+    "city": "San Fransisco",
+    "state"  : "CA",
+    "phones" : [ { "work" : null,  "home" : 50 },
+                 { "work" : 518,  "home" : 51 },
+                 { "work" : null, "home" : 52 },
+                 { "work" : 538,  "home" : null },
+                 { "work" : 548,  "home" : 54 } ],
+    "ptr"    : "city"
+  },
+  "children":
+  {
+    "John" : { "age" : 10, "friends" : ["Anna", "John", "Maria"]},
+    "Lisa" : { "age" : 12, "friends" : ["Ada"]},
+    "Fred" : { "age" : 14, "friends" : ["Ada"]}
+  }
+}
+
+{ "id":1, "firstName":"first1", "lastName":"last1","age":11,
+  "address":
+  {
+    "city"   : "Boston",
+    "state"  : "MA",
+    "phones" : [ { "work" : 304,  "home" : 30 },
+                 { "work" : 318,  "home" : 31 } ],
+    "ptr"    : "state"
+  },
+  "children":
+  {
+    "Anna" : { "age" : 9, "friends" : ["Bobby", "John"]},
+    "Mark" : { "age" : 4, "friends" : ["George"]}
+  }
+}
+
+{ "id":2, "firstName":"first2", "lastName":"last2","age":12,
+  "address":
+  {
+    "city"   : "Portland",
+    "state"  : "OR",
+    "phones" : [ { "work" : null,  "home" : null },
+                 { "work" : 118,  "home" : 11 } ],
+    "ptr"    : "phones"
+  },
+  "children":
+  {
+  }
+}
+
+{ "id":3, "firstName":"first3", "lastName":"last3","age":13,
+  "address":
+  {
+    "city"   : null,
+    "state"  : "WA",
+    "phones" : [ ],
+    "ptr"    : "phones"
+  },
+  "children":
+  {
+    "George" : { "age" : 7,  "friends" : ["Bill", "Mark"]},
+    "Matt" :   { "age" : 14, "friends" : ["Bill"]}
+  }
+}
+
+{ "id":4, "firstName":"first4", "lastName":"last4","age":null,
+  "address":
+  {
+    "city"   : "Salem",
+    "state"  : "MA",
+    "phones" : [ { "work" : 604,  "home" : 60 },
+                 { "work" : 618,  "home" : 61 } ],
+    "ptr"    : "state"
+  },
+  "children":
+  {
+    "Anna" : { "age" : 9, "friends" : ["Bobby", "John"]},
+    "Mark" : { "age" : 4, "friends" : ["George"]}
+  }
+}
+
+{ "id":5, "firstName":"first5", "lastName":"last5","age":11,
+  "address":
+  {
+    "city"   : "Salem",
+    "state"  : "MA",
+    "phones" : [ { "work" : 605,  "home" : 60 },
+                 { "work" : 629,  "home" : 62 } ],
+    "ptr"    : "state"
+  },
+  "children":
+  {
+    "Anna" : { "age" : 9, "friends" : ["Bobby", "John"]},
+    "Mark" : { "age" : 4, "friends" : ["George"]}
+  }
+}
+
+{ "id":6, "firstName":"first6", "lastName":"last6","age":21,
+  "address":
+  {
+    "city"   : "Salem",
+    "state"  : null,
+    "phones" : [ { "work" : null, "home" : null },
+                 { "work" : 629,  "home" : null } ],
+    "ptr"    : "state"
+  },
+  "children":
+  {
+    "Anna" : { "age" : 9, "friends" : ["Bobby", "John"]},
+    "Mark" : { "age" : 4, "friends" : ["George"]}
+  }
+}
+
+{ "id":7, "firstName":"first7", "lastName":"last7","age":51,
+  "address":
+  {
+    "city"   : null,
+    "state"  : null,
+    "phones" : [ { "work" : 605,  "home" : 60 },
+                 { "work" : null,  "home" : 62 } ],
+    "ptr"    : "state"
+  },
+  "children":
+  {
+    "Anna" : { "age" : 9, "friends" : ["Bobby", "John"]},
+    "Mark" : { "age" : 4, "friends" : ["George"]}
+  }
+}
+
+{ "id":8, "firstName":"first8", "lastName":"last8","age":null,
+  "address":
+  {
+    "city"   : "Chania",
+    "state"  : null,
+    "phones" : [ { "work" : 605,  "home" : 60 },
+                 { "work" : 629,  "home" : null } ],
+    "ptr"    : "state"
+  },
+  "children":
+  {
+    "Anna" : { "age" : null, "friends" : ["Bobby", "John"]},
+    "Mark" : { "age" : 4, "friends" : ["George"]}
+  }
+}

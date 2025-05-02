@@ -1,0 +1,9 @@
+unordered-result
+{"acct_id":300,"user_id":1,"showName":"Rita","seasonNum":1,"episodeID":20,"date":"2021-01-18"}
+{"acct_id":300,"user_id":1,"showName":"Rita","seasonNum":1,"episodeID":30,"date":"2021-01-19"}
+{"acct_id":300,"user_id":1,"showName":"Rita","seasonNum":2,"episodeID":40,"date":"2021-03-05"}
+{"acct_id":300,"user_id":1,"showName":"Rita","seasonNum":2,"episodeID":50,"date":"2021-05-06"}
+{"acct_id":200,"user_id":1,"showName":"Rita","seasonNum":1,"episodeID":20,"date":"2021-03-18"}
+{"acct_id":200,"user_id":1,"showName":"Rita","seasonNum":1,"episodeID":30,"date":"2021-03-19"}
+{"acct_id":200,"user_id":1,"showName":"Rita","seasonNum":2,"episodeID":40,"date":"2021-05-05"}
+{"acct_id":200,"user_id":1,"showName":"Rita","seasonNum":2,"episodeID":50,"date":"2021-05-06"}

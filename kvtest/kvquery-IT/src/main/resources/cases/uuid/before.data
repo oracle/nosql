@@ -1,0 +1,16 @@
+Table: foo
+
+{ "uid1" : "18acbcb9-137b-4fc8-99f7-812f20240356", "int" : 1, "str" : "Tom", "uid2" : "28acbcb9-137b-4fc8-99f7-812f20240356",  "uid3" : "38acbcb9-137b-4fc8-99f7-812f20240356"}
+{ "uid1" : "18acbcb9-137b-4fc8-99f7-812f20240357", "int" : 10, "str" : "Tom", "uid2" : "28acbcb9-137b-4fc8-99f7-812f20240357",  "uid3" : "38acbcb9-137b-4fc8-99f7-812f20240357"}
+{ "uid1" : "18acbcb9-137b-4fc8-99f7-812f20240358", "int" : 5, "str" : "Tom", "uid2" : "28acbcb9-137b-4fc8-99f7-812f20240358",  "uid3" : "38acbcb9-137b-4fc8-99f7-812f20240358"}
+{ "uid1" : "18acbcb9-137b-4fc8-99f7-812f20240359", "int" : 1, "str" : "Tom", "uid2" : "28acbcb9-137b-4fc8-99f7-812f20240359",  "uid3" : "38acbcb9-137b-4fc8-99f7-812f20240359"}
+{ "uid1" : "ffacbcb9-137b-4fc8-99f7-812f20240359", "int" : 3, "str" : "John", "uid2" : "18acbcb9-137b-4fc8-99f7-812f20240359",  "uid3" : "58acbcb9-137b-4fc8-99f7-812f20240359"}
+{ "uid1" : "ffacbcb9-137b-4fc8-99f7-812f20240359", "int" : 4, "str" : "John", "uid2" : "28acbcb9-137b-4fc8-99f7-812f30000000",  "uid3" : "18acbcb9-137b-4fc8-99f7-812f20240359"}
+
+Table: foo_default
+
+{ "uid" : "fb703151-bfec-4dc9-ae63-651f5bde91b1",  "int" : 1}
+
+Table: foo2_default
+{ "uid" : "fb703151-bfec-4dc9-ae63-651f5bde91b2", "int" : 1}
+{ "uid" : "fb703151-bfec-4dc9-ae63-651f5bde91b3", "int" : 2}

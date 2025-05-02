@@ -1,0 +1,1 @@
+SELECT id IS OF TYPE ( string, only integer ) from Foo

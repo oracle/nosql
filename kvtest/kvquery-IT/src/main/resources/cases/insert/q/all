@@ -1,0 +1,742 @@
+################
+err01.q
+################
+#
+# Value exprs are fewrer than table columns
+#
+insert into foo values (
+    "gtm", 
+    1, 
+    {
+      "a" : 10,
+      "b" : 30 
+    },
+    {
+      "long" : 120,
+      "rec2" : { "str" : "dfg", "num" : 23E2, "arr" : [ 10, 4, 6 ] },
+      "recinfo" : { },
+      "map" : { "foo" : "xyz", "bar" : "dff" }
+    }
+)
+
+
+
+################
+err02.q
+################
+#
+# Cast error (string to number)
+#
+insert into foo values (
+    "gtm", 
+    1,
+    150,
+    {
+      "a" : 10,
+      "b" : 30 
+    },
+    {
+      "long" : 120,
+      "rec2" : { "str" : 15, "num" : "xyz", "arr" : [ 10, 4, 6 ] },
+      "recinfo" : { },
+      "map" : { "foo" : "xyz", "bar" : "dff" }
+    }
+)
+
+
+
+################
+err03.q
+################
+#
+# Default value for prim-key column
+#
+insert into foo values (
+    "gtm", 
+    1,
+    default,
+    {
+      "a" : 10,
+      "b" : 30 
+    },
+    {
+      "long" : 120,
+      "rec2" : { "str" : 15, "num" : 23E2, "arr" : [ 10, 4, 6 ] },
+      "recinfo" : { },
+      "map" : { "foo" : "xyz", "bar" : "dff" }
+    }
+)
+
+
+
+################
+err04.q
+################
+#
+# Value exprs are more than table columns
+#
+insert into foo values (
+    "gtm", 
+    1,
+    150,
+    {
+      "a" : 10,
+      "b" : 30 
+    },
+    {
+      "long" : 120,
+      "rec2" : { "str" : "dfg", "num" : 23E2, "arr" : [ 10, 4, 6 ] },
+      "recinfo" : { },
+      "map" : { "foo" : "xyz", "bar" : "dff" }
+    },
+    120
+)
+
+
+
+
+################
+err05.q
+################
+#
+# No value for prim key column
+#
+insert into foo (str, info, rec1, id1) values (
+    "gtm", 
+    {
+      "a" : 10,
+      "b" : 30 
+    },
+    {
+      "long" : 120,
+      "rec2" : { "str" : "dfg", "num" : 23E2, "arr" : [ 10, 4, 6 ] },
+      "recinfo" : { },
+      "map" : { "foo" : "xyz", "bar" : "dff" }
+    },
+    1
+)
+
+
+
+################
+err06.q
+################
+#
+# Less values than columns
+#
+insert into foo (str, info, rec1, id1, id2) values (
+    "gtm", 
+    {
+      "a" : 10,
+      "b" : 30 
+    },
+    {
+      "long" : 120,
+      "rec2" : { "str" : "dfg", "num" : 23E2, "arr" : [ 10, 4, 6 ] },
+      "recinfo" : { },
+      "map" : { "foo" : "xyz", "bar" : "dff" }
+    },
+    1
+)
+
+
+
+################
+err07.q
+################
+#
+# More values than columns causes cast failure
+#
+insert into foo (str, rec1, id1, id2) values (
+    "gtm",
+    {
+      "a" : 10,
+      "b" : 30 
+    },
+    {
+      "long" : 120,
+      "rec2" : { "str" : "dfg", "num" : 23E2, "arr" : [ 10, 4, 6 ] },
+      "recinfo" : { },
+      "map" : { "foo" : "xyz", "bar" : "dff" }
+    },
+    1,
+    10
+)
+
+
+
+################
+err08.q
+################
+#
+# More values than columns
+#
+insert into foo (str, id1, id2) values (
+    "gtm",
+    1,
+    10,
+    "xyz"
+)
+
+
+
+
+################
+err09.q
+################
+#
+# Non-existent column
+#
+insert into foo (strxx, info, rec1, id1, id2) values (
+    "gtm", 
+    {
+      "a" : 10,
+      "b" : 30 
+    },
+    {
+      "long" : 120,
+      "rec2" : { "str" : "dfg", "num" : 23E2, "arr" : [ 10, 4, 6 ] },
+      "recinfo" : { },
+      "map" : { "foo" : "xyz", "bar" : "dff" }
+    },
+    1,
+    3
+)
+
+
+
+################
+err10.q
+################
+insert into t1 values (7, 100, "")
+
+
+
+################
+ins01e.q
+################
+declare $str1 string; // gmt
+        $long long;  // 120
+insert into foo values (
+    $str1, 
+    1, 
+    301, 
+    {
+      "a" : 10,
+      "b" : 30 
+    },
+    {
+      "long" : $long,
+      "rec2" : { "str" : "dfg", "num" : 23E2, "arr" : [ 10, 4, 6 ] },
+      "recinfo" : { },
+      "map" : { "foo" : "xyz", "bar" : "dff" }
+    }
+)
+
+select * 
+from foo
+where id2 = 301
+
+
+
+################
+ins01.q
+################
+
+insert into foo values ( 
+    "gtm", 
+    1, 
+    101, 
+    {
+      "a" : 10,
+      "b" : 30 
+    },
+    {
+      "long" : 120,
+      "rec2" : { "str" : "dfg", "num" : 23E2, "arr" : [ 10, 4, 6 ] },
+      "recinfo" : { },
+      "map" : { "foo" : "xyz", "bar" : "dff" }
+    }
+)
+
+select * 
+from foo
+where id2 = 101
+
+
+
+################
+ins01r.q
+################
+
+insert into foo values (
+    "gtm", 
+    1,
+    201,
+    {
+      "a" : 10,
+      "b" : 30 
+    },
+    {
+      "long" : 120,
+      "rec2" : { "str" : "dfg", "num" : 23E2, "arr" : [ 10, 4, 6 ] },
+      "recinfo" : { },
+      "map" : { "foo" : "xyz", "bar" : "dff" }
+    }
+)
+returning *
+
+
+
+################
+ins02e.q
+################
+insert into foo values (
+    "gtm", 
+    1, 
+    302, 
+    $info,
+    {
+      "long" : 120,
+      "rec2" : { "str" : "dfg", "num" : 23E2, "arr" : [ 10, 4, 6 ] },
+      "recinfo" : parse_json($recinfo2),
+      "map" : { "foo" : "xyz", "bar" : "dff" }
+    }
+)
+
+select *
+from foo
+where id2 = 302
+
+
+
+################
+ins02.q
+################
+insert into foo values (
+    "gtm", 
+    1, 
+    102, 
+    {
+      "a" : 10,
+      "b" : 30 
+    },
+    {
+      "long" : 120,
+      "rec2" : { "str" : "dfg", "num" : 23E2, "arr" : [ 10, 4, 6 ] },
+      "recinfo" : { },
+      "map" : { "foo" : "xyz", "bar" : "dff" }
+    }
+)
+
+
+
+################
+ins02r.q
+################
+insert into foo f values (
+    "gtm", 
+    1, 
+    302, 
+    $info,
+    {
+      "long" : 120,
+      "rec2" : { "str" : "dfg", "num" : 23E2, "arr" : [ 10, 4, 6 ] },
+      "recinfo" : parse_json("{\"a\":10}"),
+      "map" : { "foo" : "xyz", "bar" : "dff" }
+    }
+)
+returning f.info, f.rec1
+
+
+
+################
+ins03.q
+################
+#
+# Insert existing row
+#
+insert into foo values (
+    "gtm", 
+    1, 
+    100, 
+    {
+      "a" : 10,
+      "b" : 30 
+    },
+    default
+)
+
+
+
+
+
+################
+ins03r.q
+################
+#
+# Insert existing row
+#
+insert into foo $f values (
+    "gtm", 
+    1, 
+    100, 
+    {
+      "a" : 10,
+      "b" : 30 
+    },
+    default
+)
+returning id1, id2, 
+          120 <= remaining_hours($f) and remaining_hours($f) < 144,
+          row_storage_size($f) as row_size
+
+
+
+################
+ins04e.q
+################
+insert into foo $f values (
+    $f1, 
+    1, 
+    $id2,
+    default,
+    {
+      "long" : 120,
+      "rec2" : { "str" : "dfg", "arr" : [ 10, 4, 6 ] },
+      "recinfo" : { "a" : 4, "b" : "str" },
+      "map" : { "foo" : "xyz", "bar" : "dff" }
+    }
+)
+set ttl 6 days
+returning remaining_days($f), row_storage_size($f) as row_size
+
+
+
+################
+ins04.q
+################
+insert into foo values (
+    default, 
+    1, 
+    104,
+    default,
+    {
+      "long" : 120,
+      "rec2" : { "str" : "dfg", "arr" : [ 10, 4, 6 ] },
+      "recinfo" : { "a" : 4, "b" : "str" },
+      "map" : { "foo" : "xyz", "bar" : "dff" }
+    }
+)
+
+select $f as row, remaining_days($f) as ttl
+from foo $f
+where id2 = 104
+
+
+
+################
+ins05.q
+################
+insert into foo values (
+    default, 
+    1, 
+    105,
+    default,
+    {
+      "long" : 120,
+      "rec2" : { "str" : "dfg", "arr" : [ 10, 4, 6 ] },
+      "map" : { "foo" : "xyz", "bar" : "dff" }
+    }
+)
+set ttl 3 hours
+
+select $f as row, remaining_days($f) as dttl, remaining_hours($f) as httl
+from foo $f
+where id2 = 105
+
+
+
+################
+ins06e.q
+################
+declare $str1 string; // gmt
+        $long long;  // 120
+insert into foo (str, id1, info, rec1, id2) values (
+    $str1, 
+    1,  
+    {
+      "a" : 10,
+      "b" : 30 
+    },
+    {
+      "long" : $long,
+      "rec2" : { "str" : "dfg", "num" : 23E2, "arr" : [ 10, 4, 6 ] },
+      "recinfo" : { },
+      "map" : { "foo" : "xyz", "bar" : "dff" }
+    },
+    306
+)
+returning *
+
+
+
+
+################
+ins07e.q
+################
+insert into foo (str, rec1, id2, id1) values (
+    $str2, 
+    {
+      "long" : $long,
+      "rec2" : { "str" : "dfg", "num" : 23E2, "arr" : [ 10, 4, 6 ] },
+      "recinfo" : { },
+      "map" : { "foo" : "xyz", "bar" : "dff" }
+    },
+    307,
+    $id1
+)
+returning *
+
+
+
+################
+ins08r.q
+################
+insert into foo f (str, rec1, id2, info, id1) values (
+    null, 
+    {
+      "long" : 5,
+      "rec2" : { "str" : null, "num" : 23E2, "arr" : [ 10, 4, 6 ] },
+      "recinfo" : null,
+      "map" : { "foo" : "xyz", "bar" : "dff" }
+    },
+    208,
+    null,
+    1
+)
+returning str is null as str, 
+          info = null as info, 
+          f.rec1.rec2.str is null as str2,
+          f.rec1.recinfo = null
+
+
+
+
+################
+ins09e.q
+################
+insert into foo (str, rec1, id2, id1) values (
+    $str2, 
+    {
+      "long" : $long,
+      "rec2" : { "str" : "dfg", "num" : 23E2, "arr" : [ 10, 4, 6 ] },
+      "recinfo" : { },
+      "map" : { "foo" : "xyz", "bar" : "dff" }
+    },
+    309,
+    $id1
+) set ttl 0 hours
+
+select $f as row, remaining_days($f) as dttl, remaining_hours($f) as httl
+from foo $f
+where id2 = 309
+
+
+
+################
+ins10.q
+################
+insert into foo f (str, rec1, id2, info, id1) values (
+    null, 
+    {
+      "long" : 5,
+      "rec2" : { "str" : null, "num" : 23E2, "arr" : [ 10, 4, 6 ] },
+      "recinfo" : null,
+      "map" : { "foo" : "xyz", "bar" : "dff" }
+    },
+    110,
+    default,
+    1
+)
+
+
+
+################
+ins11.q
+################
+insert into t1 (c1, c2) values
+  (7, 100)
+  set ttl using table default
+
+
+################
+ins12.q
+################
+insert into t1 values (8)
+
+
+
+################
+ups01.q
+################
+#
+# Row exits. No SET TTL
+#
+upsert into foo values (
+    "gtm", 
+    2, 
+    100, 
+    {
+      "a" : 10,
+      "b" : 30 
+    },
+    default
+)
+
+
+
+################
+ups02.q
+################
+#
+# Row does not exist. No SET TTL
+#
+upsert into foo $f values (
+    "gtm", 
+    1,
+    -102,
+    {
+      "a" : 10,
+      "b" : 30 
+    },
+    {
+      "long" : 120,
+      "rec2" : { "str" : "dfg", "num" : 23E2, "arr" : [ 10, 4, 6 ] },
+      "recinfo" : { },
+      "map" : { "foo" : "xyz", "bar" : "dff" }
+    }
+)
+
+
+
+################
+ups02r.q
+################
+#
+# Row does not exist. No SET TTL
+#
+upsert into foo $f values (
+    "gtm", 
+    1,
+    -201,
+    {
+      "a" : 10,
+      "b" : 30 
+    },
+    {
+      "long" : 120,
+      "rec2" : { "str" : "dfg", "num" : 23E2, "arr" : [ 10, 4, 6 ] },
+      "recinfo" : { },
+      "map" : { "foo" : "xyz", "bar" : "dff" }
+    }
+)
+returning $f as row, remaining_days($f) as ttl
+
+
+
+
+################
+ups03r.q
+################
+#
+# Row does not exist. SET TTL with an empty TTL value
+#
+upsert into foo $f values (
+    "gtm", 
+    1,
+    -203,
+    {
+      "a" : 10,
+      "b" : 30 
+    },
+    {
+      "long" : 120,
+      "rec2" : { "str" : "dfg", "num" : 23E2, "arr" : [ 10, 4, 6 ] },
+      "recinfo" : { },
+      "map" : { "foo" : "xyz", "bar" : "dff" }
+    }
+)
+set ttl seq_concat() days
+returning $f as row, remaining_days($f) as ttl
+
+
+
+################
+ups04r.q
+################
+#
+# Row does not exist. SET TTL with new TTL value
+#
+upsert into foo $f values (
+    "gtm", 
+    1,
+    -204,
+    {
+      "a" : 10,
+      "b" : 30 
+    },
+    {
+      "long" : 120,
+      "rec2" : { "str" : "dfg", "num" : 23E2, "arr" : [ 10, 4, 6 ] },
+      "recinfo" : { },
+      "map" : { "foo" : "xyz", "bar" : "dff" }
+    }
+)
+set ttl 7 days
+returning $f as row, remaining_days($f) as ttl
+
+
+
+################
+ups05r.q
+################
+#
+# Row exits. SET TTL with an empty TTL value
+#
+upsert into foo $f values (
+    "gtm", 
+    3, 
+    100, 
+    {
+      "a" : 10,
+      "b" : 30 
+    },
+    default
+)
+set ttl seq_concat() days
+returning $f as row, remaining_days($f) as ttl
+
+
+
+################
+ups06r.q
+################
+#
+# Row exits. SET TTL with new TTL value
+#
+upsert into foo $f values (
+    "gtm", 
+    3, 
+    100, 
+    {
+      "a" : 10,
+      "b" : 30 
+    },
+    default
+)
+set ttl 53 hours
+returning $f as row, remaining_days($f) as ttl
+
+
+

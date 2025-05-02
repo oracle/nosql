@@ -1,0 +1,1 @@
+select id1 / 1 / 1 / 1 from Foo

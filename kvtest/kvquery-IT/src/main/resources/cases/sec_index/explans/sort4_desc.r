@@ -1,0 +1,77 @@
+compiled-query-plan
+
+{
+"query file" : "sec_index/q/sort4_desc.q",
+"plan" : 
+{
+  "iterator kind" : "SORT",
+  "order by fields at positions" : [ 1 ],
+  "input iterator" :
+  {
+    "iterator kind" : "RECEIVE",
+    "distribution kind" : "ALL_SHARDS",
+    "input iterator" :
+    {
+      "iterator kind" : "SELECT",
+      "FROM" :
+      {
+        "iterator kind" : "TABLE",
+        "target table" : "Foo",
+        "row variable" : "$$t",
+        "index used" : "idx_state_city_age",
+        "covering index" : true,
+        "index row variable" : "$$t_idx",
+        "index scans" : [
+          {
+            "equality conditions" : {},
+            "range conditions" : { "address.state" : { "start value" : "MA", "start inclusive" : true } }
+          }
+        ],
+        "position in join" : 0
+      },
+      "FROM variable" : "$$t_idx",
+      "SELECT expressions" : [
+        {
+          "field name" : "id",
+          "field expression" : 
+          {
+            "iterator kind" : "FIELD_STEP",
+            "field name" : "#id",
+            "input iterator" :
+            {
+              "iterator kind" : "VAR_REF",
+              "variable" : "$$t_idx"
+            }
+          }
+        },
+        {
+          "field name" : "state",
+          "field expression" : 
+          {
+            "iterator kind" : "FIELD_STEP",
+            "field name" : "address.state",
+            "input iterator" :
+            {
+              "iterator kind" : "VAR_REF",
+              "variable" : "$$t_idx"
+            }
+          }
+        },
+        {
+          "field name" : "city",
+          "field expression" : 
+          {
+            "iterator kind" : "FIELD_STEP",
+            "field name" : "address.city",
+            "input iterator" :
+            {
+              "iterator kind" : "VAR_REF",
+              "variable" : "$$t_idx"
+            }
+          }
+        }
+      ]
+    }
+  }
+}
+}

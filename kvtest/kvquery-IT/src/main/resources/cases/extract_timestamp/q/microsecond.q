@@ -1,0 +1,16 @@
+SELECT microsecond(t.mts6.values($key="k1")) as us_mts6_k1, 
+	   microsecond(t.mts6.values($key="k2")) as us_mts6_k2, 
+	   microsecond(t.mts6.values($key="k3")) as us_mts6_k3,
+	   microsecond(t.mts6.values($key="k4")) as us_mts6_k4, 
+	   microsecond(t.mts6.values($key="k5")) as us_mts6_k5, 
+	   microsecond(t.mts6.values($key="k6")) as us_mts6_k6,
+	   microsecond(t.ats9[0]) as us_ats9_0, 
+	   microsecond(t.ats9[1]) as us_ats9_1, 
+	   microsecond(t.ats9[2]) as us_ats9_2, 
+	   microsecond(t.ats9[3]) as us_ats9_3, 
+	   microsecond(t.ats9[4]) as us_ats9_4, 
+	   microsecond(t.ats9[5]) as us_ats9_5, 
+	   microsecond(t.ats9[6]) as us_ats9_6, 
+	   microsecond(t.ats9[7]) as us_ats9_7, 
+	   microsecond(t.ats9[8]) as us_ats9_8
+FROM Foo t WHERE id = 3

@@ -1,0 +1,346 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>com.oracle.nosql</groupId>
+    <artifactId>kv</artifactId>
+    <version>25.2.0-SNAPSHOT</version>
+  </parent>
+
+  <artifactId>packaging</artifactId>
+  <packaging>pom</packaging>
+
+  <name>Oracle NoSQL Database Release Packaging</name>
+  <url>https://www.oracle.com/database/nosql/</url>
+
+  <properties>
+    <lib>${project.build.directory}/${project.build.finalName}/kv-${project.version}/lib</lib>
+  </properties>
+
+  <profiles>
+    <!-- Default profile to generate Community Edition -->
+    <profile>
+      <id>ce</id>
+      <activation>
+        <activeByDefault>true</activeByDefault>
+      </activation>
+      <dependencies>
+        <!-- NoSQL artifacts -->
+        <dependency> <groupId>com.oracle.nosql</groupId> <artifactId>kvstore</artifactId> <version>${project.version}</version> </dependency>
+        <dependency> <groupId>com.oracle.nosql</groupId> <artifactId>kvclient</artifactId> <version>${project.version}</version> </dependency>
+        <dependency> <groupId>com.oracle.nosql</groupId> <artifactId>sql</artifactId> <version>${project.version}</version> </dependency>
+        <dependency> <groupId>com.oracle.nosql</groupId> <artifactId>recovery</artifactId> <version>${project.version}</version> </dependency>
+
+        <!-- don't use transitive dependencies for these library, they are redundant and may cause problems -->
+        <dependency> <groupId>com.oracle.nosql</groupId> <artifactId>httpproxy</artifactId> <version>${project.version}</version> 
+          <exclusions>
+            <exclusion> <groupId>com.oracle.nosql</groupId> <artifactId>kvclient</artifactId> </exclusion>
+          </exclusions>
+        </dependency>
+
+        <!-- External libraries -->
+        <dependency> <groupId>com.google.code.gson</groupId> <artifactId>gson</artifactId> </dependency>
+        <dependency> <groupId>com.fasterxml.jackson.core</groupId> <artifactId>jackson-core</artifactId> </dependency>
+        <dependency> <groupId>org.reactivestreams</groupId> <artifactId>reactive-streams</artifactId> </dependency>
+        <dependency> <groupId>org.jline</groupId> <artifactId>jline-native</artifactId> </dependency>
+        <dependency> <groupId>org.jline</groupId> <artifactId>jline-reader</artifactId> </dependency>
+        <dependency> <groupId>org.jline</groupId> <artifactId>jline-terminal</artifactId> </dependency>
+        <dependency> <groupId>org.apache.sshd</groupId> <artifactId>sshd-core</artifactId> </dependency>
+        <dependency> <groupId>org.apache.sshd</groupId> <artifactId>sshd-common</artifactId> </dependency>
+        <dependency> <groupId>org.apache.sshd</groupId> <artifactId>sshd-sftp</artifactId> </dependency>
+        <dependency> <groupId>org.slf4j</groupId> <artifactId>slf4j-api</artifactId> </dependency>
+        <dependency> <groupId>commons-logging</groupId> <artifactId>commons-logging</artifactId> </dependency>
+        <dependency> <groupId>io.netty</groupId> <artifactId>netty-buffer</artifactId> </dependency>
+        <dependency> <groupId>io.netty</groupId> <artifactId>netty-codec</artifactId> </dependency>
+        <dependency> <groupId>io.netty</groupId> <artifactId>netty-codec-http</artifactId> </dependency>
+        <dependency> <groupId>io.netty</groupId> <artifactId>netty-codec-socks</artifactId> </dependency>
+        <dependency> <groupId>io.netty</groupId> <artifactId>netty-common</artifactId> </dependency>
+        <dependency> <groupId>io.netty</groupId> <artifactId>netty-handler</artifactId> </dependency>
+        <dependency> <groupId>io.netty</groupId> <artifactId>netty-handler-proxy</artifactId> </dependency>
+        <dependency> <groupId>io.netty</groupId> <artifactId>netty-resolver</artifactId> </dependency>
+        <dependency> <groupId>io.netty</groupId> <artifactId>netty-transport</artifactId> </dependency>
+        <dependency> <groupId>io.netty</groupId> <artifactId>netty-transport-native-unix-common</artifactId> </dependency>
+      </dependencies>
+      <build>
+        <plugins>
+          <plugin>
+            <artifactId>maven-assembly-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>make-assembly-dir</id>
+                <configuration>
+                  <descriptors>
+                    <descriptor>src/assembly/package-ce.xml</descriptor>
+                  </descriptors>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+
+    <profile>
+      <id>docs</id>
+      <properties>
+        <release.edition.short>docs</release.edition.short>
+        <release.version.full>${project.version}</release.version.full>
+      </properties>
+      <dependencies>
+        <!-- NoSQL artifacts -->
+        <dependency> <groupId>com.oracle.nosql</groupId> <artifactId>kvmain</artifactId> <version>${project.version}</version> </dependency>
+      </dependencies>
+      <build>
+        <plugins>
+          <plugin>
+            <artifactId>maven-assembly-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>make-assembly-dir</id>
+                <configuration>
+                  <descriptors>
+                    <descriptor>src/assembly/package-docs.xml</descriptor>
+                  </descriptors>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+          <plugin>
+            <artifactId>maven-antrun-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>check-commons-vulnerability</id>
+                <configuration>
+                  <skip>true</skip>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+  </profiles>
+
+  <!--
+   The package uses explicit inclusion, only artifacts listed in the
+   dependencies section will be included in the tar ball, see profiles above
+  -->
+  <build>
+    <finalName>kv-${release.edition.short}-${project.version}</finalName>
+    <plugins>
+      <plugin>
+        <artifactId>maven-clean-plugin</artifactId>
+      </plugin>
+      <plugin>
+        <artifactId>maven-jar-plugin</artifactId>
+        <configuration>
+          <skipIfEmpty>true</skipIfEmpty>
+        </configuration>
+      </plugin>
+      <plugin>
+        <artifactId>maven-assembly-plugin</artifactId>
+        <configuration>
+          <appendAssemblyId>false</appendAssemblyId>
+          <tarLongFileMode>gnu</tarLongFileMode>
+        </configuration>
+        <executions>
+          <!-- All these executions are for generating the shell jars -->
+          <execution>
+            <id>kvstore</id>
+            <phase>generate-resources</phase>
+            <goals>
+              <goal>single</goal>
+            </goals>
+            <configuration>
+              <finalName>kvstore</finalName>
+              <attach>false</attach>
+              <descriptors>
+                <descriptor>src/assembly/shell-jar.xml</descriptor>
+              </descriptors>
+              <archive>
+                <manifest>
+                  <addDefaultImplementationEntries>true</addDefaultImplementationEntries>
+                </manifest>
+                <manifestEntries>
+                  <Class-Path>kvstore-${project.version}.jar</Class-Path>
+                  <Main-Class>oracle.kv.impl.util.KVStoreMain</Main-Class>
+                  <Build-Date>${timestamp}</Build-Date>
+                  <Build-Id>${buildNumber}</Build-Id>
+                  <Build-Edition>${release.edition}</Build-Edition>
+                  <Copyright>${copyright}</Copyright>
+                </manifestEntries>
+              </archive>
+            </configuration>
+          </execution>
+          <execution>
+            <id>kvclient</id>
+            <phase>generate-resources</phase>
+            <goals>
+              <goal>single</goal>
+            </goals>
+            <configuration>
+              <finalName>kvclient</finalName>
+              <attach>false</attach>
+              <descriptors>
+                <descriptor>src/assembly/shell-jar.xml</descriptor>
+              </descriptors>
+              <archive>
+                <manifest>
+                  <addDefaultImplementationEntries>true</addDefaultImplementationEntries>
+                </manifest>
+                <manifestEntries>
+                  <Class-Path>kvclient-${project.version}.jar</Class-Path>
+                  <Main-Class>oracle.kv.KVVersion</Main-Class>
+                  <Build-Date>${timestamp}</Build-Date>
+                  <Build-Id>${buildNumber}</Build-Id>
+                  <Build-Edition>${release.edition}</Build-Edition>
+                  <Copyright>${copyright}</Copyright>
+                </manifestEntries>
+              </archive>
+            </configuration>
+          </execution>
+          <execution>
+            <id>kvcli</id>
+            <phase>generate-resources</phase>
+            <goals>
+              <goal>single</goal>
+            </goals>
+            <configuration>
+              <finalName>kvcli</finalName>
+              <attach>false</attach>
+              <descriptors>
+                <descriptor>src/assembly/shell-jar.xml</descriptor>
+              </descriptors>
+              <archive>
+                <manifest>
+                  <addDefaultImplementationEntries>true</addDefaultImplementationEntries>
+                </manifest>
+                <manifestEntries>
+                  <Class-Path>kvstore-${project.version}.jar</Class-Path>
+                  <Main-Class>oracle.kv.impl.admin.client.CommandShell</Main-Class>
+                  <Build-Date>${timestamp}</Build-Date>
+                  <Build-Id>${buildNumber}</Build-Id>
+                  <Build-Edition>${release.edition}</Build-Edition>
+                  <Copyright>${copyright}</Copyright>
+                </manifestEntries>
+              </archive>
+            </configuration>
+          </execution>
+          <execution>
+            <id>sql</id>
+            <phase>generate-resources</phase>
+            <goals>
+              <goal>single</goal>
+            </goals>
+            <configuration>
+              <finalName>sql</finalName>
+              <attach>false</attach>
+              <descriptors>
+                <descriptor>src/assembly/shell-jar.xml</descriptor>
+              </descriptors>
+              <archive>
+                <manifest>
+                  <addDefaultImplementationEntries>true</addDefaultImplementationEntries>
+                </manifest>
+                <manifestEntries>
+                  <Class-Path>sql-${project.version}.jar</Class-Path>
+                  <Main-Class>oracle.kv.impl.query.shell.OnqlShell</Main-Class>
+                  <Build-Date>${timestamp}</Build-Date>
+                  <Build-Id>${buildNumber}</Build-Id>
+                  <Build-Edition>${release.edition}</Build-Edition>
+                  <Copyright>${copyright}</Copyright>
+                </manifestEntries>
+              </archive>
+            </configuration>
+          </execution>
+          <execution>
+            <id>recovery</id>
+            <phase>generate-resources</phase>
+            <goals>
+              <goal>single</goal>
+            </goals>
+            <configuration>
+              <finalName>recovery</finalName>
+              <attach>false</attach>
+              <descriptors>
+                <descriptor>src/assembly/shell-jar.xml</descriptor>
+              </descriptors>
+              <archive>
+                <manifest>
+                  <addDefaultImplementationEntries>true</addDefaultImplementationEntries>
+                </manifest>
+                <manifestEntries>
+                  <Class-Path>recovery-${project.version}.jar</Class-Path>
+                  <Main-Class>oracle.kv.util.recovery.RecoveryMain</Main-Class>
+                  <Build-Date>${timestamp}</Build-Date>
+                  <Build-Id>${buildNumber}</Build-Id>
+                  <Build-Edition>${release.edition}</Build-Edition>
+                  <Copyright>${copyright}</Copyright>
+                </manifestEntries>
+              </archive>
+            </configuration>
+          </execution>
+          <execution>
+            <id>httpproxy</id>
+            <phase>generate-resources</phase>
+            <goals>
+              <goal>single</goal>
+            </goals>
+            <configuration>
+              <finalName>httpproxy</finalName>
+              <attach>false</attach>
+              <descriptors>
+                <descriptor>src/assembly/shell-jar.xml</descriptor>
+              </descriptors>
+              <archive>
+                <manifestEntries>
+                  <Implementation-Title>Oracle NoSQL Database Httpproxy</Implementation-Title>
+                  <Implementation-Version>${project.version}</Implementation-Version>
+                  <Class-Path>httpproxy-${project.version}.jar</Class-Path>
+                  <Main-Class>oracle.nosql.proxy.ProxyMain</Main-Class>
+                  <Copyright>${copyright}</Copyright>
+                </manifestEntries>
+              </archive>
+            </configuration>
+          </execution>
+          <!-- End of the shell jar generation -->
+
+          <!-- The main execution to generate the dir -->
+          <execution>
+            <id>make-assembly-dir</id>
+            <phase>prepare-package</phase>
+            <goals>
+              <goal>single</goal>
+            </goals>
+            <configuration>
+              <attach>false</attach>
+            </configuration>
+          </execution>
+
+          <!-- Final step in packaging, create the tar and zip -->
+          <execution>
+            <id>make-final-assembly</id>
+            <phase>package</phase>
+            <goals>
+              <goal>single</goal>
+            </goals>
+            <configuration>
+              <descriptors>
+                <descriptor>src/assembly/package-final.xml</descriptor>
+              </descriptors>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <artifactId>maven-install-plugin</artifactId>
+      </plugin>
+      <plugin>
+        <artifactId>maven-deploy-plugin</artifactId>
+      </plugin>
+    </plugins>
+  </build>
+</project>

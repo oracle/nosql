@@ -1,0 +1,2 @@
+unordered-result
+{"iv":-2.147483648E9,"Column_2":-1.5707963,"lv":-9.223372036854776E18,"Column_4":-1.5707963,"fv":-3.4028234663852886E38,"Column_6":-1.5707963,"dv":-Infinity,"Column_8":-1.5707963,"nv":0.0,"Column_10":0.0,"jsoniv":-2.147483648E9,"atanjsoniv":-1.5707963,"jsonlv":-9.223372036854776E18,"atanjsonlv":-1.5707963,"jsonfv":-3.4028235E38,"atanjsonfv":-1.5707963,"jsondv":0.0,"atanjsondv":0.0,"jsonnv":0.0,"atanjsonnv":0.0}

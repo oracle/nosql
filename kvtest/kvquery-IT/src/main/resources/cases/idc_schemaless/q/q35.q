@@ -1,0 +1,1 @@
+insert into jsoncol $f (majorKey1,majorKey2,minorKey,index,firstThread,menu,phones) values ("bb", "bb1", "bb2", 10004, false,{},[]) returning row_storage_size($f) as row_size,index_storage_size($f, "idx_name") as sca_size

@@ -1,0 +1,2 @@
+#expression returns millisecond using millisecond() function for record type with timestamp of all nine precision
+SELECT id,millisecond(t.rec.tsr0) as tsr0,millisecond(t.rec.tsr1) as tsr1,millisecond(t.rec.tsr2) as tsr2,millisecond(t.rec.tsr3) as tsr3,millisecond(t.rec.tsr4) as tsr4,millisecond(t.rec.tsr5) as tsr5,millisecond(t.rec.tsr6) as tsr6,millisecond(t.rec.tsr7) as tsr7 ,millisecond(t.rec.tsr8) as tsr8 ,millisecond(t.rec.tsr9) as tsr9 FROM Extract t

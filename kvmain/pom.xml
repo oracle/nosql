@@ -1,0 +1,276 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>com.oracle.nosql</groupId>
+    <artifactId>kv</artifactId>
+    <version>25.2.0-SNAPSHOT</version>
+  </parent>
+
+  <artifactId>kvmain</artifactId>
+
+  <name>Oracle NoSQL Database Main Codebase</name>
+  <url>https://www.oracle.com/database/nosql/</url>
+
+  <profiles>
+    <profile>
+      <id>javadoc-11-fix</id>
+      <activation>
+        <jdk>11</jdk>
+      </activation>
+      <build>
+        <plugins>
+          <plugin>
+            <artifactId>maven-javadoc-plugin</artifactId>
+            <configuration>
+              <additionalOptions>
+                <additionalOption>--no-module-directories</additionalOption>
+              </additionalOptions>
+            </configuration>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+
+    <!-- Only build javadoc when packaging docs -->
+    <profile>
+      <id>docs</id>
+      <build>
+        <plugins>
+          <plugin>
+            <artifactId>maven-javadoc-plugin</artifactId>
+            <configuration>
+              <skip>false</skip>
+            </configuration>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+  </profiles>
+
+  <properties>
+    <antlr4.dir>${project.basedir}/src/main/java/oracle/kv/impl/query/compiler/parser</antlr4.dir>
+  </properties>
+
+  <dependencies>
+    <dependency> <groupId>org.antlr</groupId> <artifactId>antlr4-runtime</artifactId> </dependency>
+    <!-- gson is used by sklogger and kvclient -->
+    <!-- listed here to make sure the version is managed -->
+    <dependency> <groupId>com.google.code.gson</groupId> <artifactId>gson</artifactId> </dependency>
+    <!-- current Jackson release -->
+    <!-- listed here to make sure the right version is included -->
+    <dependency> <groupId>com.fasterxml.jackson.core</groupId> <artifactId>jackson-core</artifactId> </dependency>
+    <!-- reactive streams interface -->
+    <dependency> <groupId>org.reactivestreams</groupId> <artifactId>reactive-streams</artifactId> </dependency>
+    <!-- jline used by CLI and query shell, and other tools -->
+    <dependency> <groupId>org.jline</groupId> <artifactId>jline-native</artifactId> </dependency>
+    <dependency> <groupId>org.jline</groupId> <artifactId>jline-reader</artifactId> </dependency>
+    <dependency> <groupId>org.jline</groupId> <artifactId>jline-terminal</artifactId> </dependency>
+    <!-- Mina sshd used by diagnostics utility -->
+    <dependency> <groupId>org.apache.sshd</groupId> <artifactId>sshd-core</artifactId> </dependency>
+    <dependency> <groupId>org.apache.sshd</groupId> <artifactId>sshd-common</artifactId> </dependency>
+    <dependency> <groupId>org.apache.sshd</groupId> <artifactId>sshd-sftp</artifactId> </dependency>
+    <!-- slf4j-api used by Mina sshd, and also used for
+         for Hadoop/Hive table integration tests -->
+    <dependency> <groupId>org.slf4j</groupId> <artifactId>slf4j-api</artifactId> </dependency>
+    <!-- ojdbc6 for external tables -->
+    <!-- <dependency> <groupId>com.oracle</groupId> <artifactId>ojdbc6</artifactId> </dependency> -->
+    <!-- coherence current version 3.7.1 -->
+    <!-- <dependency> <groupId>com.tangosol</groupId> <artifactId>coherence</artifactId> </dependency> -->
+
+    <!-- Netty jars for admin web service. They are also used by not-enabled async project code -->
+    <dependency> <groupId>io.netty</groupId> <artifactId>netty-buffer</artifactId> </dependency>
+    <dependency> <groupId>io.netty</groupId> <artifactId>netty-codec</artifactId> </dependency>
+    <dependency> <groupId>io.netty</groupId> <artifactId>netty-codec-http</artifactId> </dependency>
+    <dependency> <groupId>io.netty</groupId> <artifactId>netty-codec-socks</artifactId> </dependency>
+    <dependency> <groupId>io.netty</groupId> <artifactId>netty-common</artifactId> </dependency>
+    <dependency> <groupId>io.netty</groupId> <artifactId>netty-handler</artifactId> </dependency>
+    <dependency> <groupId>io.netty</groupId> <artifactId>netty-handler-proxy</artifactId> </dependency>
+    <dependency> <groupId>io.netty</groupId> <artifactId>netty-resolver</artifactId> </dependency>
+    <dependency> <groupId>io.netty</groupId> <artifactId>netty-transport</artifactId> </dependency>
+
+    <!-- hadoop -->
+    <dependency> <groupId>org.apache.hadoop</groupId> <artifactId>hadoop-common</artifactId> </dependency>
+    <dependency> <groupId>org.apache.hadoop</groupId> <artifactId>hadoop-mapreduce-client-core</artifactId> </dependency>
+    <dependency> <groupId>org.apache.hadoop</groupId> <artifactId>hadoop-annotations</artifactId> </dependency>
+    <dependency> <groupId>org.apache.hadoop</groupId> <artifactId>hadoop-yarn-api</artifactId> </dependency>
+    <dependency> <groupId>org.apache.hadoop</groupId> <artifactId>hadoop-auth</artifactId> </dependency>
+    <dependency> <groupId>org.apache.hadoop</groupId> <artifactId>hadoop-mapreduce-client-common</artifactId> </dependency>
+
+    <!-- Dependencies for Oracle wallet -->
+    <dependency> <groupId>com.oracle.database.security</groupId> <artifactId>oraclepki</artifactId> </dependency>
+    <!-- For Test, only a placeholder, have no effect for now. We don't have unit tests -->
+    <!-- All integration tests are listed under kvtest-integration submodule -->
+    <dependency> <groupId>junit</groupId> <artifactId>junit</artifactId> <scope>test</scope> </dependency>
+  </dependencies>
+
+  <build>
+    <plugins>
+      <plugin>
+        <artifactId>maven-clean-plugin</artifactId>
+      </plugin>
+      <plugin>
+        <artifactId>maven-checkstyle-plugin</artifactId>
+      </plugin>
+      <plugin>
+        <groupId>org.antlr</groupId>
+        <artifactId>antlr4-maven-plugin</artifactId>
+        <configuration>
+          <arguments>
+            <argument>-package</argument>
+            <argument>oracle.kv.impl.query.compiler.parser</argument>
+          </arguments>
+          <sourceDirectory>${antlr4.dir}</sourceDirectory>
+          <outputDirectory>${antlr4.dir}</outputDirectory>
+          <treatWarningsAsErrors>true</treatWarningsAsErrors>
+        </configuration>
+        <executions>
+          <execution>
+            <id>generate-parser</id>
+            <!-- This phase does not exist in the lifecycle, the default package command will NEVER run it -->
+            <!-- To run this phase, use the ./make antlr-parser command -->
+            <!-- It is intended so we don't trigger parser generation during a regular build -->
+            <phase>antlr-parser</phase>
+            <goals>
+              <goal>antlr4</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>exec-maven-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>gen-messages</id>
+            <phase>generate-sources</phase>
+            <goals>
+              <goal>exec</goal>
+            </goals>
+            <configuration>
+              <executable>java</executable>
+              <arguments>
+                <argument>src/main/java/oracle/kv/util/MessageFileProcessor.java</argument>
+                <argument>-d</argument>
+                <argument>${project.basedir}</argument>
+              </arguments>
+            </configuration>
+          </execution>
+          <execution>
+            <id>gen-build-properties</id>
+            <phase>prepare-package</phase>
+            <goals>
+              <goal>exec</goal>
+            </goals>
+            <configuration>
+              <executable>java</executable>
+              <arguments>
+                <argument>-cp</argument>
+                <argument>${project.build.outputDirectory}</argument>
+                <argument>src/misc/java/CreateRELEASEFile.java</argument>
+                <argument>${project.build.outputDirectory}/version/build.properties</argument>
+                <argument>${buildNumber}</argument>
+                <argument>${timestamp}</argument>
+              </arguments>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <artifactId>maven-antrun-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>copy-msgs</id>
+            <phase>generate-resources</phase>
+            <configuration>
+              <target>
+                <mkdir dir="${project.build.outputDirectory}/version" />
+                <copy file="${project.basedir}/src/main/resources/messages.properties"
+                      tofile="${project.build.outputDirectory}/messages_en_US.properties"/>
+              </target>
+            </configuration>
+            <goals>
+              <goal>run</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <artifactId>maven-resources-plugin</artifactId>
+      </plugin>
+      <plugin>
+        <artifactId>maven-compiler-plugin</artifactId>
+      </plugin>
+      <plugin>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <configuration>
+          <skipTests>true</skipTests>
+        </configuration>
+      </plugin>
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>buildnumber-maven-plugin</artifactId>
+      </plugin>
+      <plugin>
+        <artifactId>maven-jar-plugin</artifactId>
+      </plugin>
+      <plugin>
+        <artifactId>maven-javadoc-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>generate-javadoc</id>
+            <phase>prepare-package</phase>
+            <goals>
+              <goal>javadoc</goal>
+            </goals>
+          </execution>
+        </executions>
+        <configuration>
+          <skip>true</skip>
+          <windowtitle>${project.parent.name} API</windowtitle>
+          <doctitle>${project.parent.name} ${project.version} API</doctitle>
+          <doclint>all,-missing</doclint>
+          <author>true</author>
+          <use>true</use>
+          <additionalJOptions>
+            <additionalJOption>-J--add-exports</additionalJOption>
+            <additionalJOption>-Jjdk.javadoc/jdk.javadoc.internal.tool=ALL-UNNAMED</additionalJOption>
+          </additionalJOptions>
+          <tags>
+            <tag>
+              <name>hidden.see</name>
+              <placement>X</placement>
+            </tag>
+          </tags>
+          <header><![CDATA[<b>${project.parent.name}</b><br><font size=\"-1\"> version ${project.version}</font>]]>
+          </header>
+          <bottom><![CDATA[<font size=1>${copyright}</font>]]></bottom>
+          <sourceFileExcludes>
+            <sourceFileExclude>com/google/**</sourceFileExclude>
+            <sourceFileExclude>oracle/kv/impl/**</sourceFileExclude>
+            <sourceFileExclude>oracle/kv/shell/**</sourceFileExclude>
+            <sourceFileExclude>oracle/kv/util/**</sourceFileExclude>
+            <sourceFileExclude>oracle/kv/xregion/**</sourceFileExclude>
+          </sourceFileExcludes>
+          <validateLinks>true</validateLinks>
+          <links>
+            <link>https://docs.oracle.com/cd/E24290_01/coh.371/e22843/</link>
+            <link>https://hadoop.apache.org/docs/stable/api/</link>
+            <link>https://javadoc.io/doc/org.apache.hadoop/hadoop-mapreduce-client-core/3.2.2/</link>
+            <link>https://hadoop.apache.org/docs/stable/api/</link>
+            <link>http://www.reactive-streams.org/reactive-streams-1.0.4-javadoc/</link>
+          </links>
+        </configuration>
+      </plugin>
+      <plugin>
+        <artifactId>maven-install-plugin</artifactId>
+      </plugin>
+      <plugin>
+        <artifactId>maven-deploy-plugin</artifactId>
+      </plugin>
+    </plugins>
+  </build>
+</project>

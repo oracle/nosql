@@ -1,0 +1,13 @@
+unordered-result
+{"messages_mid":10,"inbox_mid":10,"date":"2024-07-01"}
+{"messages_mid":10,"inbox_mid":20,"date":"2024-07-01"}
+{"messages_mid":10,"inbox_mid":50,"date":"2024-07-01"}
+{"messages_mid":10,"inbox_mid":60,"date":"2024-07-01"}
+{"messages_mid":20,"inbox_mid":10,"date":"2024-07-01"}
+{"messages_mid":20,"inbox_mid":20,"date":"2024-07-01"}
+{"messages_mid":20,"inbox_mid":50,"date":"2024-07-01"}
+{"messages_mid":20,"inbox_mid":60,"date":"2024-07-01"}
+{"messages_mid":50,"inbox_mid":10,"date":"2024-07-01"}
+{"messages_mid":50,"inbox_mid":20,"date":"2024-07-01"}
+{"messages_mid":50,"inbox_mid":50,"date":"2024-07-01"}
+{"messages_mid":50,"inbox_mid":60,"date":"2024-07-01"}

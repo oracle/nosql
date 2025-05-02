@@ -1,0 +1,3 @@
+SELECT *
+FROM profile.messages msgs, profile.inbox inbox
+WHERE msgs.uid = inbox.uid and msgs.msgid = inbox.msgid

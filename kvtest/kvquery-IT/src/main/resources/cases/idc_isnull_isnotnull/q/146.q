@@ -1,0 +1,2 @@
+#Expression is array slice step with L and H (L<=H) and $pos implicit variable with is not null in predicate and use of exists(not empty) operator
+select id,s.children.values().Relative.Uncle[$pos>1] from sn s where exists s.children.values().Relative.Uncle[0:3] is not null

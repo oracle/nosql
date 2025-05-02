@@ -1,0 +1,2 @@
+#expression returns isoweek using Extract Function for non json array 
+SELECT id,extract(isoweek from t.ats9[0]) as ats0,extract(isoweek from t.ats9[1]) as ats1,extract(isoweek from t.ats9[2]) as ats2,extract(isoweek from t.ats9[3]) as ats3,extract(isoweek from t.ats9[4]) as ats4,extract(isoweek from t.ats9[5]) as ats5,extract(isoweek from t.ats9[6]) as ats6,extract(isoweek from t.ats9[7]) as ats7 ,extract(isoweek from t.ats9[8]) as ats8 FROM Extract t 

@@ -1,0 +1,728 @@
+################
+boo01.q
+################
+select id
+from Boo b
+where b.expenses."%%fo_od" = 10
+
+
+
+################
+boo02.q
+################
+select id
+from Boo b
+where b.expenses."" = 3
+
+
+
+################
+boo03.q
+################
+select id, b.expenses
+from Boo b
+where b.expenses."\"" = 13
+
+
+
+################
+boo04.q
+################
+select id
+from boo b
+where b.expenses.".foo" > 2
+
+
+
+################
+boo05.q
+################
+select id
+from boo b
+where b.expenses.".foo" = 3 and b.expenses."foo[" > 10
+
+
+
+################
+boo06.q
+################
+select id
+from boo b
+where b.expenses."[]" = 3 and b.expenses."values()" > 10
+
+
+
+################
+both10.q
+################
+select id, t.rec.c.c1
+from Foo t
+where t.rec.c.c1.ca = 3 and t.rec.c.c1.cd < 0 and t.rec.c.c1.cd > -100
+
+
+
+################
+both11.q
+################
+select id, t.rec.c.c1
+from Foo t
+where t.rec.c.c1.cd < 0 and t.rec.c.c1.cd > -100
+
+
+
+################
+both12.q
+################
+select id, t.rec.c.c1
+from Foo t
+where t.rec.c.c1.ca = 3 and t.rec.c.c1.cb = 10 and
+      t.rec.c.c1.cc = 100 and t.rec.c.c1.cd = -100 and
+      t.rec.f = 4.5
+
+
+
+################
+both13.q
+################
+select /*+ FORCE_INDEX(Foo idx_ca_f_cb_cc_cd) */ id, t.rec.c.c1
+from Foo t
+where t.rec.c.c1.ca >= 1 and (t.rec.c.c1.cd < -10 or t.rec.c.c1.cd >= -1)
+
+
+
+################
+both14.q
+################
+select id, t.rec.c.c1
+from Foo t
+where t.rec.c.c1.ca = 3 and t.rec.c.c1.cb = 10 and
+      t.rec.c.c2.cc = 101 and t.rec.c.c2.cd = -101
+
+
+
+################
+both15.q
+################
+select id, t.rec.c.c1
+from Foo t
+where t.rec.c.c1.ca = 3 and t.rec.c.c1.cb < 15 and
+      t.rec.c.c2.cc = 101 and t.rec.c.c2.cd = -101
+
+
+
+################
+both16.q
+################
+select id, t.rec.c.c1
+from Foo t
+where t.rec.c.c1.ca = 3 and t.rec.c.c1.cb < 15 and
+      t.rec.c.c2.cc = 105 and t.rec.c.c2.cd = -5 and t.rec.c.c2.cb = 11
+
+
+
+################
+both17_cov.q
+################
+select id, t.rec.c.c2.cc, t.rec.c.c2.cd, t.rec.c.c2.ca
+from Foo t
+where t.rec.c.c2.cc = 105 and t.rec.c.c2.cd = -5 and t.rec.c.c2.cb = 11
+
+
+
+################
+both17.q
+################
+select /*+ FORCE_INDEX(Foo idx_ca_f_cb_cc_cd) */ id, t.rec.c.c1
+from Foo t
+where t.rec.c.c1.ca = 3 and
+      t.rec.c.c2.cc = 105 and t.rec.c.c2.cd = -5 and t.rec.c.c2.cb = 11
+
+
+
+################
+both18.q
+################
+select /*+ FORCE_INDEX(Foo idx2_ca_f_cb_cc_cd) */ id, t.rec.c.c1
+from Foo t
+where t.rec.c.c1.ca = 3 and
+      t.rec.c.c2.cc = 105 and t.rec.c.c2.cd = -5 and t.rec.c.c2.cb = 11
+
+
+
+################
+both19.q
+################
+
+select id, g
+from Foo t
+where t.rec.a = 10 and t.rec.c.c1.ca = 3 and t.rec.c.keys() =any "c1"
+
+
+
+################
+both1.q
+################
+#
+# partial key
+#
+select id
+from Foo t
+where t.rec.a = 10 and t.rec.c.keys() =any "c1"
+
+
+
+################
+both20.q
+################
+
+
+select id, g
+from Foo t
+where t.rec.a = 10 and t.rec.c.c1.ca = 3 and t.rec.c.values().ca =any 3 
+
+
+
+################
+both21.q
+################
+select id, g
+from Foo t
+where t.rec.a = 10 and t.rec.c.values().ca =any 3 and t.rec.c.c1.ca = 3
+
+
+
+################
+both22.q
+################
+select /*+ FORCE_INDEX(Foo idx_ca_f_cb_cc_cd) */ id, t.rec.c.c1
+from Foo t
+where t.rec.c.c1.ca = 1 and t.rec.c.c2.ca = 3 and
+      t.rec.f = 4.5 and
+      t.rec.c.c2.cb > 20 and t.rec.c.c1.cb <= 33 and t.rec.c.c2.cb < 42 and
+      t.rec.c.c1.cc >= 101
+
+
+
+################
+both2.q
+################
+#
+# Partial key. Looks like complete key but isn't
+#
+select id
+from Foo t
+where t.rec.a = 10 and
+      t.rec.c.keys() =any "c1" and
+      t.rec.c.values().ca =any 10 and
+      t.rec.f = 4.5
+
+
+
+################
+both3.q
+################
+#
+# Partial key and always true pred
+#
+select /*+ FORCE_INDEX(Foo idx_a_c_c_f) */ id
+from Foo t
+where t.rec.a = 10 and
+      t.rec.c.keys() =any "c1" and t.rec.c.keys() >=any "c1" and
+      t.rec.c.values().ca =any 1
+
+
+
+################
+both4.q
+################
+#
+# Partial key and range and always true pred
+#
+select id
+from Foo t
+where t.rec.a = 10 and
+      t.rec.c.keys() >any "c1" and t.rec.c.keys() >=any "c1" and
+      t.rec.c.values().ca =any 1
+
+
+
+################
+both5_cov.q
+################
+
+select id
+from Foo t
+where t.rec.a = 10 and t.rec.c.c1.ca = 1 + 2
+
+
+
+################
+both5.q
+################
+
+select id, g
+from Foo t
+where t.rec.a = 10 and t.rec.c.c1.ca = 3
+
+
+
+################
+both6.q
+################
+select /*+ FORCE_INDEX(Foo idx_a_c_c_f) */id, g
+from Foo t
+where t.rec.c.c1.ca = 3
+
+
+
+################
+both7.q
+################
+select id, g
+from Foo t
+where t.rec.c.c1.ca = 3
+
+
+
+################
+both8_cov.q
+################
+select id, t.rec.c.c1.ca
+from Foo t
+where t.rec.c.c1.ca < 3
+
+
+
+################
+both8.q
+################
+select id, g
+from Foo t
+where t.rec.c.c1.ca < 3
+
+
+
+################
+both9_cov.q
+################
+select id,  t.rec.c.c1.cc 
+from Foo t
+where t.rec.c.c1.ca = 3 and t.rec.c.c1.cd < 0
+
+
+
+################
+both9.q
+################
+select id, g
+from Foo t
+where t.rec.c.c1.ca = 3 and t.rec.c.c1.cd < 0
+
+
+
+################
+data1.q
+################
+#
+# partial key
+#
+select id
+from Foo t
+where t.g = 5 and t.rec.c.values().ca =any 10
+
+
+
+################
+data2.q
+################
+#
+# Make sure that the index idx_g_c_f is used, but only the "g" pred is pushed
+#
+select /*+ FORCE_INDEX(Foo idx_g_c_f) */ id
+from Foo t
+where t.g = 5 and t.rec.c."values()".ca =any 10
+
+
+
+################
+data3.q
+################
+select /*+ FORCE_INDEX(Foo idx_ca_f_cb_cc_cd) */ id
+from Foo t
+where t.g = 5 and t.rec.c."values()".ca =any 10
+
+
+
+################
+err1.q
+################
+select id, t.rec.c.keys()
+from Foo t
+where t.rec.a = 10 and t.rec.c.keys() =any "c1"
+
+
+
+################
+filter01.q
+################
+select /*+ FORCE_INDEX(Foo idx_ca_f_cb_cc_cd) */ id, t.rec.c.c2
+from Foo t
+where t.rec[$element.f = 4.5].c.c1.ca = 1 and t.rec.c.c2.ca = 3 and
+      t.rec.c.c2.cb > 20 and t.rec.c.c1.cb <= 33 and t.rec.c.c2.cb < 42 and
+      t.rec.c.c1.cc >= 101
+
+
+
+################
+in01.q
+################
+select id
+from Foo t
+where t.rec.a in (-10, 0) and
+      t.rec.c.keys() =any "c1" and
+      t.rec.c.values().ca =any 10 and
+      t.rec.f = 4.5
+
+
+
+################
+in02.q
+################
+select id
+from Foo t
+where t.rec.a = 10 and
+      t.rec.c.keys() in ("c1", "c2")
+
+
+
+################
+in03.q
+################
+select id
+from Foo t
+where t.rec.a = 10 and t.rec.c.c1.ca in (1, 5)
+
+
+
+################
+in04.q
+################
+select /*+ FORCE_INDEX(Foo idx_a_c_c_f) */id, g
+from Foo t
+where t.rec.c.c1.ca in (3, 5)
+
+
+
+################
+in05.q
+################
+select id, g
+from Foo t
+where t.rec.c.c1.ca in (10, 1)
+
+
+
+################
+in06.q
+################
+select id
+from Foo t
+where t.rec.c.c1.ca in (10, 1) and t.rec.c.c1.ca < 3
+
+
+
+################
+in07.q
+################
+select id
+from Foo t
+where t.g = 5 and exists t.rec.c.values($value.ca in (10, 6))
+
+
+
+################
+in08.q
+################
+select /*+ FORCE_INDEX(Foo idx_c1_keys_vals_c3) */id
+from Foo f
+where f.rec.c.c1.ca in (3, 10) and exists f.rec.c.keys($key in ("c4", "c3"))
+
+
+
+################
+in09.q
+################
+select /*+ FORCE_INDEX(Foo idx_ca_f_cb_cc_cd) */ id, t.rec.c.c1
+from Foo t
+where t.rec.c.c1.ca = 1 and t.rec.c.c2.ca in (10, 3) and
+      t.rec.f = 4.5 and
+      t.rec.c.c2.cb > 20 and t.rec.c.c1.cb <= 33 and t.rec.c.c2.cb < 42 and
+      t.rec.c.c1.cc >= 101
+
+
+
+################
+in10.q
+################
+select /*+ FORCE_INDEX(Foo idx_ca_f_cb_cc_cd) */ id, t.rec.c.c1
+from Foo t
+where t.rec.c.c1.ca = 1 and t.rec.c.c2.ca in (10, 3) and
+      t.rec.f = 4.5 and
+      t.rec.c.c2.cb > 20 and t.rec.c.c1.cb <= 33 and t.rec.c.c2.cb < 42 and
+      t.rec.c.c1.cb >= 10
+
+
+
+################
+in11.q
+################
+select id, g
+from Foo t
+where t.rec.a = 10 and t.rec.c.values().ca =any 3 and t.rec.c.c1.ca in (3, 11)
+
+
+
+################
+in12.q
+################
+select id
+from Foo t
+where t.rec.a in (-10, 0) and
+      t.rec.c.c1.ca in (1, 5)
+
+
+
+################
+in13.q
+################
+select /*+ FORCE_INDEX(Foo idx_c1_keys_vals_c3) */id
+from Foo t
+where exists t.rec.c.keys(($key, $value.ca) in (("c1", 1), ("c2", 3)))
+
+
+
+
+################
+in14.q
+################
+select /*+ FORCE_INDEX(Foo idx_c1_keys_vals_c3) */id
+from Foo t
+where exists t.rec.c.keys($key in ("c1", "c4") and $value.ca in (1, 3))
+
+
+
+################
+mixed01.q
+################
+select /*+ FORCE_INDEX(Foo idx_c1_keys_vals_c3) */id, g
+from Foo f
+where f.rec.c.c1.ca = 3 and f.rec.c.keys() =any "c4"
+
+
+
+################
+mixed02.q
+################
+select /*+ FORCE_INDEX(Foo idx_c1_keys_vals_c3) */id
+from Foo f
+where f.rec.c.c1.ca = 3 and f.rec.c.keys() =any "c4"
+
+
+
+################
+single01.q
+################
+select /*+ FORCE_INDEX(Foo idx_c1_c2_c3) */id, g
+from Foo f
+where f.rec.c.c1.ca >= 1 and f.rec.c.c2.ca = 3
+
+
+
+################
+sort01.q
+################
+select id, u.expenses 
+from boo u 
+order by u.expenses.food, id
+
+
+
+################
+upd01.q
+################
+update foo f
+set f.rec.c = { "c" : {"ca" : 1, "cb" : 10, "cc" : 100, "cd" : 200 } }
+where id = 1
+
+
+
+################
+upd02.q
+################
+update foo f
+set f.rec.c.keys()[$element = "c1"] = "c5"
+where id = 2
+returning f.rec.c
+
+
+
+################
+upd03.q
+################
+update foo f
+set f.rec.c.c2 = {"ca" : 1, "cb" : 10, "cc" : 100, "cd" : 200 }
+where id = 2
+
+
+
+
+################
+upd04.q
+################
+update foo f
+set f.rec.c.values().cb = 200 
+where id = 2
+
+
+
+################
+upd05.q
+################
+update foo f
+set f.rec.c.values() = {"ca" : 1, "cb" : 10, "cc" : 100, "cd" : 200 }
+where id = 2
+
+
+
+################
+upd06.q
+################
+#
+# TODO: This update does not affect idx6 and idx7, but this is not detected
+#
+update foo f
+set f.rec.c.values($key > "c3") = {"ca" : 1, "cb" : 10, "cc" : 100, "cd" : 200 }
+where id = 2
+
+
+
+################
+upd07.q
+################
+update foo f
+set f.rec.c.c2 = {"ca" : 1, "cb" : 10, "cc" : 100, "cd" : 200 },
+set f.rec.c.c3 = {"ca" : 1, "cb" : 10, "cc" : 100, "cd" : 200 }
+where id = 2
+
+
+
+################
+upd08.q
+################
+update foo f
+set f.rec.c[].values()[].cb[] = 200 
+where id = 2
+
+
+
+################
+upd09.q
+################
+update foo f
+put f.rec.c[] { }
+where id = 2
+
+
+
+################
+upd10.q
+################
+update foo f
+put f.rec.c[] { "c4" : {"ca" : 1, "cb" : 10, "cc" : 100, "cd" : 200 },
+                "c5" : {"ca" : 1, "cb" : 20, "cc" : 200, "cd" : 300 }},
+set f.rec.c.c5.cb = 40
+where id = 2
+
+
+
+
+################
+upd11.q
+################
+update foo f
+put f.rec.c[]   { "c4" : {"ca" : 1, "cb" : 10, "cc" : 100, "cd" : 200 },
+                  "c5" : {"ca" : 1, "cb" : 20, "cc" : 200, "cd" : 300 }},
+put f.rec[].c[] { "c6" : {"ca" : 1, "cb" : 10, "cc" : 100, "cd" : 200 },
+                  "c2" : {"ca" : 1, "cb" : 20, "cc" : 200, "cd" : 300 }},
+set f.rec.c.c5.cb = 40
+where id = 2
+
+
+
+################
+upd12.q
+################
+update foo f
+put f.rec.c[]   { "c4" : {"ca" : 1, "cb" : 10, "cc" : 100, "cd" : 200 },
+                  "c5" : {"ca" : 1, "cb" : 20, "cc" : 200, "cd" : 300 }},
+remove f.rec.c.c5,
+set f.rec.c.c5.cb = 40
+where id = 2
+
+
+
+################
+upd13.q
+################
+update foo f
+remove f.rec.c.c2
+where id = 2
+
+
+
+################
+upd14.q
+################
+update boo f
+set f.expenses.c1 = 3
+where id = 2
+
+
+
+################
+upd15.q
+################
+update boo f
+remove f.expenses.c1
+where id = 2
+
+
+
+################
+upd16.q
+################
+update boo f
+put f.expenses { "c1" : 5 }
+where id = 2
+
+
+
+################
+upd17.q
+################
+update boo f
+remove f.expenses.c1[][][]
+where id = 2
+
+
+
+################
+upd18.q
+################
+update foo f
+remove f.rec.c.keys()
+where id = 4
+returning f.rec.c
+
+
+

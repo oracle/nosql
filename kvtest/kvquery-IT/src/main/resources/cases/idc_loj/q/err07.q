@@ -1,0 +1,1 @@
+select a.ida1 as a_ida1, a2, a3, j.ida1 as j_ida1, j.idh1 as j_idh1, j.idh2 as j_idh2, j.idj1 as j_idj1, j1, j2 from A.G.H.I.J j left outer join A a on j.ida1 = a.ida1 and j.idj1 = "18acbcb9-137b-4fc8-99f7-812f20240356"

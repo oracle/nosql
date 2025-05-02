@@ -1,0 +1,501 @@
+################
+arr01.q
+################
+select /* FORCE_PRIMARY_INDEX(Foo) */id, $phone.number
+from foo as $t, $t.address.phones[] as $phone
+where $t.address.state = "CA" and
+      $phone.areacode = 650
+
+
+
+################
+arr02.q
+################
+#
+# Looks like covering index but is not
+#
+select /* FORCE_PRIMARY_INDEX(Foo) */id
+from foo as $t, $t.address.phones[] as $phone
+where $t.address.state = "CA" and
+      $phone.areacode = 650
+
+
+
+################
+arr03.q
+################
+select /* FORCE_PRIMARY_INDEX(Foo) */id, $phone.number
+from foo as $t, $t.address.phones[] as $phone
+where $t.address.state = "CA" and
+      408 < $phone.areacode and $phone.areacode <= 650
+
+
+
+
+
+################
+arr04.q
+################
+select /* FORCE_PRIMARY_INDEX(Foo) */id, $phone.number
+from foo as $t, $t.address.phones[] as $phone
+where $t.address.state = "CA" and
+      600 < $phone.areacode and $phone.areacode <= 620
+
+
+
+################
+arr05.q
+################
+#
+# Fake any pred. It is actually treated as eq.
+# TODO: convert fake "any" preds to value-comp preds
+#
+select /* FORCE_PRIMARY_INDEX(Foo) */id, $phone.number
+from foo as $t, $t.address.phones[] as $phone
+where $t.address.state = "CA" and
+      600 <any $phone.areacode and $phone.areacode <=any 620
+
+
+
+################
+arr06.q
+################
+#
+# value-eq > value-max, FALSE
+#
+select /* FORCE_PRIMARY_INDEX(Foo) */id, $areacode
+from foo as $t, $t.address.phones[].areacode as $areacode
+where $t.address.state = "CA" and
+      $areacode = 650 and
+      $areacode < 408
+
+
+
+################
+arr07.q
+################
+#
+# value-eq > value-max
+#
+select /* FORCE_PRIMARY_INDEX(Foo) */id, $areacode
+from foo as $t, $t.address $address, $address.phones[].areacode as $areacode
+where $address.state = "CA" and
+      $areacode < 800 and
+      $areacode = 650
+
+
+
+################
+arr08.q
+################
+select $phone.areacode, avg(age) as age
+from foo as $t, $t.address.phones[] as $phone
+group by $phone.areacode
+
+
+
+################
+arr09.q
+################
+select $areacode, avg(age) as age
+from foo as $t, seq_distinct($t.address.phones[].areacode) as $areacode
+group by $areacode
+
+
+
+################
+arr10.q
+################
+select $areakind.areacode, $areakind.kind, avg(age) as age
+from foo as $t, seq_distinct(
+                seq_transform($t.address.phones[],
+                              { "areacode" : $.areacode,
+                                "kind" : $.kind })) as $areakind
+group by $areakind.areacode, $areakind.kind
+
+
+
+################
+arr11.q
+################
+select $areakind[0] as areacode, $areakind[1] as kind, avg(age) as age
+from foo as $t, seq_distinct(
+                seq_transform($t.address.phones[],
+                              [ $.areacode, $.kind ] )) as $areakind
+group by $areakind[0], $areakind[1]
+
+
+
+################
+arr30.q
+################
+#
+# TODO: filtering preds on multikey index fields
+#
+select /* FORCE_PRIMARY_INDEX(Foo) */id, $phone.number
+from foo as $t, $t.address.phones[] as $phone
+where $t.address.state = "CA" and
+      $phone.kind = "home"
+
+
+
+################
+arr_m01.q
+################
+#
+# any-min < eq-max : cannot push both, the eq pred is preferred to push
+#
+select /* FORCE_PRIMARY_INDEX(Foo) */id, $phone.number
+from foo as $t, $t.address.phones[] as $phone
+where $t.address.state = "CA" and
+      600 <any $t.address.phones[].areacode and $phone.areacode <= 620
+
+
+
+################
+arr_m02.q
+################
+#
+# any-min < eq-max : cannot push both, the eq pred is preferred to push
+#
+select /* FORCE_PRIMARY_INDEX(Foo) */id, $phone.number
+from foo as $t, $t.address.phones[] as $phone
+where $t.address.state = "CA" and
+      $phone.areacode <= 620 and
+      600 <any $t.address.phones[].areacode and
+      $phone.areacode < 800
+
+
+
+################
+arr_m03.q
+################
+#
+# val-max > any-max, any pred is stricter, value pred CANNOT be eliminated
+#
+select /* FORCE_PRIMARY_INDEX(Foo) */id, $phone.areacode
+from foo as $t, $t.address.phones[] as $phone
+where $t.address.state = "CA" and
+      $phone.areacode <= 620 and
+      $t.address.phones[].areacode <any 500
+
+
+
+################
+arr_m04.q
+################
+#
+# any-max < val-max, any pred is stricter, value pred CANNOT be eliminated
+#
+select /* FORCE_PRIMARY_INDEX(Foo) */id, $phone.areacode
+from foo as $t, $t.address.phones[] as $phone
+where $t.address.state = "CA" and
+      $t.address.phones[].areacode <any 500 and
+      $phone.areacode <= 620
+
+
+
+################
+arr_m05.q
+################
+#
+# val-min < any-min, any pred is stricter, value pred CANNOT be eliminated
+#
+select /* FORCE_PRIMARY_INDEX(Foo) */id, $phone.areacode
+from foo as $t, $t.address.phones[] as $phone
+where $t.address.state = "CA" and
+      408 < $phone.areacode and
+      600 <any $t.address.phones[].areacode
+
+
+
+################
+arr_m06.q
+################
+#
+# val-min > any-min, value pred is stricter, any pred can be eliminated
+#
+select /* FORCE_PRIMARY_INDEX(Foo) */id, $phone.areacode
+from foo as $t, $t.address.phones[] as $phone
+where $t.address.state = "CA" and
+      600 < $phone.areacode and
+      408 <any $t.address.phones[].areacode
+
+
+
+################
+arr_m07.q
+################
+#
+# val-max < any-max, value pred is stricter, any pred can be eliminated
+#
+select /* FORCE_PRIMARY_INDEX(Foo) */id, $phone.areacode
+from foo as $t, $t.address.phones[] as $phone
+where $t.address.state = "CA" and
+      $phone.areacode <= 500 and
+      $t.address.phones[].areacode <any 700
+
+
+
+################
+arr_m08.q
+################
+#
+# any-eq < val-max, any pred pushed, value pred applied 
+#
+select /* FORCE_PRIMARY_INDEX(Foo) */id, $areacode
+from foo as $t, $t.address.phones[].areacode as $areacode
+where $t.address.state = "CA" and
+      $areacode < 650 and
+      $t.address.phones[].areacode =any 408
+
+
+
+################
+arr_m09.q
+################
+#
+# val-eq < any-max, value pred pushed, any pred can be eliminated
+#
+select /* FORCE_PRIMARY_INDEX(Foo) */id, $phone.areacode
+from foo as $t, $t.address.phones[] as $phone
+where $t.address.state = "CA" and
+      $phone.areacode = 408 and
+      $t.address.phones[].areacode <any 600
+
+
+
+################
+arr_m10.q
+################
+#
+# val-max < any-eq, any pred pushed, value pred applied 
+#
+select /* FORCE_PRIMARY_INDEX(Foo) */id, $areacode
+from foo as $t, $t.address.phones[].areacode as $areacode
+where $t.address.state = "CA" and
+      $areacode < 500 and
+      $t.address.phones[].areacode =any 650
+
+
+
+################
+arr_m11.q
+################
+#
+# value-eq > any-max, value pred pushed, any pred applied 
+#
+select /* FORCE_PRIMARY_INDEX(Foo) */id, $areacode
+from foo as $t, $t.address.phones[].areacode as $areacode
+where $t.address.state = "CA" and
+      $areacode = 650 and
+      $t.address.phones[].areacode <any 408
+
+
+
+################
+arr_m13.q
+################
+#
+# any-eq < value-min, any pred pushed, value pred applied 
+#
+select /* FORCE_PRIMARY_INDEX(Foo) */id, $areacode
+from foo as $t, $t.address.phones[].areacode as $areacode
+where $t.address.state = "CA" and
+      $areacode > 500 and
+      $t.address.phones[].areacode =any 408
+
+
+
+################
+arr_m14.q
+################
+#
+# value-eq < any-min, value pred pushed, any pred applied
+#
+select /* FORCE_PRIMARY_INDEX(Foo) */id, $phone.areacode
+from foo as $t, $t.address.phones[] as $phone
+where $t.address.state = "CA" and
+      $phone.areacode = 408 and
+      $t.address.phones[].areacode >any 600
+
+
+
+################
+arr_m15.q
+################
+#
+# any-eq > value-min, any pred pushed, value pred applied 
+#
+select /* FORCE_PRIMARY_INDEX(Foo) */id, $areacode
+from foo as $t, $t.address.phones[].areacode as $areacode
+where $t.address.state = "CA" and
+      $areacode > 500 and
+      $t.address.phones[].areacode =any 650
+
+
+
+################
+arr_m16.q
+################
+#
+# value-eq > any-min, value pred pushed, any pred can be eliminated
+#
+select /* FORCE_PRIMARY_INDEX(Foo) */id, $areacode
+from foo as $t, $t.address.phones[].areacode as $areacode
+where $t.address.state = "CA" and
+      $areacode = 650 and
+      $t.address.phones[].areacode >any 408 
+
+
+
+################
+arr_m17.q
+################
+#
+# value-eq > value-min, value eq pred pushed, value min pred can be eliminated
+#
+select /* FORCE_PRIMARY_INDEX(Foo) */id, $areacode
+from foo as $t, $t.address.phones[].areacode as $areacode
+where $t.address.state = "CA" and
+      $areacode = 650 and
+      $areacode > 408 
+
+
+
+################
+arr_m18.q
+################
+#
+# value-eq == any-eq, value eq pred pushed, any eq pred can be eliminated
+#
+select /* FORCE_PRIMARY_INDEX(Foo) */id, $areacode
+from foo as $t, $t.address.phones[].areacode as $areacode
+where $t.address.state = "CA" and
+      $t.address.phones[].areacode =any 650 and
+      $areacode = 650
+
+
+
+################
+arr_m19.q
+################
+#
+# value-eq == any-eq, value eq pred pushed, any eq pred can be eliminated
+#
+select /* FORCE_PRIMARY_INDEX(Foo) */id, $areacode
+from foo as $t, $t.address.phones[].areacode as $areacode
+where $t.address.state = "CA" and
+      $areacode = 650 and
+      $t.address.phones[].areacode =any 650
+
+
+
+################
+arr_m20.q
+################
+#
+# value-eq != any-eq, any eq pred pushed, value eq pred CANNOT be eliminated
+#
+select /* FORCE_PRIMARY_INDEX(Foo) */id, $areacode
+from foo as $t, $t.address.phones[].areacode as $areacode
+where $t.address.state = "CA" and
+      $t.address.phones[].areacode =any 650 and
+      $areacode = 408
+
+
+
+################
+arr_m21.q
+################
+#
+# value-eq != any-eq, value eq pred pushed, any eq pred CANNOT be eliminated
+#
+select /* FORCE_PRIMARY_INDEX(Foo) */id, $areacode
+from foo as $t, $t.address.phones[].areacode as $areacode
+where $t.address.state = "CA" and
+     $areacode = 408 and
+     $t.address.phones[].areacode =any 650
+
+
+
+################
+arr_partial01.q
+################
+select /* FORCE_PRIMARY_INDEX(Foo) */id, $phone.number
+from foo as $t, $t.address.phones[2:5] as $phone
+where $t.address.state = "MA" and
+      500 <= $phone.areacode and $phone.areacode < 600
+
+
+
+################
+arr_partial02.q
+################
+#
+# TODO ???? The [$element.kind = "home"] pred could be pushed to the index
+#
+select /* FORCE_PRIMARY_INDEX(Foo) */id, $phone.number, $phone.kind
+from foo as $t, $t.address.phones[$element.kind = "home"] as $phone
+where $t.address.state = "MA" and
+      500 <= $phone.areacode and $phone.areacode < 600
+
+
+
+################
+map_data01.q
+################
+select id, $child_info.friends
+from foo as $t, $t.children.values() as $child_info
+where $child_info.age > 10 and $t.children.Anna.school > "sch_1"
+
+
+
+################
+map_data02.q
+################
+select id, $child_info.friends
+from foo as $t, $t.children.values() as $child_info
+where $child_info.age = 11 and $t.children.Anna.school > "sch_1"
+
+
+
+################
+map_data03.q
+################
+#
+# Note: this query is NOT always false
+#
+select id, $child_info.friends
+from foo as $t, $t.children.values() as $child_info
+where $child_info.age = 11 and 
+      $t.children.Anna.school > "sch_1" and
+      $child_info.school = "sch_1"
+
+
+
+################
+map_keys01.q
+################
+#
+# TODO: replace references to $child with "Anna".
+#
+select /* FORCE_PRIMARY_INDEX(Foo) */id, $child_info.friends
+from foo as $t, $t.children.keys() as $child, $t.children.$child $child_info
+where $child = "Anna" and $child_info.age > 5
+
+
+
+
+################
+map_keys02.q
+################
+#
+# TODO: eliminate the $child var
+#
+select /* FORCE_PRIMARY_INDEX(Foo) */id, $child_info.friends
+from foo as $t, $t.children.keys() as $child, $t.children.Anna $child_info
+where $child = "Anna" and $child_info.age > 5
+
+
+

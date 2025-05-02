@@ -1,0 +1,1015 @@
+################
+aq01.q
+################
+# partial key
+select id
+from Foo f
+where f.info.address.state = "CA" and f.info.address.phones[].areacode =any 650
+
+
+
+################
+aq02.q
+################
+# partial key
+select id
+from Foo f
+where f.info.address.state = "CA" and f.info.address.phones.areacode =any 650
+
+
+
+################
+aq03.q
+################
+# complete key
+select id
+from Foo f
+where f.info.address.state = "MA" and
+      f.info.address.phones.areacode =any 520 and
+      f.info.age = 11
+
+
+
+################
+aq04.q
+################
+# complete key
+select id
+from Foo f
+where f.info.address.state = null and
+      f.info.address.phones.areacode =any 408 and
+      f.info.age = null
+
+
+
+################
+aq05.q
+################
+# partial key + filtering
+select id
+from Foo f
+where f.info.address.state IS NULL and
+      f.info.age IS NULL
+
+
+
+################
+aq06.q
+################
+# partial key + filtering
+select id
+from Foo f
+where f.info.address.state = "CA" and f.info.age >= 10
+
+
+
+################
+aq07.q
+################
+# partial key and range
+select id
+from Foo f
+where f.info.address.state = "CA" and f.info.address.phones.areacode >any 500
+
+
+
+################
+aq08.q
+################
+# should throw exception
+select id
+from Foo f
+where f.info.address.state = "CA" and f.info.address.phones.areacode > 510
+
+
+
+################
+aq09.q
+################
+# partial key and range
+select id
+from Foo f
+where f.info.address.state = "CA" and f.info.address.phones.areacode >any null
+
+
+
+################
+aq10.q
+################
+# partial key and range
+select id
+from Foo f
+where f.info.address.state = "CA" and f.info.address.phones.areacode >=any null
+
+
+
+################
+aq11.q
+################
+# partial key and range; only one multi-key pred pushed
+select id
+from Foo f
+where f.info.address.state = "CA" and
+      f.info.address.phones.areacode >any 500 and
+      f.info.address.phones.areacode <any 600
+
+
+
+################
+aq12.q
+################
+#
+# complete key and always true pred
+#
+select id
+from Foo f
+where f.info.address.state = "CA" and
+      f.info.address.phones.areacode >any 600 and
+      f.info.address.phones.areacode =any 650 and
+      f.info.age = 10
+
+
+
+################
+aq13.q
+################
+#
+# partial key and range; only one multi-key pred pushed, the other
+# is always true
+#  
+select id
+from Foo f
+where f.info.address.state = "CA" and
+      f.info.address.phones.areacode >any 650 and
+      f.info.address.phones.areacode >=any 650
+
+
+
+################
+aq14.q
+################
+#
+# partial key and range; only one multi-key pred pushed, the other
+# is always true
+#  
+select id
+from Foo f
+where f.info.address.state = "CA" and
+      f.info[].address[].phones.areacode <any 650 and
+      f.info.address.phones[].areacode <=any 650
+
+
+
+################
+aq15.q
+################
+# partial key
+select id, f.info.address.state
+from Foo f
+where f.info.address.state = "CA" and f.info.address.phones[].areacode =any 650
+
+
+
+################
+aq16.q
+################
+# partial key
+select id, f.record.int
+from Foo f
+where f.info.address.state = "CA" and f.info.address[].phones.areacode =any 650
+
+
+
+################
+aq17.q
+################
+# partial key
+select id, f.record.int
+from Foo f
+where f.info.address.state = "CA" and f.info.address.phones.areacode[] =any 650
+
+
+
+################
+aq18.q
+################
+select id
+from Foo f
+where f.info[].address[].phones[].areacode =any 450 and
+      f.info.address.phones.kind =any "work"
+
+
+
+################
+aq19.q
+################
+select id
+from foo f
+where f.info.children.Anna.friends[] =any "Bobby"
+
+
+
+################
+aq20.q
+################
+select id
+from foo f
+where f.info[].children[].Anna[].friends[] >=any "M"
+
+
+
+################
+aq21.q
+################
+select id, f.record.int
+from foo f
+where f.info[].children[].Anna[].friends[] =any null
+
+
+
+################
+aq22.q
+################
+select id, f.record.int
+from foo f
+where f.info[].children[].Anna[].friends =any null
+
+
+
+################
+aq23.q
+################
+select id, f.record.int
+from foo f
+where f.info.children.Anna.friends[] = null
+
+
+
+################
+aq24.q
+################
+select id
+from foo f
+where f.info.children.Anna.friends[] =any "Bobby"
+
+
+
+################
+bad01.q
+################
+select id
+from foo f
+where f.info.values().children.Anna.age = 10
+
+
+
+################
+bad02.q
+################
+select id
+from foo f
+where f.info.children.Anna.values($value.school = "sch_1").age <=10
+
+
+
+################
+bad03.q
+################
+select id
+from foo f
+where f.info.address.state = 120
+
+
+
+################
+bad04.q
+################
+select /*+ FORCE_INDEX(Foo idx_kids_anna_friends) */id
+from foo f
+where f.info.children.Anna.friends[] =any "Bobby"
+
+
+
+################
+bad05.q
+################
+# partial key + filtering
+select /*+ FORCE_INDEX(Foo idx_state_areacode_age) */ id
+from Foo f
+where f.info.address.state = "CA" and f.info.age >= 10
+
+
+
+################
+ex01.q
+################
+select id
+from foo f
+where exists f.info.address.state
+
+
+
+################
+ex02.q
+################
+select id
+from foo f
+where exists f.info.address.state and f.info.address.state = "CA"
+
+
+
+################
+ex03.q
+################
+select id
+from foo f
+where exists f.info.address.phones[].kind
+
+
+
+
+################
+ex04.q
+################
+select /* FORCE_INDEX(Foo idx_areacode_kind) */ id
+from foo f
+where exists f.info.address.phones[].areacode
+
+
+
+################
+ex05.q
+################
+select id
+from foo f
+where exists f.info.address.phones[].areacode and
+      exists f.info.address.state
+
+
+
+################
+ex06.q
+################
+select /* FORCE_INDEX(Foo idx_areacode_kind) */ id
+from foo f
+where exists f.info.address.phones[$element.areacode = 415 and
+                                   not exists $element.kind]
+
+
+
+################
+filter01.q
+################
+select /* FORCE_INDEX(Foo idx_areacode_kind) */ id
+from foo f
+where exists f.info.address.phones[$element.areacode = 415].kind
+
+
+
+################
+filter02.q
+################
+select /* FORCE_INDEX(Foo idx_areacode_kind) */ id
+from foo f
+where exists f.info.address.phones[$element.areacode = 415 and exists $element.kind]
+
+
+
+################
+filter03.q
+################
+select /*+ FORCE_INDEX(Foo idx_children_values) */id
+from foo f
+where f.info.children.values($key = "Anna" and $value.age <= 10).school <=any "sch_1"
+
+
+
+################
+filter04.q
+################
+
+select /* FORCE_INDEX(Foo idx_children_both) */id
+from foo f
+where f.info.children.values($key = "Anna" and $value.age <= 10).school <=any "sch_1"
+
+
+
+################
+filter05.q
+################
+select /* FORCE_INDEX(Foo idx_children_both) */id
+from foo f
+where exists f.info.children.values($key = "Mark" and $value.age <= 8) and
+      f.info.children.values($key = "Anna" and $value.age <= 10).school <=any "sch_1"
+
+
+
+################
+filter06.q
+################
+select /* FORCE_INDEX(Foo idx_children_both) */id
+from foo f
+where f.info.children.Mark.age <= 8 and
+      f.info.children.values($key = "Anna" and $value.age <= 10).school <=any "sch_1"
+
+
+
+################
+filter07.q
+################
+select /* FORCE_INDEX(Foo idx_children_both) */id
+from foo f
+where f.info.children.keys($value.age <= 10) =any "Anna"
+
+
+
+################
+filter08.q
+################
+select /* FORCE_INDEX(Foo idx_state_areacode_age) */id
+from foo f
+where f.info.address[$element.phones[$element.kind = "work"].areacode >any 408].state = "CA"
+
+
+
+################
+filter09.q
+################
+select /* FORCE_INDEX(Foo idx_state_areacode_age) */id
+from foo f
+where f.info.address[$element.phones.areacode >any 408].state = "CA"
+
+
+
+################
+filter10.q
+################
+select /* FORCE_INDEX(Foo idx_areacode_kind) */id
+from foo f
+where f.info.address[exists $element.phones[$element.kind = "work"]].phones.areacode =any 408
+
+
+
+################
+filter11.q
+################
+select /* FORCE_INDEX(Foo idx_areacode_kind) */id
+from foo f
+where f.info.address[exists $element.phones[$element.areacode = 408]].phones.areacode >any 510
+
+
+
+################
+filter12.q
+################
+select id
+from foo f
+where exists f.info[$element.children.Anna.age = 9 and $element.children.Mark.school = "sch_1"]
+
+
+
+################
+filter13.q
+################
+#
+# TODO: in this case, the pred factors :
+# 408 < $element.areacode and $elment.areacode <= 650
+# should be in the same pred group, but the algorithm does not
+# recognize this
+#
+select /* FORCE_INDEX(Foo idx_areacode_kind) */id
+from foo f
+where f.info.address[exists $element.phones[408 < $element.areacode and
+                                            $element.areacode <= 650]
+                    ].phones.areacode >any 510
+
+
+
+################
+filter14.q
+################
+select /* FORCE_INDEX(Foo idx_areacode_kind) */id
+from foo f
+where f.info.address[$element.phones.areacode =any 408 and
+                     $element.phones.areacode =any 650 and
+                     exists $element.phones[$element.areacode < 800]].phones.areacode >any 510
+
+
+
+################
+filter15.q
+################
+select /* FORCE_INDEX(Foo idx_areacode_kind) */ id
+from foo f
+where exists f.info.address.phones[$element.areacode >= 415 and exists $element.kind]
+
+
+
+################
+filter16.q
+################
+select /* FORCE_INDEX(Foo idx_areacode_kind) */ id
+from foo f
+where exists f.info.address.phones
+  [
+    $element.kind = "home" and
+    ($element.areacode < 415 or $element.areacode > 650)
+  ]
+
+
+
+################
+filter17.q
+################
+select /* FORCE_INDEX(Foo idx_areacode_kind) */ id
+from foo f
+where exists f.info.address.phones[$element.areacode < 408] and
+      exists f.info.address.phones[$element.areacode >= 650 ]
+
+
+
+################
+filter18.q
+################
+select id
+from foo f
+where exists f.info.address
+  [
+    $element.phones.areacode = 408 and
+    ($element.state = "CA" or not exists $element.state)
+  ]
+
+
+
+################
+filter19.q
+################
+select /* FORCE_INDEX(Foo idx_areacode_kind) */ id
+from foo f
+where exists f.info.address.phones[$element.kind = "home"] and
+      exists f.info.address.phones[$element.areacode < 415 or $element.areacode > 650]
+
+
+
+################
+mq01.q
+################
+select id
+from foo f
+where f.info.children.keys() =any "Anna"
+
+
+
+################
+mq02.q
+################
+select /*+ PREFER_INDEXES(Foo idx_children_both) */ id
+from foo f
+where f.info.children.keys() =any "Anna" and 
+      f.info.children.values().age =any 10
+
+
+
+################
+mq03.q
+################
+select /*+ PREFER_INDEXES(Foo idx_children_both) */ id
+from foo f
+where f.info.children.values().age =any 10 and
+      f.info[].children[].keys() =any "Anna"
+
+
+
+################
+mq04.q
+################
+select id
+from foo f
+where f.info.children.Anna.age = 10
+
+
+
+################
+mq05.q
+################
+select id
+from foo f
+where f.info.children.Anna.age > 10 and
+      f.info.children.John.school = "sch_1"
+
+
+
+################
+mq06.q
+################
+select id
+from foo f
+where f.info.children.Anna.age >= 10 and
+      f.info.children.Mary.age = 7
+
+
+
+################
+mq07.q
+################
+select id
+from foo f
+where f.info.children.Anna.age > 10 and
+      f.info.children.Anna.school = "sch_1"
+
+
+
+################
+mq08.q
+################
+select id
+from foo f
+where f.info.children.Anna.age = 10 and
+      f.info.children.Anna.school = "sch_1"
+
+
+
+################
+mq09.q
+################
+select /*+ PREFER_INDEXES(Foo idx_anna_areacode) */id
+from foo f
+where f.info.children.Anna.age > 9
+
+
+
+################
+nex01.q
+################
+select id
+from foo f
+where not exists f.info.address.state
+
+
+
+################
+nex02.q
+################
+select id
+from foo f
+where not exists f.info.address.state and not exists f.info.age
+
+
+
+################
+nex03.q
+################
+select id
+from foo f
+where not exists f.info.address.phones[$element.areacode >= 408]
+
+
+
+################
+nex04.q
+################
+select id
+from foo f
+where exists f.info.address[not exists $element.phones[].kind and
+                            $element.phones.areacode >=any 408]
+
+
+
+################
+nex05.q
+################
+select id
+from foo f
+where not exists f.info.address.phones[].kind
+
+
+
+################
+nex06.q
+################
+select id
+from foo f
+where exists f.info.address.phones[not exists $element.kind and
+                                   $element.areacode = 415]
+
+
+
+################
+partial_mq01.q
+################
+select id
+from foo f
+where f.info[3].children.Anna.age = 10
+
+
+
+################
+partial_mq02.q
+################
+select id
+from foo f
+where f.info.children.Anna[3].age = 10
+
+
+
+################
+partial_mq03.q
+################
+#
+# TODO: recognize that the 2 queries below are equivalent:
+#
+# select id
+# from foo f
+# where f.info.children.Anna.school = "sch_1" and f.info.children.Anna.age <=10
+#
+select /*+ FORCE_INDEX(Foo idx_children_values) */id
+from foo f
+where f.info.children.values($key = "Anna" and $value.school = "sch_1").age <=any 10
+
+
+
+################
+q01.q
+################
+#
+# partial key and range, plus always-true preds
+#
+select id, t.info.age
+from foo t
+where t.info.address.state = "CA" and
+      t.info.address.city > "F" and
+      t.info.address.city > "G"
+
+
+
+################
+q02.q
+################
+#
+# always false
+#
+select id, t.info.age
+from foo t
+where "M" > t.info.address.state and
+      "S" < t.info.address.city and
+      t.info.address.city = "Boston" and
+      t.info.age > 50
+
+
+
+################
+q03.q
+################
+#
+# always false
+#
+select id, t.info.age
+from Foo t
+where "S" < t.info.address.city and
+      t.info.address.city = "Boston" and
+      "MA" = t.info.address.state and
+      t.info.age > 50
+
+
+
+################
+q04.q
+################
+#
+# complete key
+#
+select id, t.info.age
+from foo t
+where t.info.address.state = "CA" and
+      t.info.address.city = "San Fransisco" and
+      t.info.age = 10
+
+
+
+################
+q05.q
+################
+#
+# key gap
+#
+select id, t.info.age
+from foo t
+where t.info.address.state = "CA" and
+      t.info.age = 10
+
+
+
+################
+q06.q
+################
+#
+# equality via two range preds
+#
+select id, t.info.age
+from foo t
+where "MA" <= t.info.address.state and
+      t.info.address.city = "Boston" and
+      "MA" >= t.info.address.state and
+      t.info.age >= 11
+
+
+
+################
+q07.q
+################
+#
+# nothing pushed
+#
+select id, t.info.age
+from foo t
+where t.info.age > 10
+
+
+
+################
+q08.q
+################
+#
+# range only
+#
+select id, t.info.age
+from foo t
+where "MA" <= t.info.address.state
+
+
+
+################
+q09.q
+################
+select id, t.info.age
+from foo t
+where "MA" <= t.info.address.state and id > 1
+
+
+
+################
+q10.q
+################
+select id, t.info.age
+from foo t
+where t.info.address.state = null
+
+
+
+################
+q11.q
+################
+select id, t.record
+from foo t
+where t.record.long < 10 and t.record.int is null
+
+
+
+################
+q12.q
+################
+select id, t.record
+from foo t
+where t.record.long < 10 and
+      (t.record.int is null or t.record.int = -20)
+
+
+
+################
+sort01.q
+################
+#
+# nothing pushed
+# TODO: use type info from typed json indexes during query compilation
+#       For this query, such info would result in no conditional array
+#       constructor being placed around the t.info.age expr in the SELECT
+#       clause, which would also make the t.info.age from the SELECT match
+#       with the t.info.age from the ORDERBY.
+#
+select id, t.info.age
+from foo t
+where t.info.age > 10
+order by t.info.address.state, t.info.address.city, t.info.age
+
+
+
+################
+sort02.q
+################
+#
+# range only
+#
+select id, t.info.age
+from foo t
+where "MA" <= t.info.address.state
+order by t.info.address.state, t.info.address.city, t.info.age
+
+
+
+################
+sort03.q
+################
+#
+# range only
+#
+select id, t.info.age
+from foo t
+where "MA" <= t.info.address.state
+order by t.info.address.state, t.info.address.city
+
+
+
+################
+sort04.q
+################
+#
+# nothing pushed
+#
+select *
+from foo t
+order by t.info.address.state, t.info.address.city, t.info.age
+
+
+
+################
+sort05.q
+################
+#
+# range only, but primary index is used due to order-by.
+#
+select *
+from foo t
+where "MA" <= t.info.address.state
+order by id desc
+
+
+
+################
+sort06.q
+################
+#
+# range only
+#
+select t.info.address.state, t.info.address.city 
+from foo t
+where 'MA' <= t.info.address.state
+order by t.info.address.state, t.info.address.city
+
+
+
+################
+sort07.q
+################
+select f.info.address.state
+from Foo f
+order by f.info.address.state
+
+
+
+################
+sort08.q
+################
+select id, f.info.address.state
+from Foo f
+order by f.info.address.state, id
+
+
+
+################
+sort09.q
+################
+select *
+from foo t
+order by t.info.address.state, t.info.address.city, t.info.age, id
+
+
+
+################
+sort10.q
+################
+select id, record
+from foo f
+order by f.record.float
+
+
+
+################
+sort11.q
+################
+select id, record
+from foo f
+where f.record.float > 0
+order by f.record.float
+
+
+
+################
+sort12.q
+################
+select id, record
+from foo f
+where f.record.float > 0 or f.record.float is null
+order by f.record.float
+
+
+

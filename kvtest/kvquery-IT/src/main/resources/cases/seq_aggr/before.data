@@ -1,0 +1,140 @@
+Table: Foo
+
+{ 
+  "id":1,
+  "record" : { "int" : 20, "str" : "aef", "bool" : true },
+  "info":
+  {
+    "firstName":"first1", "lastName":"last1","age":10,
+    "expenses":
+    {
+      "books": 340,
+      "travel"  : 1000.5,
+      "food" : 45
+    },
+    "children":
+    {
+      "Anna" : { "age" : 10, "friends" : ["Anna", "John", "Maria"]},
+      "Lisa" : { "age" : 12, "friends" : ["Ada"]},
+      "Mary" : { "age" :  7, "friends" : ["Anna", "Mark"]}
+    }
+  }
+}
+
+
+{ 
+  "id":2,
+  "record" : { "int" : 20, "num" : 435, "double" : 34.4 },
+  "info":
+  {
+    "firstName":"first2", "lastName":"last2","age":20,
+    "expenses":
+    {
+      "books": 100,
+      "travel"  : 1000.5,
+      "food" : 450,
+      "gas" : 55
+    },
+    "children":
+    {
+      "Anna" : { "age" : 12, "friends" : ["Anna", "Jim", "Maria"]},
+      "Lisa" : { "age" : 13, "friends" : "Mary"},
+      "Mary" : { "age" : 6,  "friends" : ["Anna"]}
+    }
+  }
+}
+
+
+{ 
+  "id":3,
+  "record" : { "int" : 20, "num" : 435, "double" : 34.4 },
+  "info":
+  {
+    "firstName":"first3", "lastName":"last3","age":30,
+    "expenses":
+    {
+      "books": 100.4,
+      "travel"  : 1000,
+      "food" : 450,
+      "gas" : [ { "month" : "june", "amount" : 55 },
+                { "month" : "june", "amount" : 65 } ]
+    },
+    "children":
+    {
+      "Anna" : { "age" : 20, "friends" : ["Anna", "Jim", "Maria"]},
+      "Lisa" : { "age" :  3, "friends" : "Mary"},
+      "Mary" : { "age" : 16, "friends" : ["Anna"]}
+    }
+  }
+}
+
+
+{ 
+  "id":4,
+  "record" : { "int" : 20, "num" : 435, "double" : 34.4 },
+  "info":
+  {
+    "firstName":"first4", "lastName":"last4","age":40,
+    "expenses":
+    {
+      "books": 100,
+      "travel"  : 1000,
+      "food" : 450
+    },
+    "children":
+    {
+      "Anna" : { "age" : 20, "friends" : ["Anna", "Jim", "Maria"]},
+      "Lisa" : { "age" :  3, "friends" : "Mary"},
+      "Mary" : { "age" : 16, "friends" : ["Anna"]}
+    }
+  }
+}
+
+
+{ 
+  "id":5,
+  "record" : { "int" : 20, "num" : 435, "double" : 34.4 },
+  "info":
+  {
+    "firstName":"first4", "lastName":"last4","age":40,
+    "expenses":
+    {
+      "books": 100,
+      "travel"  : 1000,
+      "food" : 100
+    },
+    "children":
+    {
+      "Anna" : { "age" : 20, "friends" : ["Anna", "Jim", "Maria"]},
+      "Lisa" : { "age" :  3, "friends" : "Mary"},
+      "Mary" : { "age" : 16, "friends" : ["Anna"]}
+    }
+  }
+}
+
+
+{
+  "id":20,
+  "record" : { "long" : 0, "int" : 20, "string" : "abc", "bool" : null, "float" : 3},
+  "info":
+  {
+    "firstName":null, "lastName":"number", "middleName":"kind", "age":10,
+    "address":
+    {
+      "city": "San Fransisco",
+      "state"  : "CA",
+      "phones" : { "areacode" : 408,  "number" : 80, "kind" : "work" }
+    },
+    "children":
+    {
+      "John" : { "age" : 10, "school" : "sch_1", "friends" : ["Anna", "John", "Maria"]},
+      "Lisa" : null,
+      "Mary" : 7
+    }
+  }
+}
+
+{
+  "id":21
+}
+

@@ -1,0 +1,43 @@
+################
+q01.q
+################
+select *
+from users u left outer join users.folders f on u.uid = f.uid
+             left outer join users.folders.messages m on f.uid = m.uid and
+                                                         f.fid = m.fid
+where u.uid = 10
+
+
+
+
+################
+q02.q
+################
+select name, sender
+from users u left outer join users.folders.messages m ON
+                 u.uid = m.uid and m.receiver = u.email and
+                 time >= cast("2017-12-12T00:00:00.0" as timestamp(3))
+where u.uid = 10
+
+
+
+################
+q03.q
+################
+select count($m)
+from users u left outer join users.folders.messages $m ON
+                 u.uid = $m.uid and
+                 time >= cast("2017-12-12T00:00:00.0" as timestamp(3))
+where salary > 100
+
+
+
+################
+q04.q
+################
+select m.uid, m.fid, m.mid, u.name, [ f.name, f.ancestors.name ]
+from users.folders.messages m
+    left outer join users u on m.uid = u.uid
+    left outer join users.folders f on m.uid = f.uid and m.fid = f.fid
+where size > 1000
+

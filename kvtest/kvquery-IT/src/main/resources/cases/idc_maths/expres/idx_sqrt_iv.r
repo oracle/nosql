@@ -1,0 +1,9 @@
+unordered-result
+{"id":1,"Column_2":2.23606797749979}
+{"id":2,"Column_2":NaN}
+{"id":5,"Column_2":NaN}
+{"id":6,"Column_2":46340.950001051984}
+{"id":7,"Column_2":46340.950001051984}
+{"id":8,"Column_2":NaN}
+{"id":9,"Column_2":NaN}
+{"id":10,"Column_2":1.0}

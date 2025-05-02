@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>com.oracle.nosql</groupId>
+    <artifactId>kv</artifactId>
+    <version>25.2.0-SNAPSHOT</version>
+  </parent>
+
+  <artifactId>sql</artifactId>
+
+  <name>Oracle NoSQL Database SQL Shell Interface</name>
+  <url>https://www.oracle.com/database/nosql/</url>
+
+  <dependencies>
+    <dependency> <groupId>com.oracle.nosql</groupId> <artifactId>kvmain</artifactId> <version>${project.version}</version> <scope>provided</scope> </dependency>
+
+    <dependency> <groupId>com.oracle.nosql</groupId> <artifactId>kvclient</artifactId> <version>${project.version}</version> </dependency>
+    <dependency> <groupId>org.jline</groupId> <artifactId>jline-native</artifactId> </dependency>
+    <dependency> <groupId>org.jline</groupId> <artifactId>jline-reader</artifactId> </dependency>
+    <dependency> <groupId>org.jline</groupId> <artifactId>jline-terminal</artifactId> </dependency>
+  </dependencies>
+  <build>
+    <plugins>
+      <plugin>
+        <artifactId>maven-clean-plugin</artifactId>
+      </plugin>
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>buildnumber-maven-plugin</artifactId>
+      </plugin>
+      <plugin>
+        <artifactId>maven-dependency-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>extract</id>
+            <phase>prepare-package</phase>
+            <goals>
+              <goal>unpack</goal>
+            </goals>
+          </execution>
+        </executions>
+        <configuration>
+          <outputDirectory>${project.build.outputDirectory}</outputDirectory>
+          <artifactItems>
+            <artifactItem>
+              <groupId>com.oracle.nosql</groupId>
+              <artifactId>kvmain</artifactId>
+              <version>${project.version}</version>
+            </artifactItem>
+          </artifactItems>
+          <includes>
+            oracle/kv/impl/query/shell/*.class,
+            oracle/kv/impl/query/shell/output/*.class,
+            oracle/kv/util/shell/*.class,
+            oracle/kv/impl/tif/esclient/jsonContent/*.class,
+            oracle/kv/impl/security/util/PasswordReader.class,
+            oracle/kv/impl/security/PasswordExpiredException.class,
+            oracle/kv/impl/util/CommandParser.class,
+          </includes>
+        </configuration>
+      </plugin>
+      <plugin>
+        <artifactId>maven-jar-plugin</artifactId>
+        <configuration>
+          <archive>
+            <manifest>
+              <mainClass>oracle.kv.impl.query.shell.OnqlShell</mainClass>
+            </manifest>
+          </archive>
+        </configuration>
+      </plugin>
+      <plugin>
+        <artifactId>maven-install-plugin</artifactId>
+      </plugin>
+      <plugin>
+        <artifactId>maven-deploy-plugin</artifactId>
+        <configuration>
+          <skip>false</skip>
+        </configuration>
+      </plugin>
+      <plugin>
+        <artifactId>maven-project-info-reports-plugin</artifactId>
+      </plugin>
+    </plugins>
+  </build>
+</project>

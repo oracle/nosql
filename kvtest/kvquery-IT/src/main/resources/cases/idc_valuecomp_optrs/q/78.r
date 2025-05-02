@@ -1,0 +1,9 @@
+unordered-result
+{"id1":0,"dbl":10.5,"Column_3":false}
+{"id1":1,"dbl":1.0,"Column_3":false}
+{"id1":2,"dbl":3.5,"Column_3":false}
+{"id1":3,"dbl":-2.5,"Column_3":null}
+{"id1":4,"dbl":-2.5,"Column_3":false}
+{"id1":5,"dbl":null,"Column_3":null}
+{"id1":6,"dbl":4.9E-324,"Column_3":false}
+{"id1":7,"dbl":1.7976931348623157E308,"Column_3":false}

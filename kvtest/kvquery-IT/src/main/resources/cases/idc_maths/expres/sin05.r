@@ -1,0 +1,2 @@
+unordered-result
+{"iv":-2.147483648E9,"Column_2":0.9713101,"lv":-9.223372036854776E18,"Column_4":-0.9999303,"fv":-3.4028234663852886E38,"Column_6":0.5218765,"dv":-Infinity,"Column_8":-0.0049619,"nv":0.0,"Column_10":0.0,"jsoniv":-2.147483648E9,"sinjsoniv":0.9713101,"jsonlv":-9.223372036854776E18,"sinjsonlv":-0.9999303,"jsonfv":-3.4028235E38,"sinjsonfv":-0.5226055,"jsondv":0.0,"sinjsondv":0.0,"jsonnv":0.0,"sinjsonnv":0.0,"jsonpi1":1.5707953,"sinjsonpi1":0.9999999,"jsonpi2":3.1415916,"sinjsonpi2":9.0E-7,"jsonpi3":6.2831843,"sinjsonpi3":-9.0E-7}

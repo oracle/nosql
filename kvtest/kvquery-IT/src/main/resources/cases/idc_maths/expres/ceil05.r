@@ -1,0 +1,2 @@
+unordered-result
+{"iv":-2.0,"Column_2":-2.0,"lv":-2.0,"Column_4":-2.0,"fv":-1.0000009,"Column_6":-1.0,"dv":-2.000001,"Column_8":-2.0,"nv":-1.0E-6,"Column_10":0.0,"jsoniv":-2.0,"ceiljsoniv":-2.0,"jsonlv":-2.0,"ceiljsonlv":-2.0,"jsonfv":1.000001,"ceiljsonfv":2.0,"jsondv":2.000001,"ceiljsondv":3.0,"jsonnv":1.0E-6,"ceiljsonnv":1.0,"jsonp1":0.9999999,"ceiljsonp1":1.0,"jsonp2":1.9999999,"ceiljsonp2":2.0,"jsonp3":-1.9999999,"ceiljsonp3":-1.0,"jsonp4":-0.9999999,"ceiljsonp4":0.0}

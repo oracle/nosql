@@ -1,0 +1,1 @@
+SELECT * FROM DropIndex ORDER BY ID

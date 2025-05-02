@@ -1,0 +1,1 @@
+select int -100 +1000 from Foo

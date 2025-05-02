@@ -1,0 +1,193 @@
+###
+# Table and records can be on multiple lines but they must be delimited by an
+# empty line.
+#
+# Line  "Table: table-name" defines the table name to be used and it must
+# precede the records. Multiple tables can be populated in the same file.
+###
+
+Table: sn
+
+{ "firstName":"first0", "id":0, "age":30,
+   "long"    : 55556666666666,
+   "num"     : 34555555555555555555555,
+   "double"  : 3.5,
+   "float"   : 23423,
+   "type"    : "working",
+   "time"    : "2014-05-05T10:45:00",
+   "bool"    : true,
+   "map"     :
+             {
+               "IDP":[  { "DL":"Yes", "Passport":"No" },{"Aadhar":"OK"} ] 
+	   
+    },
+   "array"   : [{"HDFC":[559404,40000,-456]},{"AXIS":[346,-45693]}],
+   "address":
+  {
+    "city"   : "San Fransisco",
+    "state"  : "CA",
+    "phones" : [ { "work" : 504,  "home" : 50 },
+                 { "work" : 518,  "home" : 51 },
+                 { "work" : 528,  "home" : 52 },
+                 { "work" : 538,  "home" : 53 },
+                 { "work" : 548,  "home" : 54 } ],
+    "ptr"    : "city"
+  },
+  "children":
+  {
+    "John"       : { "age" : 10, "friends" : ["Anna", "John", "Maria"]},
+    "Lisa"       : { "age" : 12, "friends" : ["Ada"]},
+    "B.Balance"  : 45039403905
+  }
+}
+
+{ "firstName":"first1", "id":1, "age":41,
+  "double" : 44.5,
+  "float"  : 234,
+  "time"   : "2014-05-11T22:26:32",
+  "bool"   : false,
+  "num"    : 4355553333333333333336,
+  "long"   : 345655567655,
+  "bin"    : "Tm9TcWw=",
+  "bin1"   : "SGVsbG8gSG93IGFyZSBZb3U/",
+  "address":
+  {
+    "city"   : "Boston",
+    "state"  : "MA",
+    "phones" : [ { "work" : 304,  "home" : 30 },
+                 { "work" : 318,  "home" : 31 } ],
+    "ptr"    : "state"
+  },
+  "children":
+  {
+    "Anna" : { "age" : 9, "friends" : ["Bobby", "John"]},
+    "Mark" : { "age" : 4, "friends" : ["George"]},
+    "Fred" : { "age": 23, "Relative": {"Uncle": ["Sanag","Neel"],"Aunt":["Jannie", "Sara"]}},
+   "B.Balance" : 39785369478938994799494
+  }
+}
+
+{ "firstName":"first2", "id":2, "age":21,"bool":true,
+  "age"    : null,
+  "double" : 4353245242134,
+  "float"  : 23,
+  "time"   : "2017-07-07T10:45:00",
+  "address":
+  {
+    "city"   : "Boston",
+    "state"  : "MA",
+    "phones" : [ { "work" : 304,  "home" : 30 },
+                 { "work" : 318,  "home" : 31 } ],
+    "ptr"    : "state"
+  },
+  "children":
+  {
+    "Anna" : { "age" : 9, "friends" : ["Bobby", "John"]},
+    "Mark" : { "age" : 4, "friends" : ["George"]},
+	"B.Balance" : "No Account"
+  }
+}
+
+{ "firstName":"first3", "id":3,
+  "double" : 44.5,
+  "float"  : 23.1,
+  "num"    : 3444444444444444444444444,
+  "bin"    : "VDEyPXM=",
+  "address":
+  {
+    "city"   : "Salem",
+    "state"  : "MA", 
+    "age"    : null,
+    "phones" : [ { "work" : 304,  "home" : 30 },
+                 { "work" : 318,  "home" : 31 } ],
+    "ptr"    : "state"
+  },
+  "children":
+  {
+    "Anna" : { "age" : 9, "friends" : ["Bobby", "John"]},
+    "Mark" : { "age" : 4, "friends" : ["George"]},
+	"B.Balance" : 58945
+  }
+}
+
+{ "firstName":"first4", "id":4, "bool":false,"num":4444444444555555555555555555555555, "long": 45675567878,
+   "double" : 44.5,
+   "type"   : "student",
+   "time"   : "2017-04-07T11:25:00",
+   "float"  :  234.4,
+   "map":
+   {
+       "IDP":[  { "Aadhar":"Y", "Passport":"No" } ] 
+	   
+    },
+	"array": [{"HDFC":[504,6]},{"ICICI":[346]}],
+  "address":
+  {
+    "city"   : "Boston",
+    "state"  : "MA",
+    "type"   : "student",
+    "phones" : [ { "work" : 304,  "home" : 30 },
+                 { "work" : 318,  "home" : 31 } ],
+    "ptr"    : "state"
+  },
+  "children":
+  {
+    "Anna" : { "age" : 9, "friends" : ["Bobby", "John"]},
+    "Mark" : { "age" : 4, "friends" : ["George"]},
+	"Mary" : { "age": 31, "Relative": {"Uncle": ["Peter", "George" , { "Harry" : { "Son" : 2, "Daughter" : 1.0}}],"Aunt" : ["Kamine" , "Ema" ]}},
+	"B.Balance" : false
+  } 
+}
+
+
+{ "firstName":"first5","id":5, "age":12,"num":4455555555555666666,
+  "double" : 44.5,
+   "type"  : "working",
+  "float"  : 23,
+  "address":
+  {
+    "city"   : "Portland",
+    "state"  : "OR",
+    "phones" : [ { "work" : 104,  "home" : 10 },
+                 { "work" : 118,  "home" : 11 } ],
+    "ptr"    : "phones"
+  },
+  "children":
+  {
+  }
+}
+
+{ "firstName":"first6", "id":6, "age":13,
+  "double" : 44.5,
+  "type"   : "working",
+  "time"   : "2015-04-07T12:56:00",
+  "type"   : "student",
+  "bin1"   : "T3JhY2xlIE5vU1FsIFRlYW0gNC40LjUgUmVsZWFzZQ0K", 
+   "map":
+   {
+       "IDP":[  { "Aadhar":"Y" },{"Passport":"True"} ] 
+	   
+    },
+	"array": [{"HDFC":[730405566]}],
+  "address":
+  {
+    "city"   : "Seattle",
+    "state"  : "WA",
+    "phones" : [ ],
+    "ptr"    : "phones"
+  },
+  "children" :
+  {
+    "George" : { "age" : 7,  "friends" : ["Bill", "Mark"]},
+    "Matt"   :   { "age" : 14, "friends" : ["Bill"]},
+    "B.Balance" : 38475934657493798903.56
+  }
+}
+
+
+{ "id":7, 
+  "children":
+  {
+    "B.Balance" : null
+  }
+}

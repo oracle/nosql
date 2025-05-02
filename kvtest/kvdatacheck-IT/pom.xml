@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>com.oracle.nosql</groupId>
+    <artifactId>kvtest</artifactId>
+    <version>25.2.0-SNAPSHOT</version>
+  </parent>
+
+  <artifactId>kvdatacheck-IT</artifactId>
+
+  <name>Oracle NoSQL Database Datacheck Test</name>
+  <url>https://www.oracle.com/database/nosql/</url>
+
+  <properties>
+    <!-- Prevent ocibuild from publishing this module -->
+    <skipPublish>true</skipPublish>
+  </properties>
+
+  <profiles>
+    <profile>
+      <id>skip-kvdatacheck-test</id>
+      <activation>
+        <activeByDefault>true</activeByDefault>
+      </activation>
+      <build>
+        <plugins>
+          <plugin>
+            <artifactId>maven-antrun-plugin</artifactId>
+            <configuration>
+              <skip>true</skip>
+            </configuration>
+          </plugin>
+          <plugin>
+            <artifactId>maven-failsafe-plugin</artifactId>
+            <configuration>
+              <skipITs>true</skipITs>
+            </configuration>
+          </plugin>
+          <plugin>
+            <groupId>org.jacoco</groupId>
+            <artifactId>jacoco-maven-plugin</artifactId>
+            <configuration>
+              <skip>true</skip>
+            </configuration>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+
+    <profile>
+      <id>IT</id>
+    </profile>
+
+    <profile>
+      <id>it.kvdatacheck</id>
+    </profile>
+  </profiles>
+
+  <dependencies>
+    <dependency> <groupId>junit</groupId> <artifactId>junit</artifactId> </dependency>
+    <dependency> <groupId>com.oracle.nosql</groupId> <artifactId>kvstore</artifactId> <version>${project.version}</version> </dependency>
+    <dependency> <groupId>com.oracle.nosql</groupId> <artifactId>kvstore-IT</artifactId> <version>${project.version}</version> </dependency>
+
+    <dependency> <groupId>com.oracle.nosql.sdk</groupId> <artifactId>nosqldriver</artifactId> </dependency>
+  </dependencies>
+
+  <build>
+    <plugins>
+      <plugin>
+        <artifactId>maven-failsafe-plugin</artifactId>
+        <configuration>
+          <includes>
+            <include>**/*TestJUnit.java</include>
+          </includes>
+        </configuration>
+      </plugin>
+      <plugin>
+        <groupId>org.jacoco</groupId>
+        <artifactId>jacoco-maven-plugin</artifactId>
+      </plugin>
+    </plugins>
+  </build>
+</project>

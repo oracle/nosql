@@ -1,0 +1,3 @@
+unordered-result
+{"id":5,"record":{"long":null,"int":null,"string":null,"bool":null,"float":null,"map1":null,"map2":null},"info":{"address":{"city":"San Jose","phones":{"areacode":610,"kind":"home","number":55},"state":"CA"},"age":11,"children":{"Anna":{"age":29,"friends":["Bobby","Mark"],"school":"sch_1"},"Dave":null,"George":{"age":8},"Julie":{"age":12,"school":"sch_2","scores":[1,3.5,4.2,2]},"Mark":{"age":14,"friends":["George"],"school":"sch_2"},"Matt":{"age":14,"friends":["Bill"],"school":"sch_2"},"Tim":{"age":8,"hobbies":["football","tennis"],"school":"sch_2"}},"firstName":"first5","income":10000,"lastName":"last5"}}
+

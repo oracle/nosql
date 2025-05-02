@@ -1,0 +1,7 @@
+DROP TABLE IF EXISTS USERS
+
+DROP TABLE IF EXISTS emails.folder.message
+
+DROP TABLE IF EXISTS emails.folder
+
+DROP TABLE IF EXISTS emails

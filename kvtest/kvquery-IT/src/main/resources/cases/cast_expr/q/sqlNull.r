@@ -1,0 +1,11 @@
+unordered-result
+{"id":0,"str":"abc","Column_3":0,"Column_4":2.0}
+{"id":1,"str":"abd","Column_3":1,"Column_4":20.0}
+{"id":2,"str":null,"Column_3":-2,"Column_4":2.0}
+{"id":3,"str":"tok1","Column_3":null,"Column_4":null}
+{"id":4,"str":"abcc","Column_3":301980562,"Column_4":null}
+{"id":5,"str":"abc","Column_3":null,"Column_4":2.0}
+{"id":6,"str":"abd","Column_3":1,"Column_4":20.0}
+{"id":7,"str":null,"Column_3":-5,"Column_4":2.0}
+{"id":8,"str":"tok1","Column_3":null,"Column_4":null}
+{"id":9,"str":"abcc","Column_3":301980562,"Column_4":null}

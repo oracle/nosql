@@ -1,0 +1,1 @@
+select id, str1, substring( 10 + id, 4, '3') from stringsTable ORDER BY id

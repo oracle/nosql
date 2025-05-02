@@ -1,0 +1,291 @@
+Table: Viewers
+
+{
+  "acct_id" : 100,
+  "user_id" : 2,
+  "firstName": "Emmanuel",
+  "lastName": "Macron",
+  "country" : "France",
+  "shows": [
+      {
+        "showName": "Call My Agent",
+        "showId": 15,
+        "type": "tvseries",
+        "genres" : ["comedy", "french"],
+        "numSeasons" : 2,
+        "seasons": [
+          {
+            "seasonNum" : 1,
+            "numEpisodes" : 2,
+            "episodes": [
+              {
+                "episodeID": 20,
+                "lengthMin": 45,
+                "minWatched": 45,
+                "date": "2020-06-01"
+              },
+              {
+                "episodeID": 30,
+                "lengthMin": 42,
+                "minWatched": 42,
+                "date": "2020-07-01"
+              }
+            ]
+          },
+          {
+            "seasonNum": 2,
+            "numEpisodes" : 3,
+            "episodes": [
+              {
+                "episodeID": 40,
+                "lengthMin": 50,
+                "minWatched": 50,
+                "date": "2021-06-01"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+}
+
+{
+  "acct_id" : 200,
+  "user_id" : 1,
+    "firstName": "Joe",
+    "lastName": "Biden",
+    "country" : "USA",
+    "shows": [
+      {
+        "showName": "Call My Agent",
+        "showId": 15,
+        "type": "tvseries",
+        "genres" : ["comedy", "french"],
+        "numSeasons" : 2,
+        "seasons": [
+          {
+            "seasonNum" : 1,
+            "numEpisodes" : 2,
+            "episodes": [
+              {
+                "episodeID": 20,
+                "lengthMin": 45,
+                "minWatched": 44,
+                "date": "2021-05-19"
+              },
+              {
+                "episodeID": 30,
+                "lengthMin": 42,
+                "minWatched": 42,
+                "date": "2021-05-19"
+              }
+            ]
+          },
+          {
+            "seasonNum": 2,
+            "numEpisodes" : 3,
+            "episodes": [
+              {
+                "episodeID": 40,
+                "lengthMin": 50,
+                "minWatched": 50,
+                "date": "2021-05-20"
+              },
+              {
+                "episodeID": 50,
+                "lengthMin": 45,
+                "minWatched": 45,
+                "date": "2021-05-21"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "showName": "Rita",
+        "showId": 16,
+        "type": "tvseries",
+        "genres" : ["comedy", "drama", "danish"],
+        "numSeasons" : 2,
+        "seasons": [
+          {
+            "seasonNum" : 1,
+            "numEpisodes" : 2,
+            "episodes": [
+              {
+                "episodeID": 20,
+                "lengthMin": 65,
+                "minWatched": 65,
+                "date": "2021-03-18"
+              },
+              {
+                "episodeID": 30,
+                "lengthMin": 60,
+                "minWatched": 60,
+                "date": "2021-03-19"
+              }
+            ]
+          },
+          {
+            "seasonNum": 2,
+            "numEpisodes" : 2,
+            "episodes": [
+              {
+                "episodeID": 40,
+                "lengthMin": 50,
+                "minWatched": 50,
+                "date": "2021-05-05"
+              },
+              {
+                "episodeID": 50,
+                "lengthMin": 45,
+                "minWatched": 45,
+                "date": "2021-05-06"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+}
+
+
+{
+  "acct_id" : 300,
+  "user_id" : 1,
+    "firstName": "Bernie",
+    "lastName": "Sanders",
+    "country" : "USA",
+    "shows": [
+      {
+        "showName": "Casa de papel",
+        "showId": 18,
+        "type": "tvseries",
+        "genres" : ["action", "spanish"],
+        "numSeasons" : 2,
+        "seasons": [
+          {
+            "seasonNum" : 1,
+            "numEpisodes" : 2,
+            "episodes": [
+              {
+                "episodeID": 20,
+                "lengthMin": 55,
+                "minWatched": 55,
+                "date": "2022-05-19"
+              },
+              {
+                "episodeID": 30,
+                "lengthMin": 42,
+                "minWatched": 42,
+                "date": "2022-06-19"
+              }
+            ]
+          },
+          {
+            "seasonNum": 2,
+            "numEpisodes" : 3,
+            "episodes": [
+              {
+                "episodeID": 40,
+                "lengthMin": 50,
+                "minWatched": 50,
+                "date": "2022-06-20"
+              },
+              {
+                "episodeID": 50,
+                "lengthMin": 45,
+                "minWatched": 45,
+                "date": "2022-07-21"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "showName": "Rita",
+        "showId": 16,
+        "type": "tvseries",
+        "genres" : ["drama", "danish"],
+        "numSeasons" : 2,
+        "seasons": [
+          {
+            "seasonNum" : 1,
+            "numEpisodes" : 2,
+            "episodes": [
+              {
+                "episodeID": 20,
+                "lengthMin": 65,
+                "minWatched": 65,
+                "date": "2021-01-18"
+              },
+              {
+                "episodeID": 30,
+                "lengthMin": 60,
+                "minWatched": 60,
+                "date": "2021-01-19"
+              }
+            ]
+          },
+          {
+            "seasonNum": 2,
+            "numEpisodes" : 2,
+            "episodes": [
+              {
+                "episodeID": 40,
+                "lengthMin": 50,
+                "minWatched": 50,
+                "date": "2021-03-05"
+              },
+              {
+                "episodeID": 50,
+                "lengthMin": 45,
+                "minWatched": 45,
+                "date": "2021-05-06"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+}
+
+
+Table: jsoncol
+
+{"majorKey1":"cc","majorKey2":"ib","minorKey":"min1",
+ "address":{"name":"jain","pin":2452},"firstThread":true,"index":9970000}
+
+{"majorKey1":"cc","majorKey2":"ib","minorKey":"min2",
+ "address":{"name":"rupali","pin":247452},"firstThread":false,"index":997}
+
+{"majorKey1":"cc","majorKey2":"ib","minorKey":"min3",
+ "address":{"name":"rupali","pin":654},"firstThread":false,"index":99}
+
+{"majorKey1":"cc","majorKey2":"ib","minorKey":"min4",
+ "address":{"name":"rupali","pin":754},"firstThread":false,"index":9}
+
+{"majorKey1":"cc","majorKey2":"ib","minorKey":"min5",
+ "address":{"pin":247452},"firstThread":false,"index":77}
+
+{"majorKey1":"lm","majorKey2":"op","minorKey":"qr","firstThread":false,"index":80}
+
+{"majorKey1":"cd","majorKey2":"bc","minorKey":"ab","firstThread":false,"index":50}
+
+{"majorKey1":"99","majorKey2":"ib","minorKey":"pp",
+ "address":{"name":"him","pin":245289},"firstThread":true,"index":333}
+
+{"majorKey1":"hello","majorKey2":"helloo","minorKey":"hellooo","firstThread":true,"index":768}
+
+{"majorKey1":"hi","majorKey2":"hii","minorKey":"hiii","firstThread":true,"index":7700}
+
+{"majorKey1":"tv","majorKey2":"rs","minorKey":"pq","firstThread":false,"index":30000}
+
+{"majorKey1":"k1","majorKey2":"k2","minorKey":"m1","firstThread":false,"index":1}
+
+{"majorKey1":"k1","majorKey2":"k2","minorKey":"m2","firstThread":false,"index":2}
+
+
+Table: foo
+
+{ "id" : 1, "field" : { "something" : 3 } }

@@ -1,0 +1,2 @@
+# ON clause + large string comparison
+select a.ida1, a2, a3, b.idb1, b.idb2, d.idd1, d2, d3, d4 from nested tables (A.B b ancestors (A a on a3 < 'ZkrWV1rVFTIkwQyE9kyrU0hxogduOezDt53VjlktHToDgd6sINEzlXVg1kuDvuy21ERQHkVD15UNNGwOQmvjgALp7fjoUxPVbictbnGdrF4CPlUSw9hTB8iTI8CRnqBjx84QVn5zkl9QjniDV2M3nm3DwSx9sPR03FqPdqH1MMMkx612VywJ2W01ztPfEV8VHpRRu87fDqiNLPsUh8nSwrdLheZCJN5Mup3vZCHo3y8v7nKGK3Bb8wBxTCA2SYMm4qqPx8MesFEnCdBTdD8VPVbl9ZpUpGwfNNA2t7IaF52BLLsF4KLBOisOM4ZAeD4KPmUlBcJOqBAqc4c') descendants (A.B.D d))

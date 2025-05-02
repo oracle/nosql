@@ -1,0 +1,2 @@
+#expression returns year using Extract Function for records with timestamp of all nine precision
+SELECT id,extract(year from t.rec.tsr0) as ts0,extract(year from t.rec.tsr1) as ts1,extract(year from t.rec.tsr2) as ts2,extract(year from t.rec.tsr3) as ts3,extract(year from t.rec.tsr4) as ts4,extract(year from t.rec.tsr5) as ts5,extract(year from t.rec.tsr6) as ts6,extract(year from t.rec.tsr7) as ts7 ,extract(year from t.rec.tsr8) as ts8 ,extract(year from t.rec.tsr9) as ts9 FROM Extract t

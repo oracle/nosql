@@ -1,0 +1,1701 @@
+################
+abs01.q
+################
+select t.ic, abs(t.ic) as absic,
+       t.lc, abs(t.lc) as abslc,
+       trunc(t.fc,5) as fc, trunc(abs(t.fc),5) as absfc,
+       t.dc, abs(t.dc) as absdc,
+       t.nc, abs(t.nc) as absnc
+ from math_test t where id=1
+
+
+################
+abs02.q
+################
+select t.doc.ic, abs(t.doc.ic) as absic,
+       t.doc.lc, abs(t.doc.lc) as abslc,
+       t.doc.fc, abs(t.doc.fc) as absfc,
+       t.doc.dc, abs(t.doc.dc) as absdc,
+       t.doc.nc, abs(t.doc.nc) as absnc
+ from math_test t where id=1
+
+
+################
+abs03.q
+################
+select t.ic, abs(t.ic) as absic,
+       t.lc, abs(t.lc) as abslc,
+       trunc(t.fc,5) as fc, trunc(abs(t.fc),5) as absfc,
+       t.dc, abs(t.dc) as absdc,
+       t.nc, abs(t.nc) as absnc
+ from math_test t where id=2
+
+
+################
+abs04.q
+################
+select t.doc.ic, abs(t.doc.ic) as absic,
+       t.doc.lc, abs(t.doc.lc) as abslc,
+       t.doc.fc, abs(t.doc.fc) as absfc,
+       t.doc.dc, abs(t.doc.dc) as absdc,
+       t.doc.nc, abs(t.doc.nc) as absnc
+ from math_test t where id=2
+
+
+################
+abs05.q
+################
+select t.ic, abs(t.ic) as absic,
+       t.lc, abs(t.lc) as abslc,
+       trunc(t.fc,5) as fc, trunc(abs(t.fc),5) as absfc,
+       t.dc, abs(t.dc) as absdc,
+       t.nc, abs(t.nc) as absnc
+ from math_test t where id=6
+
+
+################
+abs06.q
+################
+select t.doc.ic, abs(t.doc.ic) as absic,
+       t.doc.lc, abs(t.doc.lc) as abslc,
+       t.doc.fc, abs(t.doc.fc) as absfc,
+       t.doc.dc, abs(t.doc.dc) as absdc,
+       t.doc.nc, abs(t.doc.nc) as absnc
+ from math_test t where id=6
+
+
+################
+abs07.q
+################
+select t.ic, abs(t.ic) as absic,
+       t.lc, abs(t.lc) as abslc,
+       trunc(t.fc,5) as fc, trunc(abs(t.fc),5) as absfc,
+       t.dc, abs(t.dc) as absdc,
+       t.nc, abs(t.nc) as absnc
+ from math_test t where id=7
+
+
+################
+abs08.q
+################
+select t.doc.ic, abs(t.doc.ic) as absic,
+       t.doc.lc, abs(t.doc.lc) as abslc,
+       t.doc.fc, abs(t.doc.fc) as absfc,
+       t.doc.dc, abs(t.doc.dc) as absdc,
+       t.doc.nc, abs(t.doc.nc) as absnc
+ from math_test t where id=7
+
+
+################
+abs09.q
+################
+select t.ic, abs(t.ic) as absic,
+       t.lc, abs(t.lc) as abslc,
+       t.fc, abs(t.fc) as absfc,
+       t.dc, abs(t.dc) as absdc,
+       t.nc, abs(t.nc) as absnc
+ from math_test t where id=8
+
+
+################
+abs10.q
+################
+select t.doc.ic, abs(t.doc.ic) as absic,
+       t.doc.lc, abs(t.doc.lc) as abslc,
+       t.doc.fc, abs(t.doc.fc) as absfc,
+       t.doc.dc, abs(t.doc.dc) as absdc,
+       t.doc.nc, abs(t.doc.nc) as absnc
+ from math_test t where id=8
+
+
+################
+abs11.q
+################
+select t.ic, abs(t.ic) as absic,
+       t.lc, abs(t.lc) as abslc,
+       t.fc, abs(t.fc) as absfc,
+       t.dc, abs(t.dc) as absdc,
+       t.nc, abs(t.nc) as absnc
+ from math_test t where id=5
+
+
+################
+abs12.q
+################
+select t.doc.ic, abs(t.doc.ic) as absic,
+       t.doc.lc, abs(t.doc.lc) as abslc,
+       t.doc.fc, abs(t.doc.fc) as absfc,
+       t.doc.dc, abs(t.doc.dc) as absdc,
+       t.doc.nc, abs(t.doc.nc) as absnc
+ from math_test t where id=5
+
+
+################
+abs13.q
+################
+select t.fc, abs(t.fc) as absfc,
+       t.dc, abs(t.dc) as absdc
+ from math_test t where id=9
+
+
+################
+abs14.q
+################
+select t.doc.fc, abs(t.doc.fc) as absfc,
+       t.doc.dc, abs(t.doc.dc) as absdc
+ from math_test t where id=9
+
+
+################
+abs15.q
+################
+select abs(-pi()) as abs1, abs(-e()) as abs2  from math_test where id=abs(-1)
+
+
+################
+abs16.q
+################
+select abs(t.ic) is of type(integer), abs(t.lc) is of type(long), abs(t.fc) is of type(double), abs(t.dc) is of type(double), abs(t.nc) is of type(number), abs(t.doc.ic) is of type(integer), abs(t.doc.lc) is of type(long), abs(t.doc.fc) is of type(double), abs(t.doc.dc) is of type(double), abs(t.doc.nc) is of type(double) from math_test t where t.id=2
+
+
+################
+abserr01.q
+################
+select abs(t.doc.str) from math_test t where t.id=5
+
+
+################
+abserr02.q
+################
+select abs(t.doc.array) from math_test t where t.id=5
+
+
+################
+abserr03.q
+################
+select abs(t.doc.bool) from math_test t where t.id=5
+
+
+################
+abserr04.q
+################
+select abs(t.doc.obj) from math_test t where t.id=5
+
+
+################
+acos01.q
+################
+select
+  t.ic, acos(t.ic) as acosic,
+  t.lc, acos(t.lc) as acoslc,
+  trunc(t.fc,2) as fc, trunc(acos(t.fc),2) as acosfc,
+  t.dc, acos(t.dc) as acosdc,
+  t.nc, acos(t.nc) as acosnc,
+  t.doc.fc as jsonfc, acos(t.doc.fc) as acosjsonfc,
+  t.doc.dc as jsondc, acos(t.doc.dc) as acosjsondc,
+  t.doc.nc as jsonnc, acos(t.doc.nc) as acosjsonnc
+from math_test t where t.id=10
+
+
+################
+acos02.q
+################
+select acos(t.ic),acos(t.lc),acos(t.fc),acos(t.dc),acos(t.nc),acos(t.doc.abcd) from math_test t where id=5
+
+
+################
+acos03.q
+################
+select acos(cos(0)) = 0,
+  trunc(acos(cos(pi()/6)),4) = trunc(pi()/6,4),
+  acos(cos(pi()/4)) = pi()/4,
+  acos(cos(pi()/3)) = pi()/3,
+  acos(cos(pi()/2)) = pi()/2,
+  acos(cos(pi())) = pi() from math_test where id=1
+
+
+################
+asin01.q
+################
+select t.ic, asin(t.ic) as asinic,
+    t.lc, asin(t.lc) as asinlc,
+    trunc(t.fc,2) as fc, trunc(asin(t.fc),2) as asinfc,
+    t.dc, asin(t.dc) as asindc,
+    t.nc, asin(t.nc) as asinnc,
+    t.doc.fc as jsonfc, asin(t.doc.fc) as asinjsonfc,
+    t.doc.dc as jsondc, asin(t.doc.dc) as asinjsondc,
+    t.doc.nc as jsonnc, asin(t.doc.nc) as asinjsonnc
+from math_test t where t.id=10
+
+
+################
+asin02.q
+################
+select asin(t.ic),asin(t.lc),asin(t.fc),asin(t.dc),asin(t.nc),asin(t.doc.abcd)
+from math_test t
+where id=5
+
+
+################
+asin03.q
+################
+select asin(sin(0)) = 0,
+  trunc(asin(sin(pi()/6)),4) = trunc(pi()/6,4),
+  trunc(asin(sin(pi()/4)),4) = trunc(pi()/4,4),
+  trunc(asin(sin(pi()/3)),4) = trunc(pi()/3,4),
+  trunc(asin(sin(pi()/2)),4) = trunc(pi()/2,4),
+  trunc(asin(sin(-pi()/6)),4) = trunc(-pi()/6,4),
+  trunc(asin(sin(-pi()/4)),4) = trunc(-pi()/4,4),
+  trunc(asin(sin(-pi()/3)),4) = trunc(-pi()/3,4),
+  trunc(asin(sin(-pi()/2)),4) = trunc(-pi()/2,4)
+from math_test where id=1
+
+
+################
+atan01.q
+################
+select t.ic, atan(t.ic) as atanic,
+    t.lc, atan(t.lc) as atanlc,
+    trunc(t.fc,2) as fc, trunc(atan(t.fc),2) as atanfc,
+    t.dc, atan(t.dc) as atandc,
+    t.nc, atan(t.nc) as atannc,
+    t.doc.fc as jsonfc, atan(t.doc.fc) as atanjsonfc,
+    t.doc.dc as jsondc, atan(t.doc.dc) as atanjsondc,
+    t.doc.nc as jsonnc, atan(t.doc.nc) as atanjsonnc
+from math_test t where t.id=10
+
+
+################
+atan02.q
+################
+select atan(t.ic),atan(t.lc),atan(t.fc),atan(t.dc),atan(t.nc),atan(t.doc.abcd)
+from math_test t
+where id=5
+
+
+################
+atan03.q
+################
+select atan(tan(0)) = 0,
+  trunc(atan(tan(pi()/6)),4) = trunc(pi()/6,4),
+  trunc(atan(tan(pi()/4)),4) = trunc(pi()/4,4),
+  trunc(atan(tan(pi()/3)),4) = trunc(pi()/3,4),
+  trunc(atan(tan(pi()/2)),4) = trunc(pi()/2,4),
+  trunc(atan(tan(-pi()/6)),4) = trunc(-pi()/6,4),
+  trunc(atan(tan(-pi()/4)),4) = trunc(-pi()/4,4),
+  trunc(atan(tan(-pi()/3)),4) = trunc(-pi()/3,4),
+  trunc(atan(tan(-pi()/2)),4) = trunc(-pi()/2,4)
+from math_test where id=1
+
+
+################
+ceil01.q
+################
+select
+  t.ic, ceil(t.ic) as ceilic,
+  t.lc, ceil(t.lc) as ceillc,
+  trunc(t.fc,2) as fc, trunc(ceil(t.fc),2) as ceilfc,
+  t.dc, ceil(t.dc) as ceildc,
+  t.nc, ceil(t.nc) as ceilnc,
+  t.doc.ic as icjson, ceil(t.doc.ic) as ceilicjson,
+  t.doc.lc as lcjson, ceil(t.doc.lc) as ceillcsjon,
+  t.doc.fc as fcjson, ceil(t.doc.fc) as ceilfcsjon,
+  t.doc.dc as dcjson, ceil(t.doc.dc) as ceildcsjon,
+  t.doc.nc as ncjson, ceil(t.doc.nc) as ceilncsjon
+from math_test t where t.id=1
+
+
+################
+ceil02.q
+################
+select
+  t.ic, ceil(t.ic) as ceilic,
+  t.lc, ceil(t.lc) as ceillc,
+  trunc(t.fc,2) as fc, trunc(ceil(t.fc),2) as ceilfc,
+  t.dc, ceil(t.dc) as ceildc,
+  t.nc, ceil(t.nc) as ceilnc,
+  t.doc.ic as icjson, ceil(t.doc.ic) as ceilicjson,
+  t.doc.lc as lcjson, ceil(t.doc.lc) as ceillcsjon,
+  t.doc.fc as fcjson, ceil(t.doc.fc) as ceilfcsjon,
+  t.doc.dc as dcjson, ceil(t.doc.dc) as ceildcsjon,
+  t.doc.nc as ncjson, ceil(t.doc.nc) as ceilncsjon
+from math_test t where t.id=2
+
+
+################
+ceil03.q
+################
+select ceil(t.ic),ceil(t.lc),ceil(t.fc),ceil(t.dc),ceil(t.nc),ceil(t.doc.abcd)
+from math_test t
+where id=5
+
+
+################
+ceil04.q
+################
+select
+  t.ic, ceil(t.ic) as ceilic,
+  t.lc, ceil(t.lc) as ceillc,
+  trunc(t.fc,2) as fc, trunc(ceil(t.fc),2) as ceilfc,
+  t.dc, ceil(t.dc) as ceildc,
+  t.nc, ceil(t.nc) as ceilnc,
+  t.doc.ic as jsonic, ceil(t.doc.ic) as ceilicjson,
+  t.doc.lc as jsonlc, ceil(t.doc.lc) as ceillcjson,
+  t.doc.fc as jsonfc, ceil(t.doc.fc) as ceilfcjson,
+  t.doc.nc as jsondc, ceil(t.doc.dc) as ceildcjson,
+  t.doc.fc as jsonnc, ceil(t.doc.nc) as ceilncjson
+from math_test t where t.id=6
+
+
+################
+ceil05.q
+################
+select
+  t.ic, ceil(t.ic) as ceilic,
+  t.lc, ceil(t.lc) as ceillc,
+  trunc(t.fc,2) as fc, trunc(ceil(t.fc),2) as ceilfc,
+  t.dc, ceil(t.dc) as ceildc,
+  t.nc, ceil(t.nc) as ceilnc,
+  t.doc.ic as jsonic, ceil(t.doc.ic) as ceilicjson,
+  t.doc.lc as jsonlc, ceil(t.doc.lc) as ceillcjson,
+  t.doc.fc as jsonfc, ceil(t.doc.fc) as ceilfcjson,
+  t.doc.nc as jsondc, ceil(t.doc.dc) as ceildcjson,
+  t.doc.fc as jsonnc, ceil(t.doc.nc) as ceilncjson
+from math_test t where t.id=7
+
+
+################
+ceil06.q
+################
+select t.dc,ceil(t.dc)
+from math_test t
+where t.id=8
+
+
+################
+ceil07.q
+################
+select
+ t.fc, ceil(t.fc),
+ t.dc, ceil(t.dc),
+ t.doc.fc, ceil(t.doc.fc),
+ t.doc.dc, ceil(t.doc.dc)
+from math_test t where t.id=9
+
+
+################
+ceil08.q
+################
+select ceil(7.8)=8.0, ceil(-7.8)=-7, ceil(0)=0, ceil(0.0)=0.0, ceil(9999999999.99)=10000000000.0, ceil(null) IS NULL, ceil(1234567890.1234567890)=1234567891.0, ceil(-0.2) from math_test where id=1
+
+
+################
+ceil09.q
+################
+select
+  ceil(t.ic) is of type(integer),
+  ceil(t.lc) is of type(long),
+  ceil(t.fc) is of type(float),
+  ceil(t.dc) is of type(double),
+  ceil(t.nc) is of type(number),
+  ceil(t.doc.ic) is of type(integer),
+  ceil(t.doc.lc) is of type(long),
+  ceil(t.doc.fc) is of type(double),
+  ceil(t.doc.dc) is of type(double),
+  ceil(t.doc.nc) is of type(double)
+from math_test t where t.id=1
+
+
+################
+cos01.q
+################
+select
+  cos(0) as cos0,
+  cos(pi()/6) as cos30,
+  cos(pi()/4) as cos45,
+  cos(pi()/3) as cos60,
+  cos(pi()/2) as cos90,
+  cos(pi()) as cos180,
+  cos(3*pi()/2) as cos270,
+  cos(2*pi()) as cos360,
+  cos(-0.0) as cos0neg,
+  cos(-pi()/6) as cos30neg,
+  cos(-pi()/4) as cos45neg,
+  cos(-pi()/3) as cos60neg,
+  cos(-pi()/2) as cos90neg,
+  cos(-pi()) as cos180neg,
+  cos(-3*pi()/2) as cos270neg,
+  cos(-2*pi()) as cos360neg
+from math_test where id=1
+
+
+################
+cos02.q
+################
+select
+  t.ic, cos(t.ic),
+  t.lc, cos(t.lc),
+  t.fc, cos(t.fc),
+  t.dc, cos(t.dc),
+  t.nc, cos(t.nc),
+  t.doc.ic, cos(t.doc.ic),
+  t.doc.lc, cos(t.doc.lc),
+  t.doc.fc, cos(t.doc.fc),
+  t.doc.dc, cos(t.doc.dc),
+  t.doc.nc, cos(t.doc.nc)
+from math_test t where id=5
+
+
+################
+cos03.q
+################
+select t.doc.dc as x, cos(t.doc.dc) as cosx
+from math_test t
+where t.id in (8,9)
+
+
+################
+cos04.q
+################
+select
+  cos(radians(0))    as cos0,
+  cos(radians(30))   as cos30,
+  cos(radians(45))   as cos45,
+  cos(radians(60))   as cos60,
+  cos(radians(90))   as cos90,
+  cos(radians(180))  as cos180,
+  cos(radians(270))  as cos270,
+  cos(radians(360))  as cos360,
+  cos(radians(-0.0)) as cos0neg,
+  cos(radians(-30))  as cos30neg,
+  cos(radians(-45))  as cos45neg,
+  cos(radians(-60))  as cos60neg,
+  cos(radians(-90))  as cos90neg,
+  cos(radians(-180)) as cos180neg,
+  cos(radians(-270)) as cos270neg,
+  cos(radians(-360)) as cos360neg
+from math_test where id=1
+
+
+################
+cot01.q
+################
+select
+  cot(0) as cot0,
+  cot(pi()/6) as cot30,
+  cot(pi()/4) as cot45,
+  cot(pi()/3) as cot60,
+  cot(pi()/2) as cot90,
+  cot(pi()) as cot180,
+  cot(3*pi()/2) as cot270,
+  cot(2*pi()) as cot360,
+  cot(-0.0) as cot0neg,
+  cot(-pi()/6) as cot30neg,
+  cot(-pi()/4) as cot45neg,
+  cot(-pi()/3) as cot60neg,
+  cot(-pi()/2) as cot90neg,
+  cot(-pi()) as cot180neg,
+  cot(-3*pi()/2) as cot270neg,
+  cot(-2*pi()) as cot360neg
+from math_test where id=1
+
+
+################
+cot02.q
+################
+select
+  t.ic, cot(t.ic),
+  t.lc, cot(t.lc),
+  t.fc, cot(t.fc),
+  t.dc, cot(t.dc),
+  t.nc, cot(t.nc),
+  t.doc.ic, cot(t.doc.ic),
+  t.doc.lc, cot(t.doc.lc),
+  t.doc.fc, cot(t.doc.fc),
+  t.doc.dc, cot(t.doc.dc),
+  t.doc.nc, cot(t.doc.nc)
+from math_test t where id=5
+
+
+################
+cot03.q
+################
+select t.doc.dc as x, cot(t.doc.dc) as cotx
+from math_test t
+where t.id in (8,9)
+
+
+################
+cot04.q
+################
+select
+  cot(radians(0))    as cot0,
+  cot(radians(30))   as cot30,
+  cot(radians(45))   as cot45,
+  cot(radians(60))   as cot60,
+  cot(radians(90))   as cot90,
+  cot(radians(180))  as cot180,
+  cot(radians(270))  as cot270,
+  cot(radians(360))  as cot360,
+  cot(radians(-0.0)) as cot0neg,
+  cot(radians(-30))  as cot30neg,
+  cot(radians(-45))  as cot45neg,
+  cot(radians(-60))  as cot60neg,
+  cot(radians(-90))  as cot90neg,
+  cot(radians(-180)) as cot180neg,
+  cot(radians(-270)) as cot270neg,
+  cot(radians(-360)) as cot360neg
+from math_test where id=1
+
+
+################
+degrees01.q
+################
+select
+  degrees(0) as deg0,
+  degrees(pi()/180) as deg1,
+  degrees(10*pi()/180) as deg10,
+  degrees(pi()/6) as deg30,
+  degrees(pi()/4) as deg45,
+  degrees(pi()/3) as deg60,
+  degrees(pi()/2) as deg90,
+  degrees(2*pi()/3) as deg120,
+  degrees(3*pi()/4) as deg135,
+  degrees(pi()) as deg180,
+  degrees(3*pi()/2) as deg270,
+  degrees(2*pi()) as deg360,
+  degrees(-0.0) as degNeg0,
+  degrees(-pi()/6) as degNeg30,
+  degrees(-pi()/4) as degNeg45,
+  degrees(-pi()/3) as degNeg60,
+  degrees(-pi()/2) as degNeg90,
+  degrees(-2*pi()/3) as degNeg120,
+  degrees(-3*pi()/4) as degNeg135,
+  degrees(-pi()) as degNeg180,
+  degrees(-3*pi()/2) as degNeg270,
+  degrees(-2*pi()) as degNeg360
+from math_test where id=1
+
+
+################
+degrees02.q
+################
+select
+  t.ic, degrees(t.ic),
+  t.lc, degrees(t.lc),
+  t.fc, degrees(t.fc),
+  t.dc, degrees(t.dc),
+  t.nc, degrees(t.nc),
+  t.doc.ic, degrees(t.doc.ic),
+  t.doc.lc, degrees(t.doc.lc),
+  t.doc.fc, degrees(t.doc.fc),
+  t.doc.dc, degrees(t.doc.dc),
+  t.doc.nc, degrees(t.doc.nc)
+from math_test t where id=5
+
+
+################
+degrees03.q
+################
+select t.doc.dc as x, degrees(t.doc.dc) as degreesx
+from math_test t where
+t.id in (8,9)
+
+
+################
+exp01.q
+################
+select
+  exp(0) as exp0,
+  trunc(exp(1),5) as exp1,
+  trunc(exp(2),5) as exp2,
+  trunc(exp(5),5) as exp5,
+  trunc(exp(10),5) as exp10,
+  trunc(exp(100),5) as exp100,
+  trunc(exp(1000),5) as exp1000,
+  trunc(exp(-1),5) as expneg1,
+  trunc(exp(-2),5) as expneg2,
+  trunc(exp(-1000),5) as expneg1000,
+  trunc(exp(pi()),5) as exppi,
+  trunc(exp(0.001),5) as exp001,
+  trunc(exp(0.2),5) as exp02,
+  trunc(exp(-0.5),5) as expneg05,
+  trunc(exp(0.0125),5) as exp00125
+from math_test where id=1
+
+
+################
+exp02.q
+################
+select
+  t.ic, exp(t.ic),
+  t.lc, exp(t.lc),
+  t.fc, exp(t.fc),
+  t.dc, exp(t.dc),
+  t.nc, exp(t.nc),
+  t.doc.ic, exp(t.doc.ic),
+  t.doc.lc, exp(t.doc.lc),
+  t.doc.fc, exp(t.doc.fc),
+  t.doc.dc, exp(t.doc.dc),
+  t.doc.nc, exp(t.doc.nc)
+from math_test t where id=5
+
+
+################
+exp03.q
+################
+select t.doc.dc as x, exp(t.doc.dc) as expx
+from math_test t
+where t.id in (8,9)
+
+
+################
+floor01.q
+################
+select
+  t.ic, floor(t.ic) as flooric,
+  t.lc, floor(t.lc) as floorlc,
+  trunc(t.fc,2) as fc, trunc(floor(t.fc),2) as floorfc,
+  t.dc, floor(t.dc) as floordc,
+  t.nc, floor(t.nc) as floornc,
+  t.doc.ic as icjson, floor(t.doc.ic) as flooricjson,
+  t.doc.lc as lcjson, floor(t.doc.lc) as floorlcsjon,
+  t.doc.fc as fcjson, floor(t.doc.fc) as floorfcsjon,
+  t.doc.dc as dcjson, floor(t.doc.dc) as floordcsjon,
+  t.doc.nc as ncjson, floor(t.doc.nc) as floorncsjon
+from math_test t where t.id=1
+
+
+################
+floor02.q
+################
+select
+  t.ic, floor(t.ic) as flooric,
+  t.lc, floor(t.lc) as floorlc,
+  trunc(t.fc,2) as fc, trunc(floor(t.fc),2) as floorfc,
+  t.dc, floor(t.dc) as floordc,
+  t.nc, floor(t.nc) as floornc,
+  t.doc.ic as icjson, floor(t.doc.ic) as flooricjson,
+  t.doc.lc as lcjson, floor(t.doc.lc) as floorlcsjon,
+  t.doc.fc as fcjson, floor(t.doc.fc) as floorfcsjon,
+  t.doc.dc as dcjson, floor(t.doc.dc) as floordcsjon,
+  t.doc.nc as ncjson, floor(t.doc.nc) as floorncsjon
+from math_test t where t.id=2
+
+
+################
+floor03.q
+################
+select floor(t.ic),floor(t.lc),floor(t.fc),floor(t.dc),floor(t.nc),floor(t.doc.abcd)
+from math_test t
+where id=5
+
+
+################
+floor04.q
+################
+select
+  t.ic, floor(t.ic) as flooric,
+  t.lc, floor(t.lc) as floorlc,
+  trunc(t.fc,2) as fc, trunc(floor(t.fc),2) as floorfc,
+  t.dc, floor(t.dc) as floordc,
+  t.nc, floor(t.nc) as floornc,
+  t.doc.ic as jsonic, floor(t.doc.ic) as flooricjson,
+  t.doc.lc as jsonlc, floor(t.doc.lc) as floorlcjson,
+  t.doc.fc as jsonfc, floor(t.doc.fc) as floorfcjson,
+  t.doc.nc as jsondc, floor(t.doc.dc) as floordcjson,
+  t.doc.fc as jsonnc, floor(t.doc.nc) as floorncjson
+from math_test t where t.id=6
+
+
+################
+floor05.q
+################
+select
+  t.ic, floor(t.ic) as flooric,
+  t.lc, floor(t.lc) as floorlc,
+  trunc(t.fc,2) as fc, trunc(floor(t.fc),2) as floorfc,
+  t.dc, floor(t.dc) as floordc,
+  t.nc, floor(t.nc) as floornc,
+  t.doc.ic as jsonic, floor(t.doc.ic) as flooricjson,
+  t.doc.lc as jsonlc, floor(t.doc.lc) as floorlcjson,
+  t.doc.fc as jsonfc, floor(t.doc.fc) as floorfcjson,
+  t.doc.nc as jsondc, floor(t.doc.dc) as floordcjson,
+  t.doc.fc as jsonnc, floor(t.doc.nc) as floorncjson
+from math_test t where t.id=7
+
+
+################
+floor06.q
+################
+select t.dc,floor(t.dc)
+from math_test t where
+t.id=8
+
+
+################
+floor07.q
+################
+select
+ t.fc, floor(t.fc),
+ t.dc, floor(t.dc),
+ t.doc.fc, floor(t.doc.fc),
+ t.doc.dc, floor(t.doc.dc)
+from math_test t where t.id=9
+
+
+################
+floor08.q
+################
+select floor(7.8)=7.0, floor(-7.8)=-8, floor(0)=0, floor(0.0)=0.0, floor(9999999999.99)=9999999999.0, floor(null) IS NULL, floor(1234567890.1234567890)=1234567890.0, floor(-0.2) from math_test where id=1
+
+
+################
+floor09.q
+################
+select
+  floor(t.ic) is of type(integer),
+  floor(t.lc) is of type(long),
+  floor(t.fc) is of type(float),
+  floor(t.dc) is of type(double),
+  floor(t.nc) is of type(number),
+  floor(t.doc.ic) is of type(integer),
+  floor(t.doc.lc) is of type(long),
+  floor(t.doc.fc) is of type(double),
+  floor(t.doc.dc) is of type(double),
+  floor(t.doc.nc) is of type(double)
+from math_test t where t.id=1
+
+
+################
+idx_abs_array01.q
+################
+select m.id, m.numArr
+from math_test m
+where exists m.numArr[abs($element) = 30]
+order by id
+
+
+################
+idx_abs_array02.q
+################
+select m.id, m.numArr
+from math_test m
+where abs(m.numArr[]) =any 30
+order by id
+
+
+################
+idx_degrees_array.q
+################
+select m.id, m.doubArr
+from math_test m
+where exists m.doubArr[degrees($element) = degrees(2.7182823456)]
+order by id
+
+
+################
+idx_degrees_array02.q
+################
+select m.id, m.doubArr
+from math_test m
+where degrees(m.doubArr[]) =any degrees(2.7182823456)
+order by id
+
+
+################
+idx_floor01.q
+################
+select id, floor(t.dc)
+from math_test t
+where floor(t.dc) > 0
+order by id
+
+
+################
+idx_floor02.q
+################
+select id, floor(t.doc.dc)
+from math_test t
+where floor(t.doc.dc) > 0
+order by id
+
+
+################
+idx_ln_array01.q
+################
+select m.id,m.doc.numArr
+from math_test m
+where exists m.doc.numArr[ln($element) = ln(2)]
+order by id
+
+
+################
+idx_ln_array02.q
+################
+select m.id,m.doc.numArr
+from math_test m
+where ln(m.doc.numArr[]) =any ln(2)
+order by id
+
+
+################
+idx_power01.q
+################
+select id,ic,power(ic,2)/2 from math_test where power(ic,2)>1000
+
+
+################
+idx_power02.q
+################
+select id,ic,power(ic,3) from math_test where power(ic,3)>1000
+
+
+################
+idx_round01.q
+################
+select id,trunc(fc,2) as fc,round(trunc(fc,2)) from math_test where round(fc)>0 order by id
+
+
+################
+idx_round02.q
+################
+select id,trunc(fc,2) as fc, round(fc,2)
+from math_test
+where round(fc,2)>0 order by id
+
+
+################
+idx_trunc_array01.q
+################
+select m.id,m.doc.doubArr
+from math_test m
+where exists m.doc.doubArr[trunc($element) = trunc(123.456)]
+order by id
+
+
+################
+idx_trunc_array02.q
+################
+select m.id,m.doc.doubArr
+from math_test m
+where  trunc(m.doc.doubArr[]) =any trunc(123.456)
+order by id
+
+
+################
+ln01.q
+################
+select
+  ln(0) as ln0,
+  ln(1) as ln1,
+  ln(2) as ln2,
+  ln(5) as ln5,
+  ln(10) as ln10,
+  ln(100) as ln100,
+  ln(10000) as ln10000,
+  ln(exp(100)) as lne100,
+  ln(exp(10)) as lne10,
+  ln(0.5) as ln05,
+  ln(0.25) as ln025,
+  ln(0.125) as ln0125,
+  ln(123.456) as ln1230456,
+  ln(100000000000) as ln100000000000,
+  ln(-1) as lnneg1,
+  ln(-0.5) as lnneg05,
+  ln(-1000) as lnneg1000
+from math_test where id=1
+
+
+################
+ln02.q
+################
+select
+  t.ic, ln(t.ic),
+  t.lc, ln(t.lc),
+  t.fc, ln(t.fc),
+  t.dc, ln(t.dc),
+  t.nc, ln(t.nc),
+  t.doc.ic, ln(t.doc.ic),
+  t.doc.lc, ln(t.doc.lc),
+  t.doc.fc, ln(t.doc.fc),
+  t.doc.dc, ln(t.doc.dc),
+  t.doc.nc, ln(t.doc.nc)
+from math_test t where id=5
+
+
+################
+ln03.q
+################
+select t.doc.dc as x, ln(t.doc.dc) as lnx from math_test t where t.id in (8,9)
+
+
+################
+ln04.q
+################
+select
+  ic, ln(ic) as lnic,
+  lc, ln(lc) as lnlc,
+  trunc(fc,2) as fc, trunc(ln(fc),2) as lnfc,
+  dc, ln(dc) as lndc,
+  nc, ln(nc) as lnnc
+from math_test where id in(6,7) order by id
+
+
+################
+log01.q
+################
+select
+  trunc(log(1000,10),4) as log_1000_10,
+  trunc(log(64,2),4) as log_64_2,
+  trunc(log(27,3),4) as log_27_3,
+  trunc(log(power(10,100),10),4) as log_10E100_10,
+  trunc(log(1,10),4) as log_1_10,
+  trunc(log(1,2),4) as log_1_2,
+  trunc(log(1,20),4) as log_1_20,
+  trunc(log(1,16),4) as log_1_16,
+  trunc(log(2,1),4) as log_1_1,
+  trunc(log(10,1),4) as log_10_1,
+  trunc(log(20,1),4) as log_20_1,
+  trunc(log(-100,10),4) as log_neg1_10,
+  trunc(log(-1024,2),4) as log_neg1024_2,
+  trunc(log(100,0),4) as log_100_0,
+  trunc(log(2.5,2),4) as log_2o5_2,
+  trunc(log(0.5,0.75),4) as log_o5_o75,
+  trunc(log(e(),pi()),4) as log_e_pi,
+  trunc(log(100,-10),4) as log_100_neg10,
+  trunc(log(256,-2),4) as log_256_neg2,
+  trunc(log(null,10),4) as log_null_10,
+  trunc(log(10, null),4) as log_10_null,
+  trunc(log(null,null),4) as log_null_null
+from math_test where id=1
+
+
+################
+logten01.q
+################
+select
+  log10(0) as logten0,
+  log10(1) as logten1,
+  log10(2) as logten2,
+  log10(5) as logten5,
+  log10(10) as logten10,
+  log10(100) as logten100,
+  log10(10000) as logten10000,
+  log10(1000000000000) as logten1000000000000,
+  log10(1/10.0) as logten01,
+  log10(1/100.0) as logten001,
+  log10(1/1000.0) as logten0001,
+  log10(0.00001) as logten00001,
+  log10(123.456) as logten1230456,
+  log10(-1) as logtenneg1,
+  log10(-0.5) as logtenneg05,
+  log10(-1000) as logtenneg1000,
+  log10(-0.1) as logtenneg01,
+  log10(power(10,1000000)) as logtenpow
+from math_test where id=1
+
+
+################
+logten02.q
+################
+select
+  t.ic, log10(t.ic),
+  t.lc, log10(t.lc),
+  t.fc, log10(t.fc),
+  t.dc, log10(t.dc),
+  t.nc, log10(t.nc),
+  t.doc.ic, log10(t.doc.ic),
+  t.doc.lc, log10(t.doc.lc),
+  t.doc.fc, log10(t.doc.fc),
+  t.doc.dc, log10(t.doc.dc),
+  t.doc.nc, log10(t.doc.nc)
+from math_test t where id=5
+
+
+################
+logten03.q
+################
+select t.doc.dc as x, log10(t.doc.dc) as log10x from math_test t where t.id in (8,9)
+
+
+################
+logten04.q
+################
+select
+  ic, log10(ic) as lgtenic,
+  lc, log10(lc) as lgtenlc,
+  trunc(fc, 2) as fc, trunc(log10(fc),2) as lgtenfc,
+  dc, log10(dc) as lgtendc,
+  nc, log10(nc) as lgtennc
+from math_test where id in(6,7) order by id
+
+
+################
+power01.q
+################
+select
+ trunc(power(0,0),3) as power_0_0,
+ trunc(power(0,1),3) as power_0_1,
+ trunc(power(1,0),3) as power_1_0,
+ trunc(power(1,1),3) as power_1_1,
+ trunc(power(2,4),3) as power_2_4,
+ trunc(power(2,64),3) as power_2_64,
+ trunc(power(2,128)/2,3) as power_2_128_2,
+ trunc(power(2,256),3) as power_2_256,
+ trunc(power(3,9),3) as pow_3_9,
+ trunc(power(100000000,2),3) as power_100000000_2,
+ trunc(power(100000000, 10),3) as power_100000000_10,
+ trunc(power(100000000000000000000000000, 100000000000000000000000000),3) as power_100E24_100E24,
+ trunc(power(5.0,25.0),3) as power_5_25,
+ trunc(power(0.5,1),3) as power_05_1,
+ trunc(power(1,0.5),3) as power_1_05,
+ trunc(power(2,0.5),3) as power_2_05,
+ trunc(power(3,0.3),3) as power_3_03,
+ trunc(power(4,0.5),3) as power_4_05,
+ trunc(power(1000000000,0.5),3) as power_1000000000_05,
+ trunc(power(0.01, 0.01),3) as power_001_001,
+ trunc(power(0,-0),3) as power_0_neg0,
+ trunc(power(0,-1),3) as power_0_neg1,
+ trunc(power(1,-0),3) as power_1_neg0,
+ trunc(power(1,-1),3) as power_1_neg1,
+ trunc(power(2,-4),3) as power_2_neg4,
+ trunc(power(2,-64),3) as power_2_neg64,
+ trunc(power(2,-128)/2,3) as power_2_neg128_2,
+ trunc(power(2,-256),3) as power_2_neg256,
+ trunc(power(3,-9),3) as pow_3_neg9,
+ trunc(power(100000000,-2),3) as power_100000000_neg2,
+ trunc(power(100000000, -10),3) as power_100000000_neg10,
+ trunc(power(100000000000000000000000000, -100000000000000000000000000),3) as power_100E24_neg100E24,
+ trunc(power(5.0,-25.0),3) as power_5_neg25,
+ trunc(power(0.5,-1),3) as power_05_neg1,
+ trunc(power(1,-0.5),3) as power_1_neg05,
+ trunc(power(2,-0.5),3) as power_2_neg05,
+ trunc(power(3,-0.3),3) as power_3_neg03,
+ trunc(power(4,-0.5),3) as power_4_neg05,
+ trunc(power(1000000000,-0.5),3) as power_1000000000_neg05,
+ trunc(power(0.01, -0.01),3) as power_001_neg001,
+ trunc(power(-0,0),3) as power_neg0_0,
+ trunc(power(-0,1),3) as power_neg0_1,
+ trunc(power(-1,0),3) as power_neg1_0,
+ trunc(power(-1,1),3) as power_neg1_1,
+ trunc(power(-2,4),3) as power_neg2_4,
+ trunc(power(-2,64),3) as power_neg2_64,
+ trunc(power(-2,128)/2,3) as power_neg2_128_2,
+ trunc(power(-2,256),3) as power_neg2_256,
+ trunc(power(-3,9),3) as pow_neg3_9,
+ trunc(power(-100000000,2),3) as power_neg100000000_2,
+ trunc(power(-100000000, 10),3) as power_neg100000000_10,
+ trunc(power(-100000000000000000000000000, 100000000000000000000000000),3) as power_neg100E24_100E24,
+ trunc(power(-5.0,25.0),3) as power_neg5_25,
+ trunc(power(-0.5,1),3) as power_neg05_1,
+ trunc(power(-1,0.5),3) as power_neg1_05,
+ trunc(power(-2,0.5),3) as power_neg2_05,
+ trunc(power(-3,0.3),3) as power_neg3_03,
+ trunc(power(-4,0.5),3) as power_neg4_05,
+ trunc(power(-1000000000,0.5),3) as power_neg1000000000_05,
+ trunc(power(-0.01, 0.01),3) as power_neg001_001,
+ trunc(power(-0,-0),3) as power_neg0_neg0,
+ trunc(power(-0,-1),3) as power_neg0_neg1,
+ trunc(power(-1,-0),3) as power_neg1_neg0,
+ trunc(power(-1,-1),3) as power_neg1_neg1,
+ trunc(power(-2,-4),3) as power_neg2_neg4,
+ trunc(power(-2,-64),3) as power_neg2_neg64,
+ trunc(power(-2,-128)/2,3) as power_neg2_neg128_2,
+ trunc(power(-2,-256),3) as power_neg2_neg256,
+ trunc(power(-3,-9),3) as pow_neg3_neg9,
+ trunc(power(-100000000,-2),3) as power_neg100000000_neg2,
+ trunc(power(-100000000, -10),3) as power_neg100000000_neg10,
+ trunc(power(-100000000000000000000000000, -100000000000000000000000000),3) as power_neg100E24_neg100E24,
+ trunc(power(-5.0,-25.0),3) as power_neg5_neg25,
+ trunc(power(-0.5,-1),3) as power_neg05_neg1,
+ trunc(power(-1,-0.5),3) as power_neg1_neg05,
+ trunc(power(-2,-0.5),3) as power_neg2_neg05,
+ trunc(power(-3,-0.3),3) as power_neg3_neg03,
+ trunc(power(-4,-0.5),3) as power_neg4_neg05,
+ trunc(power(-1000000000,-0.5),3) as power_neg1000000000_neg05,
+ trunc(power(-0.01, -0.01),3) as power_neg001_neg001,
+ trunc(power(null, null),3) as power_null_null,
+ trunc(power(null,1),3) as power_null_1,
+ trunc(power(1,null),3) as power_1_null
+from math_test where id=1
+
+
+################
+power02.q
+################
+select
+  t.ic, power(t.ic,1),
+  t.lc, power(t.lc,null),
+  t.fc, power(t.fc,2),
+  t.dc, power(t.dc,3),
+  t.nc, power(t.nc,0),
+  t.doc.ic, power(t.doc.ic,-1),
+  t.doc.lc, power(t.doc.lc,-0.5),
+  t.doc.fc, power(t.doc.fc,0.5),
+  t.doc.dc, power(t.doc.dc,1/3.0),
+  t.doc.nc, power(t.doc.nc,null)
+from math_test t where id=5
+
+
+################
+power03.q
+################
+select t.doc.dc as x, power(t.doc.dc,1) as powerx from math_test t where t.id in (8,9)
+
+
+################
+q01.q
+################
+select id, t.dc
+from math_test t
+where t.dc > 0
+order by id
+
+
+################
+radians01.q
+################
+select
+  0   as degrees0, radians(0) as radians0,
+  1   as degrees1, radians(1) as radians1,
+  30  as degrees30, radians(30) as radians30,
+  45  as degrees45, radians(45) as radians45,
+  60  as degrees60, radians(60) as radians60,
+  90  as degrees90, radians(90) as radians90,
+  120 as degrees120, radians(120) as radians120,
+  135 as degrees135, radians(135) as radians135,
+  180 as degrees180, radians(180) as radians180,
+  270 as degrees270, radians(270) as radians270,
+  360 as degrees360, radians(360) as radians360,
+  -0   as degreesNeg0, radians(0) as radiansNeg0,
+  -1   as degreesNeg1, radians(1) as radiansNeg1,
+  -30  as degreesNeg30, radians(30) as radiansNeg30,
+  -45  as degreesNeg45, radians(45) as radiansNeg45,
+  -60  as degreesNeg60, radians(60) as radiansNeg60,
+  -90  as degreesNeg90, radians(90) as radiansNeg90,
+  -120 as degreesNeg120, radians(120) as radiansNeg120,
+  -135 as degreesNeg135, radians(135) as radiansNeg135,
+  -180 as degreesNeg180, radians(180) as radiansNeg180,
+  -270 as degreesNeg270, radians(270) as radiansNeg270,
+  -360 as degreesNeg360, radians(360) as radiansNeg360
+from math_test where id=1
+
+
+################
+radians02.q
+################
+select
+  t.ic, radians(t.ic),
+  t.lc, radians(t.lc),
+  t.fc, radians(t.fc),
+  t.dc, radians(t.dc),
+  t.nc, radians(t.nc),
+  t.doc.ic, radians(t.doc.ic),
+  t.doc.lc, radians(t.doc.lc),
+  t.doc.fc, radians(t.doc.fc),
+  t.doc.dc, radians(t.doc.dc),
+  t.doc.nc, radians(t.doc.nc)
+from math_test t where id=5
+
+
+################
+radians03.q
+################
+select t.doc.dc as x, radians(t.doc.dc) as radiansx from math_test t where t.id in (8,9)
+
+
+################
+round01.q
+################
+select
+  #round of positive numbers without 2nd arg
+  round(3.14149) as round_3o14149,
+  round(5.678) as round_5o678,
+  round(1.2345) as round_1o2345,
+  round(9.90) as round_9o90,
+  round(1.5) as round_1o5,
+  round(2.5) as round_2o5,
+  round(9.5) as round_9o5,
+  round(0.5) as round_o5,
+  round(123456789.987654321) as round_123456789o987654321,
+  #round of negative numbers without 2nd arg
+  round(-3.14149) as round_Neg3o14149,
+  round(-5.678) as round_Neg5o678,
+  round(-1.2345) as round_Neg1o2345,
+  round(-9.90) as round_Neg9o90,
+  round(-1.5) as round_Neg1o5,
+  round(-2.5) as round_Neg2o5,
+  round(-9.5) as round_Neg9o5,
+  round(-0.5) as round_Nego5,
+  round(-123456789.987654321) as round_Neg123456789o987654321,
+  #round(+,+)
+  round(3.15259,3) as round_3o15259_3,
+  round(5.678,2) as round_5o678_2,
+  round(1.2345,1) as round_1o2345_1,
+  round(15.193,1) as round_15o193_1,
+  round(9.90, 2) as round__9o90_2,
+  round(1.5,3) as round_1o5_3,
+  round(2.5, 0) as round_2o5_0,
+  round(9.5,1) as round_9o5_1,
+  round(0.5,1) as round_o5_1,
+  round(123456789.987654321,4) as round_123456789o987654321_4,
+  round(95.654535334545,2) as round_95o654535334545_2,
+  round(123.456,10) as round_123o456_10,
+  round(19.25,1) as round_19o25_1,
+  round(28.73,1) as round_28o73_1,
+  round(34.32,1) as round_34o32_1,
+  round(45.39,1) as round_45o39_1,
+  round(45.39, 0.512) as round_45o39_o512,
+  #round(-, +)
+  round(-3.15259,3) as round_Neg3o15259_3,
+  round(-5.678,2) as round_Neg5o678_2,
+  round(-1.2345,1) as round_Neg1o2345_1,
+  round(-15.193,1) as round_Neg15o193_1,
+  round(-9.90, 2) as round_Neg9o90_2,
+  round(-1.5,3) as round_Neg1o5_3,
+  round(-2.5, 0) as round_Neg2o5_0,
+  round(-9.5,1) as round_Neg9o5_1,
+  round(-0.5,1) as round_Nego5_1,
+  round(-123456789.987654321,4) as round_Neg123456789o987654321_4,
+  round(-95.654535334545,2) as round_Neg95o654535334545_2,
+  round(-123.456,10) as round_Neg123o456_10,
+  round(-19.25,1) as round_Neg19o25_1,
+  round(-28.73,1) as round_Neg28o73_1,
+  round(-34.32,1) as round_Neg34o32_1,
+  round(-45.39,1) as round_Neg45o39_1,
+  #round(+, -)
+  round(3.15259,-3) as round_3o14159_Neg3,
+  round(5.678,-2) as round_5o768_Neg2,
+  round(1.2345,-1) as round_1o2345_Neg1,
+  round(15.193,-1) as round_5o768_Neg1,
+  round(9.90, -2) as round__9o90_Neg2,
+  round(1.5,-3) as round_1o5_Neg3,
+  round(2.5, -0) as round_2o5_Neg0,
+  round(9.5,-1) as round_9o5_Neg1,
+  round(0.5,-1) as round_o5_Neg1,
+  round(123456789.987654321,-4) as round_123456789o987654321_Neg4,
+  round(95.654535334545,-2) as round_95o654535334545_Neg2,
+  round(123.456,-10) as round_123o456_Neg10,
+  round(19.25,-1) as round_19o25_Neg1,
+  round(28.73,-1) as round_28o73_Neg1,
+  round(34.32,-1) as round_34o32_Neg1,
+  round(45.39,-1) as round_45o39_Neg1,
+  #round(-, -)
+  round(-3.15259,-3) as round_Neg3o14159_Neg2,
+  round(-5.678,-2) as round_Neg5o768_Neg2,
+  round(-1.2345,-1) as round_Neg1o2345_Neg1,
+  round(-15.193,-1) as round_Neg5o768_Neg1,
+  round(-9.90, -2) as round_Neg9o90_Neg2,
+  round(-1.5,-3) as round_Neg1o5_Neg3,
+  round(-2.5, -0) as round_Neg2o5_Neg0,
+  round(-9.5,-1) as round_Neg9o5_Neg1,
+  round(-0.5,-1) as round_Nego5_Neg1,
+  round(-123456789.987654321,-4) as round_Neg123456789o987654321_Neg4,
+  round(-95.654535334545,-2) as round_Neg95o654535334545_Neg2,
+  round(-123.456,-10) as round_Neg123o456_Neg10,
+  #round of NULL
+  round(null) as round_null,
+  round(null,null) as round_null_null,
+  round(15.192,null) as round_15o192_null,
+  round(null, 2) as round_null_2,
+  #round of NaN, infinity
+  round(acos(10)) as round_NaN,
+  round(123.456, acos(10)) as round_123o456_NaN,
+  round(cot(0)) as round_Infinity,
+  round(123.456, cot(0)) as round_123o456_Infinity,
+  round(ln(0)) as round_NegInfinity,
+  round(123.456, ln(0)) as round_123o456_NegInfinity,
+  #round when abs(d) > 30
+  round(123.4567890, 30) as round_123o4567890_30,
+  round(123.4567890, 10000) =  round(123.4567890,30) as test_round_123o4567890_10000,
+  round(123.4567890, -30) as round_123o4567890_Neg30,
+  round(123.4567890, -10000.25) = round(123.4567890, -30) as test_round_123o4567890_Neg10000o25,
+  #round when d is not int
+  round(123.4567890, 1.5) = round(123.4567890, 1) as test_round_123o4567890_1o5,
+  round(123.4567890, e()) = round(123.4567890,2) as test_round_123o4567890_E,
+  round(123.4567890, -pi()) = round(123.4567890, -3) as test_round_123o4567890_NegPI
+from math_test where id=1
+
+
+################
+round02.q
+################
+select
+  t.ic, round(t.ic,1),
+  t.lc, round(t.lc,null),
+  t.fc, round(t.fc,2),
+  t.dc, round(t.dc,3),
+  t.nc, round(t.nc,0),
+  t.doc.ic, round(t.doc.ic,-1),
+  t.doc.lc, round(t.doc.lc,-0.5),
+  t.doc.fc, round(t.doc.fc,0.5),
+  t.doc.dc, round(t.doc.dc,1/3.0),
+  t.doc.nc, round(t.doc.nc,null)
+from math_test t where id=5
+
+
+################
+round03.q
+################
+select t.doc.dc as x, round(t.doc.dc,1) as roundx_1, round(t.doc.dc, t.doc.dc) as roundx_nan from math_test t where t.id in (8,9)
+
+
+################
+sign01.q
+################
+select
+  sign(0) as sign0,
+  sign(1) as sign1,
+  sign(1.0) as sign10,
+  sign(-1) as signneg1,
+  sign(-1.0) as signneg10,
+  sign(0.000001) as sign000001,
+  sign(-0.000001) as signneg000001,
+  sign(-100) as signneg100,
+  sign(102234) as sign102234
+from math_test where id=1
+
+
+################
+sign02.q
+################
+select
+  t.ic, sign(t.ic),
+  t.lc, sign(t.lc),
+  t.fc, sign(t.fc),
+  t.dc, sign(t.dc),
+  t.nc, sign(t.nc),
+  t.doc.ic, sign(t.doc.ic),
+  t.doc.lc, sign(t.doc.lc),
+  t.doc.fc, sign(t.doc.fc),
+  t.doc.dc, sign(t.doc.dc),
+  t.doc.nc, sign(t.doc.nc)
+from math_test t where id=5
+
+
+################
+sign03.q
+################
+select t.doc.dc as x, sign(t.doc.dc) as signx from math_test t where t.id in (8,9)
+
+
+################
+sin01.q
+################
+select
+  sin(0) as sin0,
+  sin(pi()/6) as sin30,
+  sin(pi()/4) as sin45,
+  sin(pi()/3) as sin60,
+  sin(pi()/2) as sin90,
+  sin(pi()) as sin180,
+  sin(3*pi()/2) as sin270,
+  sin(2*pi()) as sin360,
+  sin(-0.0) as sin0neg,
+  sin(-pi()/6) as sin30neg,
+  sin(-pi()/4) as sin45neg,
+  sin(-pi()/3) as sin60neg,
+  sin(-pi()/2) as sin90neg,
+  sin(-pi()) as sin180neg,
+  sin(-3*pi()/2) as sin270neg,
+  sin(-2*pi()) as sin360neg
+from math_test where id=1
+
+
+################
+sin02.q
+################
+select
+  t.ic, sin(t.ic),
+  t.lc, sin(t.lc),
+  t.fc, sin(t.fc),
+  t.dc, sin(t.dc),
+  t.nc, sin(t.nc),
+  t.doc.ic, sin(t.doc.ic),
+  t.doc.lc, sin(t.doc.lc),
+  t.doc.fc, sin(t.doc.fc),
+  t.doc.dc, sin(t.doc.dc),
+  t.doc.nc, sin(t.doc.nc)
+from math_test t where id=5
+
+
+################
+sin03.q
+################
+select t.doc.dc as x, sin(t.doc.dc) as sinx from math_test t where t.id in (8,9)
+
+
+################
+sin04.q
+################
+select
+  sin(radians(0))    as sin0,
+  sin(radians(30))   as sin30,
+  sin(radians(45))   as sin45,
+  sin(radians(60))   as sin60,
+  sin(radians(90))   as sin90,
+  sin(radians(180))  as sin180,
+  sin(radians(270))  as sin270,
+  sin(radians(360))  as sin360,
+  sin(radians(-0.0)) as sin0neg,
+  sin(radians(-30))  as sin30neg,
+  sin(radians(-45))  as sin45neg,
+  sin(radians(-60))  as sin60neg,
+  sin(radians(-90))  as sin90neg,
+  sin(radians(-180)) as sin180neg,
+  sin(radians(-270)) as sin270neg,
+  sin(radians(-360)) as sin360neg
+from math_test where id=1
+
+
+################
+sqrt01.q
+################
+select
+  sqrt(0) as sqrt0,
+  sqrt(1) as sqrt1,
+  sqrt(4) as sqrt4,
+  sqrt(9) as sqrt9,
+  sqrt(25) as sqrt25,
+  sqrt(100) as sqrt100,
+  sqrt(1000000000000.0) as sqrt1000000000000,
+  sqrt(0.1) as sqrt01,
+  sqrt(0.5) as sqrt05,
+  sqrt(0.25) as sqrt025,
+  sqrt(0.64) as aqrt064,
+  sqrt(123.45) as sqrt123045,
+  sqrt(-1) as sqrtneg1,
+  sqrt(-0.001) as sqrtneg0001,
+  sqrt(-1024.0) as sqrtneg1024
+from math_test where id=1
+
+
+################
+sqrt02.q
+################
+select
+  t.ic, sqrt(t.ic),
+  t.lc, sqrt(t.lc),
+  t.fc, sqrt(t.fc),
+  t.dc, sqrt(t.dc),
+  t.nc, sqrt(t.nc),
+  t.doc.ic, sqrt(t.doc.ic),
+  t.doc.lc, sqrt(t.doc.lc),
+  t.doc.fc, sqrt(t.doc.fc),
+  t.doc.dc, sqrt(t.doc.dc),
+  t.doc.nc, sqrt(t.doc.nc)
+from math_test t where id=5
+
+
+################
+sqrt03.q
+################
+select t.doc.dc as x, sqrt(t.doc.dc) as sqrtx from math_test t where t.id in (8,9)
+
+
+################
+tan01.q
+################
+select
+  tan(0) as tan0,
+  tan(pi()/6) as tan30,
+  tan(pi()/4) as tan45,
+  tan(pi()/3) as tan60,
+  tan(pi()/2) as tan90,
+  tan(pi()) as tan180,
+  tan(3*pi()/2) as tan270,
+  tan(2*pi()) as tan360,
+  tan(-0.0) as tan0neg,
+  tan(-pi()/6) as tan30neg,
+  tan(-pi()/4) as tan45neg,
+  tan(-pi()/3) as tan60neg,
+  tan(-pi()/2) as tan90neg,
+  tan(-pi()) as tan180neg,
+  tan(-3*pi()/2) as tan270neg,
+  tan(-2*pi()) as tan360neg
+from math_test where id=1
+
+
+################
+tan02.q
+################
+select
+  t.ic, tan(t.ic),
+  t.lc, tan(t.lc),
+  t.fc, tan(t.fc),
+  t.dc, tan(t.dc),
+  t.nc, tan(t.nc),
+  t.doc.ic, tan(t.doc.ic),
+  t.doc.lc, tan(t.doc.lc),
+  t.doc.fc, tan(t.doc.fc),
+  t.doc.dc, tan(t.doc.dc),
+  t.doc.nc, tan(t.doc.nc)
+from math_test t where id=5
+
+
+################
+tan03.q
+################
+select t.doc.dc as x, tan(t.doc.dc) as tanx from math_test t where t.id in (8,9)
+
+
+################
+tan04.q
+################
+select
+  tan(radians(0))    as tan0,
+  tan(radians(30))   as tan30,
+  tan(radians(45))   as tan45,
+  tan(radians(60))   as tan60,
+  tan(radians(90))   as tan90,
+  tan(radians(180))  as tan180,
+  tan(radians(270))  as tan270,
+  tan(radians(360))  as tan360,
+  tan(radians(-0.0)) as tan0neg,
+  tan(radians(-30))  as tan30neg,
+  tan(radians(-45))  as tan45neg,
+  tan(radians(-60))  as tan60neg,
+  tan(radians(-90))  as tan90neg,
+  tan(radians(-180)) as tan180neg,
+  tan(radians(-270)) as tan270neg,
+  tan(radians(-360)) as tan360neg
+from math_test where id=1
+
+
+################
+trunc01.q
+################
+select
+  #trunc of positive numbers without 2nd arg
+  trunc(3.14149) as trunc_3o14149,
+  trunc(5.678) as trunc_5o678,
+  trunc(1.2345) as trunc_1o2345,
+  trunc(9.90) as trunc_9o90,
+  trunc(1.5) as trunc_1o5,
+  trunc(2.5) as trunc_2o5,
+  trunc(9.5) as trunc_9o5,
+  trunc(0.5) as trunc_o5,
+  trunc(123456789.987654321) as trunc_123456789o987654321,
+  #trunc of negative numbers without 2nd arg
+  trunc(-3.14149) as trunc_Neg3o14149,
+  trunc(-5.678) as trunc_Neg5o678,
+  trunc(-1.2345) as trunc_Neg1o2345,
+  trunc(-9.90) as trunc_Neg9o90,
+  trunc(-1.5) as trunc_Neg1o5,
+  trunc(-2.5) as trunc_Neg2o5,
+  trunc(-9.5) as trunc_Neg9o5,
+  trunc(-0.5) as trunc_Nego5,
+  trunc(-123456789.987654321) as trunc_Neg123456789o987654321,
+  #trunc(+,+)
+  trunc(3.15259,3) as trunc_3o15259_3,
+  trunc(5.678,2) as trunc_5o678_2,
+  trunc(1.2345,1) as trunc_1o2345_1,
+  trunc(15.193,1) as trunc_15o193_1,
+  trunc(9.90, 2) as trunc__9o90_2,
+  trunc(1.5,3) as trunc_1o5_3,
+  trunc(2.5, 0) as trunc_2o5_0,
+  trunc(9.5,1) as trunc_9o5_1,
+  trunc(0.5,1) as trunc_o5_1,
+  trunc(123456789.987654321,4) as trunc_123456789o987654321_4,
+  trunc(95.654535334545,2) as trunc_95o654535334545_2,
+  trunc(123.456,10) as trunc_123o456_10,
+  trunc(19.25,1) as trunc_19o25_1,
+  trunc(28.73,1) as trunc_28o73_1,
+  trunc(34.32,1) as trunc_34o32_1,
+  trunc(45.39,1) as trunc_45o39_1,
+  trunc(45.39, 0.512) as trunc_45o39_o512,
+  #trunc(-, +)
+  trunc(-3.15259,3) as trunc_Neg3o15259_3,
+  trunc(-5.678,2) as trunc_Neg5o678_2,
+  trunc(-1.2345,1) as trunc_Neg1o2345_1,
+  trunc(-15.193,1) as trunc_Neg15o193_1,
+  trunc(-9.90, 2) as trunc_Neg9o90_2,
+  trunc(-1.5,3) as trunc_Neg1o5_3,
+  trunc(-2.5, 0) as trunc_Neg2o5_0,
+  trunc(-9.5,1) as trunc_Neg9o5_1,
+  trunc(-0.5,1) as trunc_Nego5_1,
+  trunc(-123456789.987654321,4) as trunc_Neg123456789o987654321_4,
+  trunc(-95.654535334545,2) as trunc_Neg95o654535334545_2,
+  trunc(-123.456,10) as trunc_Neg123o456_10,
+  trunc(-19.25,1) as trunc_Neg19o25_1,
+  trunc(-28.73,1) as trunc_Neg28o73_1,
+  trunc(-34.32,1) as trunc_Neg34o32_1,
+  trunc(-45.39,1) as trunc_Neg45o39_1,
+  #trunc(+, -)
+  trunc(3.15259,-3) as trunc_3o14159_Neg3,
+  trunc(5.678,-2) as trunc_5o768_Neg2,
+  trunc(1.2345,-1) as trunc_1o2345_Neg1,
+  trunc(15.193,-1) as trunc_5o768_Neg1,
+  trunc(9.90, -2) as trunc__9o90_Neg2,
+  trunc(1.5,-3) as trunc_1o5_Neg3,
+  trunc(2.5, -0) as trunc_2o5_Neg0,
+  trunc(9.5,-1) as trunc_9o5_Neg1,
+  trunc(0.5,-1) as trunc_o5_Neg1,
+  trunc(123456789.987654321,-4) as trunc_123456789o987654321_Neg4,
+  trunc(95.654535334545,-2) as trunc_95o654535334545_Neg2,
+  trunc(123.456,-10) as trunc_123o456_Neg10,
+  trunc(19.25,-1) as trunc_19o25_Neg1,
+  trunc(28.73,-1) as trunc_28o73_Neg1,
+  trunc(34.32,-1) as trunc_34o32_Neg1,
+  trunc(45.39,-1) as trunc_45o39_Neg1,
+  #trunc(-, -)
+  trunc(-3.15259,-3) as trunc_Neg3o14159_Neg2,
+  trunc(-5.678,-2) as trunc_Neg5o768_Neg2,
+  trunc(-1.2345,-1) as trunc_Neg1o2345_Neg1,
+  trunc(-15.193,-1) as trunc_Neg5o768_Neg1,
+  trunc(-9.90, -2) as trunc_Neg9o90_Neg2,
+  trunc(-1.5,-3) as trunc_Neg1o5_Neg3,
+  trunc(-2.5, -0) as trunc_Neg2o5_Neg0,
+  trunc(-9.5,-1) as trunc_Neg9o5_Neg1,
+  trunc(-0.5,-1) as trunc_Nego5_Neg1,
+  trunc(-123456789.987654321,-4) as trunc_Neg123456789o987654321_Neg4,
+  trunc(-95.654535334545,-2) as trunc_Neg95o654535334545_Neg2,
+  trunc(-123.456,-10) as trunc_Neg123o456_Neg10,
+  #trunc of NULL
+  trunc(null) as trunc_null,
+  trunc(null,null) as trunc_null_null,
+  trunc(15.192,null) as trunc_15o192_null,
+  trunc(null, 2) as trunc_null_2,
+  #trunc of NaN, infinity
+  trunc(123.456, acos(10)) as trunc_123o456_NaN,
+  trunc(acos(10)) as trunc_NaN,
+  trunc(cot(0)) as trunc_Infinity,
+  trunc(123.456, cot(0)) as trunc_123o456_Infinity,
+  trunc(ln(0)) as trunc_NegInfinity,
+  trunc(123.456, ln(0)) as trunc_123o456_NegInfinity,
+  #trunc when abs(d) > 30
+  trunc(123.4567890, 30) as trunc_123o4567890_30,
+  trunc(123.4567890, 10000) =  trunc(123.4567890,30) as test_trunc_123o4567890_10000,
+  trunc(123.4567890, -30) as trunc_123o4567890_Neg30,
+  trunc(123.4567890, -10000.25) = trunc(123.4567890, -30) as test_trunc_123o4567890_Neg10000o25,
+  #trunc when d is not int
+  trunc(123.4567890, 1.5) = trunc(123.4567890, 1) as test_trunc_123o4567890_1o5,
+  trunc(123.4567890, e()) = trunc(123.4567890,2) as test_trunc_123o4567890_E,
+  trunc(123.4567890, -pi()) = trunc(123.4567890, -3) as test_trunc_123o4567890_NegPI
+from math_test where id=1
+
+
+################
+trunc02.q
+################
+select
+  t.ic, trunc(t.ic,1),
+  t.lc, trunc(t.lc,null),
+  t.fc, trunc(t.fc,2),
+  t.dc, trunc(t.dc,3),
+  t.nc, trunc(t.nc,0),
+  t.doc.ic, trunc(t.doc.ic,-1),
+  t.doc.lc, trunc(t.doc.lc,-0.5),
+  t.doc.fc, trunc(t.doc.fc,0.5),
+  t.doc.dc, trunc(t.doc.dc,1/3.0),
+  t.doc.nc, trunc(t.doc.nc,null)
+from math_test t where id=5
+
+
+################
+trunc03.q
+################
+select t.doc.dc as x, trunc(t.doc.dc,1) as truncx_1, trunc(t.doc.dc, t.doc.dc) as truncx_nan from math_test t where t.id in (8,9)
+
+

@@ -1,0 +1,2 @@
+#expression returns millisecond using Extract Function with timestamp of all nine precision
+SELECT id,extract(millisecond from t.ts0) as ts0,extract(millisecond from t.ts1) as ts1,extract(millisecond from t.ts2) as ts2,extract(millisecond from t.ts3) as ts3,extract(millisecond from t.ts4) as ts4,extract(millisecond from t.ts5) as ts5,extract(millisecond from t.ts6) as ts6,extract(millisecond from t.ts7) as ts7 ,extract(millisecond from t.ts8) as ts8 ,extract(millisecond from t.ts9) as ts9 FROM Extract t

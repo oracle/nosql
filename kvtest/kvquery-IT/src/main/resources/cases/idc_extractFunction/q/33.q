@@ -1,0 +1,2 @@
+#expression returns week using Extract Function for non json array 
+SELECT id,extract(week from t.ats9[0]) as ats0,extract(week from t.ats9[1]) as ats1,extract(week from t.ats9[2]) as ats2,extract(week from t.ats9[3]) as ats3,extract(week from t.ats9[4]) as ats4,extract(week from t.ats9[5]) as ats5,extract(week from t.ats9[6]) as ats6,extract(week from t.ats9[7]) as ats7 ,extract(week from t.ats9[8]) as ats8 FROM Extract t 

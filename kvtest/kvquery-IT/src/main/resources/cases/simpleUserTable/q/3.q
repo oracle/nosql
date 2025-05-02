@@ -1,0 +1,1 @@
+select firstName from Users where lastName = "last3"

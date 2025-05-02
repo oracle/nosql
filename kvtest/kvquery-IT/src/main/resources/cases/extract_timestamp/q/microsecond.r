@@ -1,0 +1,2 @@
+unordered-result
+{"us_mts6_k1":900000,"us_mts6_k2":990000,"us_mts6_k3":999000,"us_mts6_k4":999900,"us_mts6_k5":999990,"us_mts6_k6":999999,"us_ats9_0":100000,"us_ats9_1":20000,"us_ats9_2":3000,"us_ats9_3":400,"us_ats9_4":50,"us_ats9_5":6,"us_ats9_6":0,"us_ats9_7":0,"us_ats9_8":0}

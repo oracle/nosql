@@ -1,0 +1,98 @@
+Table: Foo
+
+{
+"id1":0, "int":0, "lng":0, "dbl":10.5, "flt":3.5,
+"str":"abc", 
+"bool":true, 
+"enm":"tok1",
+"arr" : [1, 2, 3],
+"map" : {"key1":[1,2,3], "key2":[4,5], "key3":[]},
+"rec" : null,
+"arrrec" : [{"fmap":{}}],
+"bin" :"dGVzdGJpbmFyeQ==",
+"fbin":"dGVzdGJpbmFyeQ==",
+"arr1" : [1, 2, 3],
+"str1":"abc",
+"bool1":true, 
+"enm1":"tok1"
+}
+
+{
+"id1":1, "int":1, "lng":1, "dbl":1.0, "flt":3.5,
+"str":"abd",
+"bool":false,
+"enm":"tok2",
+"arr" : [10, 20, 30],
+"map" : {"key1":[10, 20, 40], "key2":[4,5]},
+"rec" : null,
+"arrrec" : [],
+"bin" :"dGVzdGFiaW5hcnlkYXRhIHR5cGU=",
+"fbin":"dHN0ZmJpbmFyeQ==",
+"arr1" : [19, 29, 39],
+"str1":"abnut",
+"bool1":true, 
+"enm1":"tok2"
+}
+
+{
+"id1":2, "int":10, "lng":-2, "dbl":3.5, "flt":3.5,
+"str":null,
+"bool":true,
+"enm":"tok2",
+"arr" : [],
+"map" : {"key1":[1,2], "key2":[4,5], "key3":[]},
+"rec" : {"fmap" : {"key1":[1.0,2.0], "key2":[4.0,5.0], "key3":[]}},
+"arrrec" : [{"fmap":{"key1":[1.0,2.0], "key2":[4.0,5.0], "key3":[]}}],
+"bin" :"dGhpcyBpcyBhIHNob3J0IHN0cmluZw==",
+"fbin":"YWFhYWFhYWFhYQ==",
+"arr1" : [10, 20, 30],
+"str1":"xyz",
+"bool1":true, 
+"enm1":"tok3"
+}
+
+{
+"id1":3, "int":0, "lng":null, "dbl":-2.5, "flt":0,
+"str":"tok1",
+"bool":true,
+"enm":"tok3",
+"arr" : [3, 2, 1],
+"map" : {},
+"rec" : {"fmap":null},
+"arrrec" : [{"fmap":null}],
+"bin" :"dGhpcyBpcyBhIGxvbmcgc3RyaW5nIG9mIGJpbmFyeSBkYXRh",
+"fbin":"MTIzNDU2Nzg5MA==",
+"arr1" : [19, 29, 39],
+"str1":"tok2",
+"bool1":false, 
+"enm1":"tok4"
+}
+
+{
+"id1":4, "int":5, "lng":1142355653432433554, "dbl":-2.5, "flt":-2.5,
+"str":"abcc",
+"bool":false,
+"enm":"tok3",
+"arr" : [1, 2, 3],
+"map" : {"key4":[1,2,3], "key5":[1,2,3,4], "key6":[1,2]},
+"rec" : {"fmap":{}},
+"arrrec" : [{"fmap":{}}, {"fmap":{"key4":[1,2,3], "key5":[1,2,3,4], "key7":[1,2]}}],
+"bin" :"YTFiMmMzZDRlNQ==",
+"fbin":"YTFiMmMzZDRlNQ==",
+"arr1" : [0, 100, 567],
+"str1":"ccba",
+"bool1":false, 
+"enm1":"tok2"
+}
+
+{
+"id1":5, "int":null, "lng":null, "dbl":null, "flt":null, "str1":null, "bool1":null, "enm1":"tok2"
+}
+
+{
+"id1":6, "int":-2147483648, "lng":-9223372036854775808, "dbl":4.9E-324, "flt":1.4E-45, "arr1" : [1, 9, 9], "str1":"test string", "bool1":false, "enm1":"tok1"
+}
+
+{
+"id1":7, "int":2147483647, "lng":9223372036854775807, "dbl":1.7976931348623157E308, "flt":3.4028235E38, "arr1" : [9, 2, 3], "str1":"", "bool1":false, "enm1":"tok3"
+}

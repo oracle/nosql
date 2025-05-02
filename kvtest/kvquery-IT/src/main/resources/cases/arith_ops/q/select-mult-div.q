@@ -1,0 +1,1 @@
+select id1 * 2 / 1  from Foo

@@ -1,0 +1,2 @@
+unordered-result
+{"numArr":[0],"absnumArr":null,"num2DArr":[[0]],"absnum2DArr":null,"num3DArr":[[[0]]],"absnum3DArr":null,"douArr":[-Infinity],"absdouArr":null,"dou2DArr":[[0.0]],"absdou2DArr":null,"dou3DArr":[[[Infinity]]],"absdou3DArr":null,"docnumArr":[0],"absdocnumArr":null,"docnum2DArr":[[0]],"absdocnum2DArr":null,"docnum3DArr":[[[0]]],"absdocnum3DArr":null,"docdouArr":[-5.7976931348623157E+308],"absdocdouArr":null,"docdou2DArr":[[0.0]],"absdocdou2DArr":null,"docdou3DArr":[[[2.7976931348623157E+308]]],"absdocdou3DArr":null}

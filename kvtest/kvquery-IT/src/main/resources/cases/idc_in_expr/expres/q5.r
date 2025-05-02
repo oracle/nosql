@@ -1,0 +1,2 @@
+unordered-result
+{"id":0,"firstName":"first0","lastName":"last0","age":10,"ptr":"firstName","address":{"city":"San Fransisco","state":"CA","phones":[{"work":504,"home":50},{"work":518,"home":51},{"work":528,"home":52},{"work":538,"home":53},{"work":548,"home":54}],"ptr":"city","test":null},"children":{"John":{"age":10,"friends":["Anna","John","Maria"]},"Lisa":{"age":12,"friends":["Ada"]}},"lng":0,"flt":10.5,"dbl":3.5,"bool":true,"enm":"tok1","bin":"dGVzdGJpbmFyeQ==","fbin":"dGVzdGJpbmFyeQ=="}

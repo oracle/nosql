@@ -1,0 +1,11 @@
+unordered-result
+{"id1":1,"stats1_T20_avg":1628.918}
+{"id1":2,"stats1_T20_avg":1639.752}
+{"id1":3,"stats1_T20_avg":1766.911}
+{"id1":4,"stats1_T20_avg":null}
+{"id1":5,"stats1_T20_avg":1234567.0}
+{"id1":6,"stats1_T20_avg":null}
+{"id1":7,"stats1_T20_avg":null}
+{"id1":8,"stats1_T20_avg":null}
+{"id1":9,"stats1_T20_avg":null}
+{"id1":10,"stats1_T20_avg":null}

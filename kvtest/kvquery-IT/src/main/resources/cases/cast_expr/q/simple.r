@@ -1,0 +1,11 @@
+unordered-result
+{"id":2,"str":null,"Column_3":-2}
+{"id":9,"str":"abcc","Column_3":301980562}
+{"id":5,"str":"abc","Column_3":null}
+{"id":7,"str":null,"Column_3":-5}
+{"id":0,"str":"abc","Column_3":0}
+{"id":1,"str":"abd","Column_3":1}
+{"id":8,"str":"tok1","Column_3":null}
+{"id":4,"str":"abcc","Column_3":301980562}
+{"id":3,"str":"tok1","Column_3":null}
+{"id":6,"str":"abd","Column_3":1}

@@ -1,0 +1,122 @@
+compiled-query-plan
+
+{
+"query file" : "geo/q/near02.q",
+"plan" : 
+{
+  "iterator kind" : "RECEIVE",
+  "distribution kind" : "ALL_SHARDS",
+  "input iterator" :
+  {
+    "iterator kind" : "SELECT",
+    "FROM" :
+    {
+      "iterator kind" : "TABLE",
+      "target table" : "points",
+      "row variable" : "$$p",
+      "index used" : "idx_ptn",
+      "covering index" : false,
+      "index scans" : [
+        {
+          "equality conditions" : {},
+          "range conditions" : { "info.point" : { "start value" : "sw0k", "start inclusive" : true, "end value" : "sw0mzzzzzz", "end inclusive" : true } }
+        },
+        {
+          "equality conditions" : {},
+          "range conditions" : { "info.point" : { "start value" : "sw0q", "start inclusive" : true, "end value" : "sw0zzzzzzz", "end inclusive" : true } }
+        },
+        {
+          "equality conditions" : {},
+          "range conditions" : { "info.point" : { "start value" : "sw1h", "start inclusive" : true, "end value" : "sw1zzzzzzz", "end inclusive" : true } }
+        },
+        {
+          "equality conditions" : {},
+          "range conditions" : { "info.point" : { "start value" : "sw22", "start inclusive" : true, "end value" : "sw23zzzzzz", "end inclusive" : true } }
+        },
+        {
+          "equality conditions" : {},
+          "range conditions" : { "info.point" : { "start value" : "sw26", "start inclusive" : true, "end value" : "sw2gzzzzzz", "end inclusive" : true } }
+        },
+        {
+          "equality conditions" : {},
+          "range conditions" : { "info.point" : { "start value" : "sw2k", "start inclusive" : true, "end value" : "sw2mzzzzzz", "end inclusive" : true } }
+        },
+        {
+          "equality conditions" : {},
+          "range conditions" : { "info.point" : { "start value" : "sw2q", "start inclusive" : true, "end value" : "sw3zzzzzzz", "end inclusive" : true } }
+        }
+      ],
+      "position in join" : 0
+    },
+    "FROM variable" : "$$p",
+    "WHERE" : 
+    {
+      "iterator kind" : "FN_GEO_WITHIN_DISTANCE",
+      "search target iterator" :
+      {
+        "iterator kind" : "FIELD_STEP",
+        "field name" : "point",
+        "input iterator" :
+        {
+          "iterator kind" : "FIELD_STEP",
+          "field name" : "info",
+          "input iterator" :
+          {
+            "iterator kind" : "VAR_REF",
+            "variable" : "$$p"
+          }
+        }
+      },
+      "search geometry iterator" :
+      {
+        "iterator kind" : "CONST",
+        "value" : {"coordinates":[24.0175,35.5156],"type":"point"}
+      },
+      "distance iterator" :
+      {
+        "iterator kind" : "CONST",
+        "value" : 100000.0
+      }
+    },
+    "SELECT expressions" : [
+      {
+        "field name" : "id",
+        "field expression" : 
+        {
+          "iterator kind" : "FIELD_STEP",
+          "field name" : "id",
+          "input iterator" :
+          {
+            "iterator kind" : "VAR_REF",
+            "variable" : "$$p"
+          }
+        }
+      },
+      {
+        "field name" : "point",
+        "field expression" : 
+        {
+          "iterator kind" : "ARRAY_CONSTRUCTOR",
+          "conditional" : true,
+          "input iterators" : [
+            {
+              "iterator kind" : "FIELD_STEP",
+              "field name" : "point",
+              "input iterator" :
+              {
+                "iterator kind" : "FIELD_STEP",
+                "field name" : "info",
+                "input iterator" :
+                {
+                  "iterator kind" : "VAR_REF",
+                  "variable" : "$$p"
+                }
+              }
+            }
+          ]
+        }
+      }
+    ]
+  }
+}
+}

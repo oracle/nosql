@@ -1,0 +1,388 @@
+################
+10.q
+################
+#Test Description: regex_like function in predicate prefix pattern match.
+
+select id1, str
+from foo f
+where regex_like(str, "1 Earth.*", "")
+
+
+
+################
+11.q
+################
+#Test Description: regex_like function in predicate. Pattern parameter a constant.
+
+select id1, str
+from foo f
+where regex_like(str, "a.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*")
+
+
+
+################
+1.q
+################
+#Test Description: regex_like function in predicate. Pattern parameter a constant.
+
+select id1, str
+from foo f
+where regex_like(str, "a.*")
+
+
+
+################
+23.q
+################
+#Test Description: regex_like function in predicate with and clause. Pattern parameter a constant.
+
+select id1, str
+from foo f
+where regex_like(str, "a.*") and id1 > 0
+
+
+
+################
+2.q
+################
+#Test Description: regex_like function in predicate. Pattern and flags parameters are constants. Tests the case insensitive flag.
+
+select id1, str
+from foo f
+where regex_like(str, "A.*", "i")
+
+
+
+################
+3.q
+################
+#Test Description: regex_like function in predicate. Pattern parameter is a variable. 
+
+declare $pattern1 string;
+
+select id1, str
+from foo f
+where regex_like(str, $pattern1)
+
+
+
+################
+4.q
+################
+#Test Description: regex_like function in predicate. Pattern and flags parameters are variables.
+
+declare 
+$pattern2 string;
+$flags string;
+
+select id1, str
+from foo f
+where regex_like(str, $pattern2, $flags)
+
+
+
+################
+5.q
+################
+#Test Description: regex_like function in projection.
+
+select id1, str, regex_like(str, "a.*")
+from foo f
+
+
+
+################
+6.q
+################
+#Test Description: regex_like function in predicate with all flag options set.
+
+select id1, str
+from foo f
+where regex_like(str, "a.*","dixlsucU")
+
+
+
+################
+7.q
+################
+#Test Description: regex_like function in predicate with all flag options set except literal. 
+
+select id1, str
+from foo f
+where regex_like(str, "a.*","dixsucU")
+
+
+
+################
+8.q
+################
+#Test Description: regex_like function in predicate. Source parameter used is a  nested field.
+
+select id1, str 
+from foo f
+where regex_like(f.address.city, ".*ley")
+
+
+
+################
+9.q
+################
+#Test Description: regex_like function in predicate with empty flags string.
+
+select id1, str
+from foo f
+where regex_like(str, "a.*", "")
+
+
+
+################
+n10.q
+################
+#Test Description: regex_like function in predicate. Pattern parameter is an invalid constant.
+# Type: Negative
+
+
+select id1, str
+from foo f
+where regex_like(str, cast(null as string))
+
+
+
+################
+n11.q
+################
+#Test Description: regex_like function in predicate. Flags parameter is an invalid constant.
+# Type: Negative
+
+select id1, str
+from foo f
+where regex_like(str, "a.*", cast(null as string))
+
+
+
+################
+n12.q
+################
+#Test Description: regex_like function in predicate. Pattern parameter is a variable with invalid json null value.
+# Type: Negative
+
+declare $nullvalue string;
+
+select id1, str
+from foo f
+where regex_like(str, $nullvalue)
+
+
+
+################
+n13.q
+################
+#Test Description: regex_like function in predicate. Flags parameter is a variable with invalid json null value.
+# Type: Negative
+
+declare $nullvalue string;
+
+select id1, str
+from foo f
+where regex_like(str, "a.*", $nullvalue)
+
+
+
+################
+n14.q
+################
+#Test Description: regex_like function in predicate. Pattern parameter is an invalid constant.
+# Type: Negative
+
+select id1, str
+from foo f
+where regex_like(str, "[")
+
+
+
+################
+n15.q
+################
+#Test Description: regex_like function in predicate. Flags parameter is an invalid constant.
+# Type: Negative
+
+select id1, str
+from foo f
+where regex_like(str, "a.*", "z")
+
+
+
+################
+n16.q
+################
+#Test Description: regex_like function in predicate. Pattern parameter is an invalid null valued variable.
+# Type: Negative
+
+declare $invalidpattern string;
+
+select id1, str
+from foo f
+where regex_like(str, $invalidpattern)
+
+
+
+################
+n17.q
+################
+#Test Description: regex_like function in predicate. Flags parameter is an invalid null valued variable.
+# Type: Negative
+
+declare $invalidflags string;
+
+select id1, str
+from foo f
+where regex_like(str, "a.*", $invalidflags)
+
+
+
+################
+n18.q
+################
+#Test Description: regex_like function in update predicate. 
+# Type: Negative.
+
+update foo f
+set f.str = "ABC"
+where regex_like(str,"abc")
+
+
+
+################
+n19.q
+################
+#Test Description: regex_like function in predicate. Invalid function syntax.
+# Type: Negative
+
+select id1, str
+from foo f
+where regex_like(str)
+
+
+
+################
+n20.q
+################
+#Test Description: regex_like function in predicate. Invalid number of parameters.
+# Type: Negative
+
+
+select id1, str
+from foo f
+where regex_like(str, "a.*", "i", "bad")
+
+
+
+################
+n21.q
+################
+#Test Description: regex_like function in predicate. Invalid parameter type.
+# Type: Negative
+
+
+select id1, str
+from foo f
+where regex_like(str, 1)
+
+
+
+################
+n22.q
+################
+#Test Description: regex_like function in predicate. Invalid flags parameter datatype.
+# Type: Negative
+
+select id1, str
+from foo f
+where regex_like(str, "a.*", 4)
+
+
+
+################
+n24.q
+################
+#Test Description: regex_like function in predicate. Source is float type.
+
+select id1, str
+from foo f
+where regex_like(flt, "a.*")
+
+
+
+################
+n25.q
+################
+#Test Description: regex_like function in predicate. Source is a variable with invalid null value.
+
+declare $nullvalue string;
+
+select id1, str
+from foo f
+where regex_like($nullvalue, "a.*)
+
+
+
+################
+n26.q
+################
+#Test Description: regex_like function in predicate. Invalid source parameter, type not a string.
+## Type: Negative
+
+select id1, str
+from foo f
+where regex_like(enm, "a.*")
+
+
+
+################
+n27.q
+################
+#Test Description: regex_like function in predicate. Regex pattern that causes Pattern.Matcher.matches() to get StackOverFlowError
+## Type: Negative
+
+select id1, str
+from foo f
+where regex_like(longstr, "(a|aa)+")
+
+
+
+################
+n28.q
+################
+#Test Description: regex_like function in predicate with backslash d (digit) pattern match. The digit is not supported
+# Type: Negative
+
+select id1, str
+from foo f
+where regex_like(str, "\\d.*", "")
+
+
+
+################
+n29.q
+################
+#Test Description: regex_like function in predicate with invalid regex.
+# Type: Negative
+
+select id1, str
+from foo f
+where regex_like(str, "*")
+
+
+
+################
+n30.q
+################
+#Test Description: regex_like function in predicate with longer than maximum length pattern string.
+# Type: Negative
+
+select id1, str
+from foo f
+where regex_like(str, "012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012")
+
+
+

@@ -1,0 +1,11 @@
+unordered-result
+{"areacode":[304,318],"kind":["work","home"],"age":10.0}
+{"areacode":[480],"kind":["null","home"],"age":15.0}
+{"areacode":104,"kind":"home","age":13.0}
+{"areacode":367,"kind":"home","age":17.0}
+{"areacode":[400,460,500,570,580],"kind":["home","work","work"],"age":11.0}
+{"areacode":[104,118],"kind":["home","work"],"age":15.666666666666666}
+{"areacode":[600,610,620],"kind":["work","home","work"],"age":11.0}
+{"areacode":[480,419],"kind":["home"],"age":17.0}
+{"areacode":[408,418,515,640],"kind":["home","work","home"],"age":17.0}
+{"areacode":[567,356],"kind":["work","work"],"age":17.0}

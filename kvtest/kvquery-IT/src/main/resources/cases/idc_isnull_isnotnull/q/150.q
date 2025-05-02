@@ -1,0 +1,2 @@
+#Expression is array slice step (with L and H) with L<=H in projection and pedicate and .values() with is not null in predicate and projection and use of exists(not empty) operator
+select id,s.children.values().Relative.Uncle[1:2] is not null from sn s where exists s.children.values().Relative.Uncle[0:1] is not null

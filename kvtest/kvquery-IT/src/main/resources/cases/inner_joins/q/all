@@ -1,0 +1,589 @@
+################
+aq01.q
+################
+SELECT msgs.msgid, msgs.content.date, p.userName
+FROM profile.messages msgs, nested tables(profile.inbox inbox ancestors(profile p))
+WHERE msgs.uid = inbox.uid and
+      msgs.msgid = inbox.msgid and
+      msgs.content.sender = "markos"
+
+
+
+
+################
+aq02.q
+################
+SELECT msgs.msgid, msgs.content.date, p.userName
+FROM nested tables(profile.messages msgs ancestors(profile p)), profile.inbox inbox
+WHERE msgs.uid = inbox.uid and
+      msgs.msgid = inbox.msgid and
+      msgs.content.sender = "markos"
+
+
+
+################
+aq03.q
+################
+SELECT msgs.msgid, msgs.content.date, p.userName
+FROM nested tables(profile.messages msgs ancestors(profile p)), profile.inbox inbox
+WHERE p.uid = inbox.uid and
+      msgs.msgid = inbox.msgid and
+      msgs.content.sender = "markos"
+
+
+
+################
+dq01.q
+################
+SELECT msgs.msgid, msgs.content.date, p.userName
+FROM profile.messages msgs, nested tables(profile p descendants(profile.inbox inbox))
+WHERE msgs.uid = inbox.uid and
+      msgs.msgid = inbox.msgid and
+      msgs.content.sender = "markos"
+
+
+
+################
+dq02.q
+################
+SELECT msgs.msgid, msgs.content.date, p.userName
+FROM nested tables(profile p descendants(profile.messages msgs)), profile.inbox inbox
+WHERE msgs.uid = inbox.uid and
+      msgs.msgid = inbox.msgid and
+      msgs.content.sender = "markos"
+
+
+
+################
+dq03.q
+################
+SELECT msgs.msgid, msgs.content.date, p.userName
+FROM nested tables(profile p descendants(profile.messages msgs)), profile.inbox inbox
+WHERE p.uid = inbox.uid and
+      msgs.msgid = inbox.msgid and
+      msgs.content.sender = "markos"
+
+
+
+################
+gq01.q
+################
+SELECT msgs1.msgid as msg1, count(*) as cnt
+FROM profile.messages msgs1, profile.messages msgs2
+WHERE msgs1.uid = 1 and
+      msgs2.uid = msgs1.uid and
+      msgs2.content.thread_id = msgs1.content.thread_id and
+      msgs1.msgid != msgs2.msgid
+group by msgs1.msgid
+
+
+
+################
+gq02.q
+################
+SELECT msgs1.msgid as msg1, count(*) as cnt
+FROM profile.messages msgs1, profile.messages msgs2
+WHERE msgs2.uid = msgs1.uid and
+      msgs2.content.thread_id = msgs1.content.thread_id and
+      msgs1.msgid != msgs2.msgid
+group by msgs1.msgid
+
+
+
+################
+gq03.q
+################
+SELECT msgs.uid, count(*) as cnt
+FROM profile.messages msgs, profile p
+WHERE msgs.uid = p.uid and p.age > 50
+group by msgs.uid
+
+
+
+################
+lq01.q
+################
+SELECT msgs2.content.size, msgs2.msgid as msg2, msgs1.msgid as msg1, p.userName
+FROM profile.messages msgs2, profile.messages msgs1, profile p
+WHERE msgs1.uid = p.uid and
+      msgs2.uid = p.uid and
+      msgs1.content.receivers[] =any msgs2.content.sender and
+      msgs2.content.size >= 30
+order by msgs2.content.size, msgs2.uid, msgs2.msgid
+limit 10 offset 3
+
+
+
+################
+lq02.q
+################
+SELECT msgs2.content.size, msgs2.msgid as msg2, msgs1.msgid as msg1, p.userName
+FROM profile.messages msgs2, profile.messages msgs1, profile p
+WHERE msgs1.uid = p.uid and
+      msgs2.uid = p.uid and
+      msgs1.content.receivers[] =any msgs2.content.sender and
+      msgs2.content.size >= 30
+order by msgs2.content.size, msgs2.msgid
+limit 10 offset 3
+
+
+
+################
+lq03.q
+################
+SELECT msgs2.content.size, msgs2.msgid as msg2, msgs1.msgid as msg1, p.userName
+FROM profile.messages msgs2, profile.messages msgs1, profile p
+WHERE p.uid = 1 and
+      msgs1.uid = p.uid and
+      msgs2.uid = p.uid and
+      msgs1.content.receivers[] =any msgs2.content.sender and
+      msgs2.content.size >= 30
+order by msgs2.content.size, msgs2.uid, msgs2.msgid
+limit 11 offset 3
+
+
+
+################
+lq04.q
+################
+declare $uid integer;
+SELECT msgs2.content.size, msgs2.msgid as msg2, msgs1.msgid as msg1, p.userName
+FROM profile.messages msgs2, profile.messages msgs1, profile p
+WHERE p.uid = $uid and
+      msgs1.uid = p.uid and
+      msgs2.uid = p.uid and
+      msgs1.content.receivers[] =any msgs2.content.sender and
+      msgs2.content.size >= 30
+order by msgs2.content.size, msgs2.uid, msgs2.msgid
+limit 11 offset 3
+
+
+
+################
+lq05.q
+################
+declare $uid integer;
+        $lim integer;
+        $off integer;
+SELECT msgs2.content.size, msgs2.msgid as msg2, msgs1.msgid as msg1, p.userName
+FROM profile.messages msgs2, profile.messages msgs1, profile p
+WHERE msgs1.uid = p.uid and
+      msgs2.uid = p.uid and
+      msgs1.content.receivers[] =any msgs2.content.sender and
+      p.uid = $uid and
+      msgs2.content.size >= 30
+order by msgs2.content.size, msgs2.uid, msgs2.msgid
+limit $lim offset $off
+
+
+
+################
+oq01.q
+################
+SELECT msgs2.content.size, msgs2.msgid as msg2, msgs1.msgid as msg1, p.userName
+FROM profile.messages msgs2, profile.messages msgs1, profile p
+WHERE msgs1.uid = p.uid and
+      msgs2.uid = p.uid and
+      msgs1.content.receivers[] =any msgs2.content.sender and
+      msgs2.content.size >= 30
+order by msgs2.content.size, msgs2.uid, msgs2.msgid
+
+
+
+################
+oq02.q
+################
+SELECT msgs2.content.size, msgs2.msgid as msg2, msgs1.msgid as msg1, p.userName
+FROM profile.messages msgs2, profile.messages msgs1, profile p
+WHERE msgs1.uid = p.uid and
+      msgs2.uid = p.uid and
+      msgs1.content.receivers[] =any msgs2.content.sender and
+      msgs2.content.size >= 30
+order by msgs2.content.size, msgs2.msgid
+
+
+
+################
+oq03.q
+################
+SELECT msgs2.msgid as msg2, msgs1.msgid as msg1, p.userName
+FROM profile.messages msgs2, profile.messages msgs1, profile p
+WHERE msgs1.uid = p.uid and
+      msgs2.uid = p.uid and
+      msgs1.content.receivers[] =any msgs2.content.sender and
+      msgs2.content.size >= 30
+order by msgs2.content.size, msgs2.msgid
+
+
+
+################
+oq04.q
+################
+SELECT msgs2.content.size, msgs2.msgid as msg2, msgs1.msgid as msg1, p.userName
+FROM profile p, profile.messages msgs2, profile.messages msgs1
+WHERE msgs1.uid = p.uid and
+      msgs2.uid = p.uid and
+      msgs1.content.receivers[] =any msgs2.content.sender and
+      msgs2.content.size >= 30
+order by msgs2.content.size, msgs2.uid, msgs2.msgid
+
+
+
+################
+oq05.q
+################
+SELECT msgs2.content.size, msgs1.content.sender,
+       msgs2.msgid as msg2, msgs1.msgid as msg1, p.userName
+FROM profile.messages msgs2, profile.messages msgs1, profile p
+WHERE msgs2.content.size >= 30 and
+      msgs1.uid = p.uid and
+      msgs2.uid = p.uid and
+      msgs1.content.sender >= msgs2.content.sender
+order by msgs2.content.size, msgs1.content.sender
+
+
+
+################
+oq06.q
+################
+SELECT msgs2.content.size, msgs1.content.sender,
+       msgs2.msgid as msg2, msgs1.msgid as msg1, p.userName
+FROM profile.messages msgs2, profile.messages msgs1, profile p
+WHERE msgs2.content.size >= 30 and
+      msgs1.uid = p.uid and
+      msgs2.uid = p.uid and
+      msgs1.content.sender >= msgs2.content.sender
+order by msgs2.content.size, msgs2.uid, msgs2.msgid, msgs1.content.sender
+
+
+
+################
+q01.q
+################
+SELECT msgs.msgid, msgs.content
+FROM profile.messages msgs, profile.inbox inbox
+WHERE msgs.uid = inbox.uid and msgs.msgid = inbox.msgid
+
+
+
+################
+q02.q
+################
+SELECT msgs.msgid, msgs.content.sender
+FROM profile.inbox inbox, profile.messages msgs
+WHERE msgs.uid = inbox.uid and msgs.msgid = inbox.msgid
+
+
+
+################
+q03.q
+################
+SELECT msgs.msgid, msgs.content.sender
+FROM profile.messages msgs, profile.inbox inbox
+WHERE msgs.uid = inbox.uid and msgs.msgid = inbox.msgid and
+      msgs.content.sender = "markos"
+
+
+
+################
+q04.q
+################
+SELECT msgs.msgid, msgs.content.sender
+FROM profile.inbox inbox, profile.messages msgs
+WHERE msgs.uid = inbox.uid and msgs.msgid = inbox.msgid and
+      msgs.content.sender = "markos"
+
+
+
+################
+q05.q
+################
+SELECT msgs.msgid, msgs.content.sender
+FROM profile.inbox inbox, profile.messages msgs
+WHERE msgs.uid = inbox.uid and msgs.content.date = inbox.content.date and
+      msgs.content.sender = "markos"
+
+
+
+################
+q06.q
+################
+SELECT msgs.msgid as messages_mid,
+       inbox.msgid as inbox_mid,
+       msgs.content.date as date
+FROM profile.messages msgs, profile.inbox inbox
+WHERE msgs.uid = inbox.uid and msgs.content.date = inbox.content.date and
+      msgs.content.sender = "markos"
+
+
+
+################
+q07.q
+################
+SELECT msgs.msgid, msgs.content.date, p.userName
+FROM profile.messages msgs, profile.inbox inbox, profile p
+WHERE msgs.uid = inbox.uid and
+      msgs.msgid = inbox.msgid and
+      msgs.uid = p.uid and
+      msgs.content.sender = "markos"
+
+
+
+################
+q08.q
+################
+SELECT msgs.msgid, msgs.content.date, p.userName
+FROM profile p, profile.messages msgs, profile.inbox inbox
+WHERE msgs.uid = inbox.uid and
+      msgs.msgid = inbox.msgid and
+      msgs.uid = p.uid and
+      msgs.content.sender = "markos"
+
+
+
+################
+q09.q
+################
+SELECT msgs1.msgid as msg1, msgs2.msgid as msg2, msgs2.content.date, p.userName
+FROM profile.messages msgs1, profile.messages msgs2, profile p
+WHERE msgs1.uid = p.uid and
+      msgs2.uid = p.uid and
+      msgs1.content.receivers[] =any msgs2.content.sender and
+      msgs2.content.date > "2024-07-06"
+
+
+
+################
+q10.q
+################
+SELECT msgs1.msgid as msg1, msgs2.msgid as msg2, msgs2.content.date, p.userName
+FROM profile.messages msgs2, profile.messages msgs1, profile p
+WHERE msgs1.uid = p.uid and
+      msgs2.uid = p.uid and
+      msgs1.content.receivers[] =any msgs2.content.sender and
+      msgs2.content.date > "2024-07-06"
+
+
+
+################
+q11.q
+################
+SELECT msgs1.msgid as msg1, msgs2.msgid as msg2, msgs2.content.date, p.userName
+FROM profile.messages msgs2, profile.messages msgs1, profile p
+WHERE msgs1.uid = p.uid and
+      msgs2.uid = p.uid and
+      msgs1.content.receivers[] >any msgs2.content.sender and
+      msgs2.content.date > "2024-07-06"
+
+#11 lauren
+#21 john
+#22 jin
+#32 tim
+#42 aswini
+#70 george
+
+
+
+################
+q12.q
+################
+SELECT msgs1.msgid as msg1, msgs2.msgid as msg2, msgs2.content.date, p.userName
+FROM profile p, profile.messages msgs2, profile.messages msgs1
+WHERE msgs1.uid = p.uid and
+      msgs2.uid = p.uid and
+      msgs1.content.receivers[] >any msgs2.content.sender and
+      msgs2.content.date > "2024-07-06"
+
+
+
+################
+q13.q
+################
+SELECT msgs1.msgid as msg1, msgs2.msgid as msg2, msgs2.content.date, p.userName
+FROM profile.messages msgs1, profile p, profile.messages msgs2
+WHERE msgs1.uid = p.uid and
+      msgs2.uid = p.uid and
+      msgs1.content.receivers[] >any msgs2.content.sender and
+      msgs2.content.date > "2024-07-06"
+
+
+
+################
+q14.q
+################
+SELECT msgs1.msgid as msg1, msgs2.msgid as msg2, msgs2.content.date, p.userName
+FROM profile.messages msgs1, profile p, profile.messages msgs2
+WHERE msgs1.uid = p.uid and
+      msgs1.content.receivers[] >any msgs2.content.sender and
+      msgs2.content.date > "2024-07-06"
+
+
+
+################
+q15.q
+################
+SELECT msgs.msgid, msgs.content
+FROM profile.messages msgs, profile.inbox inbox
+WHERE msgs.msgid = inbox.msgid
+
+
+
+################
+q16.q
+################
+SELECT msgs.msgid, msgs.content
+FROM profile.messages msgs, profile.inbox inbox, profile.sent sent
+WHERE msgs.uid = inbox.uid and msgs.msgid = inbox.msgid
+
+
+
+################
+q17.q
+################
+SELECT *
+FROM profile.messages msgs, profile.inbox inbox
+WHERE msgs.uid = inbox.uid and msgs.msgid = inbox.msgid
+
+
+
+################
+q18.q
+################
+SELECT msgs1.msgid as msg1, msgs2.msgid as msg2, msgs2.content.date, p.userName
+FROM profile.messages msgs2, profile.messages msgs1, profile p
+WHERE msgs1.uid = p.uid and
+      msgs2.uid = p.uid and
+      exists msgs1.content.receivers[$element = msgs2.content.sender] and
+      msgs2.content.date > "2024-07-06"
+
+
+
+################
+q19.q
+################
+SELECT msgs1.msgid as msg1, msgs2.msgid as msg2, msgs2.content.date, p.userName
+FROM profile.messages msgs2, profile.messages msgs1, profile p
+WHERE msgs1.uid = p.uid and
+      msgs2.uid = p.uid and
+      exists msgs1.content.receivers[msgs2.content.sender < $element and
+                                     $element < cast(msgs2.content.receivers[0] as string) ] and
+      msgs2.content.date > "2024-07-06"
+
+#11 lauren - sam
+#21 john - george
+#22 jin - rubin
+#32 tim - rubin
+#42 aswini - george
+#70 george - markos
+
+
+
+################
+q20.q
+################
+SELECT msgs1.msgid as msg1, msgs2.msgid as msg2, msgs2.content.date, p.userName
+FROM profile.messages msgs1, profile.messages msgs2, profile p
+WHERE msgs1.uid = p.uid and
+      msgs2.uid = p.uid and
+      msgs2.content.sender in msgs1.content.receivers[] and
+      msgs2.content.date > "2024-07-06"
+
+
+
+################
+q21.q
+################
+SELECT msgs1.msgid as msg1, msgs2.msgid as msg2
+FROM profile.messages msgs1, profile.messages msgs2
+WHERE msgs1.uid = 1 and msgs1.msgid = 21 and
+      msgs2.uid = msgs1.uid and
+      msgs2.content.thread_id = msgs1.content.thread_id and
+      msgs1.msgid != msgs2.msgid
+
+
+
+################
+q22.q
+################
+SELECT msgs.msgid, msgs.content.date, p.userName
+FROM  profile p, profile.messages msgs, profile.inbox inbox, profile.deleted deleted
+WHERE p.uid = msgs.uid and
+      inbox.uid = deleted.uid and
+      p.uid = inbox.uid and
+      msgs.msgid = inbox.msgid and
+      msgs.content.sender = "markos"
+
+
+
+################
+q23.q
+################
+SELECT msg2.msgid, msg2.content.date
+FROM profile.messages msg1, profile.messages msg2
+WHERE msg1.uid = 1 and msg1.msgid = 21 and
+      msg2.uid = msg1.uid and
+      msg2.content.date > msg1.content.date and
+      msg2.content.sender in msg1.content.receivers[]
+ORDER BY msg1.uid, msg1.msgid, msg2.content.sender
+
+
+
+################
+uq01.q
+################
+select $s as size, count(*) as cnt
+from profile.messages $m, profile.inbox $in, $m.content.size as $s
+where $m.uid = $in.uid and $m.msgid = $in.msgid
+group by $s
+
+
+
+################
+uq02.q
+################
+select $v, count(*)
+from profile.messages m, unnest(m.content.views[] as $v)
+group by $v
+
+
+
+################
+uq03.q
+################
+select $v, count(*)
+from profile.messages $m, profile.inbox $in, $m.content.views[] as $v
+where $m.uid = $in.uid and $m.msgid = $in.msgid
+group by $v
+
+
+
+################
+uq04.q
+################
+select $v, count(*)
+from profile.messages $m, profile.inbox $in, unnest($m.content.views[] as $v)
+where $m.uid = $in.uid and $m.msgid = $in.msgid
+group by $v
+
+
+
+################
+uq05.q
+################
+select p.uid, $r as receiver, count(*) as cnt
+from profile p, profile.messages $m, $m.content.receivers[] $r
+where p.uid = $m.uid and p.userName = $r
+group by p.uid, $r
+
+
+
+################
+uq06.q
+################
+select p.uid, $r as receiver, count(*) as cnt
+from profile p, profile.messages $m, unnest($m.content.receivers[] $r)
+where p.uid = $m.uid and p.userName = $r
+group by p.uid, $r
+
+
+

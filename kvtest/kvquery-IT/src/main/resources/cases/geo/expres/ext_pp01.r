@@ -1,0 +1,16 @@
+unordered-result
+{"id":1,"point":{"coordinates":[23.549,35.2908],"type":"point"}}
+{"id":3,"point":{"coordinates":[23.9,35.4],"type":"point"}}
+{"id":4,"point":{"coordinates":[23.72,35.6],"type":"point"}}
+{"id":7,"point":{"coordinates":[23.88,35.519],"type":"point"}}
+{"id":8,"point":{"coordinates":[24.025,35.508],"type":"point"}}
+{"id":9,"point":{"coordinates":[24.283,35.216],"type":"point"}}
+{"id":13,"point":{"coordinates":[24.023,35.511],"type":"point"}}
+{"id":14,"point":{"coordinates":[24.014,35.514],"type":"point"}}
+{"id":15,"point":{"coordinates":[24.016,35.506],"type":"point"}}
+{"id":16,"point":{"coordinates":[24.016,35.519],"type":"point"}}
+{"id":17,"point":{"coordinates":[24.04,35.519],"type":"point"}}
+{"id":18,"point":{"coordinates":[24.056,35.525],"type":"point"}}
+{"id":20,"point":{"coordinates":[23.6369,35.2334],"type":"point"}}
+{"id":21,"point":{"coordinates":[23.6802,35.2285],"type":"point"}}
+{"id":22,"point":{"coordinates":[23.7201,35.2518],"type":"point"}}

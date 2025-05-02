@@ -1,0 +1,334 @@
+
+Table: A
+
+A { "ida" :  0 }
+
+
+B { "ida" : 0, "idb" :  0 }
+
+C { "ida" : 0, "idb" :  0, "idc" :  0 }
+
+D { "ida" : 0, "idb" :  0, "idc" :  0, "idd" :  0 }
+
+
+C { "ida" : 0, "idb" :  0, "idc" :  5 }
+
+D { "ida" : 0, "idb" :  0, "idc" :  5, "idd" :  5 }
+
+D { "ida" : 0, "idb" :  0, "idc" :  5, "idd" : 10 }
+
+D { "ida" : 0, "idb" :  0, "idc" :  6, "idd" : 10 } No C anc ****
+
+D { "ida" : 0, "idb" :  0, "idc" :  7, "idd" : 10 } No C anc ****
+
+
+E { "ida" : 0, "idb" :  0, "ide" : 0 }
+
+E { "ida" : 0, "idb" :  0, "ide" : 5 }
+
+E { "ida" : 0, "idb" :  0, "ide" : 6 }
+
+E { "ida" : 0, "idb" :  0, "ide" : 7 }
+
+
+E { "ida" : 0, "idb" :  2, "ide" : 0 }
+
+
+C { "ida" : 0, "idb" :  3, "idc" : 10 } No B anc, no child ****
+
+D { "ida" : 0, "idb" :  4, "idc" : 10, "idd" : 10 } No B, C anc ****
+
+B { "ida" : 0, "idb" :  5 }
+
+C { "ida" : 0, "idb" :  5, "idc" : 10 }
+
+D { "ida" : 0, "idb" :  5, "idc" : 10, "idd" : 15 }
+
+D { "ida" : 0, "idb" :  5, "idc" : 10, "idd" : 20 }
+
+C { "ida" : 0, "idb" :  5, "idc" : 15 } No child ****
+
+C { "ida" : 0, "idb" :  5, "idc" : 20 }
+
+D { "ida" : 0, "idb" :  5, "idc" : 20, "idd" : 25 }
+
+C { "ida" : 0, "idb" :  5, "idc" : 25 }
+
+D { "ida" : 0, "idb" :  5, "idc" : 25, "idd" : 30 }
+
+D { "ida" : 0, "idb" :  5, "idc" : 25, "idd" : 35 }
+
+
+B { "ida" : 0, "idb" : 10 } No desc ****
+
+
+B { "ida" : 0, "idb" : 15 }
+
+C { "ida" : 0, "idb" : 15, "idc" : 25 }
+
+D { "ida" : 0, "idb" : 15, "idc" : 25, "idd" : 30 }
+
+D { "ida" : 0, "idb" : 15, "idc" : 25, "idd" : 35 }
+
+E { "ida" : 0, "idb" : 15, "ide" : 25 }
+
+E { "ida" : 0, "idb" : 15, "ide" : 35 }
+
+
+F { "ida" :  0, "idf" :  0 }
+
+F { "ida" :  0, "idf" :  6 }
+
+F { "ida" :  0, "idf" : 10 }
+
+
+G { "ida" : 0, "idg" : 3 }
+
+G { "ida" : 0, "idg" : 7 }
+
+G { "ida" : 0, "idg" : 10 } 
+
+G { "ida" : 0, "idg" : 15 } 
+
+J { "ida" : 0, "idg" : 15, "idj" : 25 }
+
+J { "ida" : 0, "idg" : 15, "idj" : 35 }
+
+
+G { "ida" : 0, "idg" : 21 } 
+
+D { "ida" : 1, "idb" :  4, "idc" : 10, "idd" : 10 } No anc ****
+
+G { "ida" : 2, "idg" : 2 } 
+
+
+A { "ida" :  5 }
+
+G { "ida" :  5, "idg" : 2 } 
+
+
+
+A { "ida" : 10 }
+
+B { "ida" : 10, "idb" : 4 }
+
+C { "ida" : 10, "idb" : 8, "idc" : 10 } no B parent *****
+
+J { "ida" : 10, "idg" : 15, "idj" : 35 } No G anc ****
+
+K { "ida" : 10, "idg" : 15, "idj" : 35, "idk" : 10 }
+
+J { "ida" : 10, "idg" : 15, "idj" : 45 } No G anc ****
+
+
+
+A { "ida" : 15 }
+
+A { "ida" : 20 }
+
+A { "ida" : 25 }
+
+A { "ida" : 30 }
+
+A { "ida" : 35 }
+
+
+
+A { "ida" : 40 }
+
+
+B { "ida" : 40, "idb" : 0 }
+
+C { "ida" : 40, "idb" : 0, "idc" :  0 } No D child ****
+
+D { "ida" : 40, "idb" : 0, "idc" : 2, "idd" : 10 } No C parent  ****
+
+D { "ida" : 40, "idb" : 0, "idc" : 2, "idd" : 20 } No C parent ****
+
+D { "ida" : 40, "idb" : 0, "idc" : 2, "idd" : 30 } No C parent ****
+
+D { "ida" : 40, "idb" : 0, "idc" : 2, "idd" : 40 } No C parent ****
+
+D { "ida" : 40, "idb" : 0, "idc" : 2, "idd" : 50 } No C parent ****
+
+E { "ida" : 40, "idb" : 0, "ide" : 7 }
+
+E { "ida" : 40, "idb" : 0, "ide" : 8 }
+
+
+E { "ida" : 40, "idb" : 1, "ide" : 7 } No B parent  ****
+
+
+C { "ida" : 40, "idb" :  2, "idc" :  5 } No B parent  ****
+
+D { "ida" : 40, "idb" :  2, "idc" :  5, "idd" :  5 } No B parent  ****
+
+D { "ida" : 40, "idb" :  2, "idc" :  5, "idd" : 10 } No B parent  ****
+
+
+D { "ida" : 40, "idb" :  3, "idc" :  6, "idd" : 10 } No B, C anc ****
+
+
+C { "ida" : 40, "idb" :  4, "idc" :  7 } No B parent  ****
+
+D { "ida" : 40, "idb" :  4, "idc" :  7, "idd" : 10 } No B anc ****
+
+D { "ida" : 40, "idb" :  4, "idc" :  7, "idd" : 12 } No B anc ****
+
+C { "ida" : 40, "idb" :  4, "idc" : 10 } No B anc, no desc ****
+
+D { "ida" : 40, "idb" :  4, "idc" : 12, "idd" : 10 } No B, C anc ****
+
+
+E { "ida" : 40, "idb" :  4, "ide" : 7 } No B parent  ****
+
+
+B { "ida" : 40, "idb" :  5 } no C child ****
+
+D { "ida" : 40, "idb" :  5, "idc" : 10, "idd" : 15 } No C parent ****
+
+D { "ida" : 40, "idb" :  5, "idc" : 10, "idd" : 20 } No C parent ****
+
+D { "ida" : 40, "idb" :  5, "idc" : 10, "idd" : 25 } No C parent ****
+
+
+E { "ida" : 40, "idb" :  5, "ide" : 25 }
+
+E { "ida" : 40, "idb" :  5, "ide" : 35 }
+
+
+B { "ida" : 40, "idb" :  6 } No C, E desc ****
+
+D { "ida" : 40, "idb" :  6, "idc" : 20, "idd" : 25 } No C parent ****
+
+D { "ida" : 40, "idb" :  6, "idc" : 25, "idd" : 30 } No C parent ****
+
+D { "ida" : 40, "idb" :  6, "idc" : 25, "idd" : 35 } No C parent ****
+
+
+B { "ida" : 40, "idb" : 7 } No C, D desc ****
+
+E { "ida" : 40, "idb" : 7, "ide" : 25 }
+
+E { "ida" : 40, "idb" : 7, "ide" : 35 }
+
+E { "ida" : 40, "idb" : 7, "ide" : 45 }
+
+
+B { "ida" : 40, "idb" : 8 } no C child ****
+
+D { "ida" : 40, "idb" : 8, "idc" : 25, "idd" : 30 } No C parent ****
+
+D { "ida" : 40, "idb" : 8, "idc" : 25, "idd" : 35 } No C parent ****
+
+E { "ida" : 40, "idb" : 8, "ide" : 25 }
+
+E { "ida" : 40, "idb" : 8, "ide" : 35 }
+
+
+B { "ida" : 40, "idb" : 9 }
+
+C { "ida" : 40, "idb" : 9, "idc" :  5 }
+
+D { "ida" : 40, "idb" : 9, "idc" :  5, "idd" : 30 }
+
+C { "ida" : 40, "idb" : 9, "idc" :  6 }
+
+D { "ida" : 40, "idb" : 9, "idc" : 6, "idd" : 35 }
+
+D { "ida" : 40, "idb" : 9, "idc" : 6, "idd" : 45 }
+
+
+E { "ida" : 40, "idb" : 9, "ide" : 25 }
+
+E { "ida" : 40, "idb" : 9, "ide" : 35 }
+
+E { "ida" : 40, "idb" : 9, "ide" : 45 }
+
+E { "ida" : 40, "idb" : 9, "ide" : 55 }
+
+
+
+F { "ida" : 40, "idf" : 9 }
+
+F { "ida" : 40, "idf" : 19 }
+
+F { "ida" : 40, "idf" : 29 }
+
+F { "ida" : 40, "idf" : 39 }
+
+
+G { "ida" : 40, "idg" : 3 }
+
+J { "ida" : 40, "idg" : 3, "idj" : 25 }
+
+J { "ida" : 40, "idg" : 3, "idj" : 35 }
+
+H { "ida" : 40, "idg" : 5, "idh" : 35 } No G parent ****
+
+
+G { "ida" : 40, "idg" : 7 }
+
+H { "ida" : 40, "idg" : 7, "idh" : 35 } 
+
+J { "ida" : 40, "idg" : 8, "idj" : 25 } No G parent ****
+
+J { "ida" : 40, "idg" : 8, "idj" : 35 } No G parent ****
+
+
+G { "ida" : 40, "idg" : 10 } No desc ****
+
+
+G { "ida" : 40, "idg" : 15 } 
+
+J { "ida" : 40, "idg" : 15, "idj" : 25 }
+
+J { "ida" : 40, "idg" : 15, "idj" : 35 }
+
+H { "ida" : 40, "idg" : 15, "idh" : 25 }
+
+H { "ida" : 40, "idg" : 15, "idh" : 35 }
+
+H { "ida" : 40, "idg" : 15, "idh" : 45 }
+
+H { "ida" : 40, "idg" : 15, "idh" : 46 }
+
+
+G { "ida" : 40, "idg" : 21 } No Desc ****
+
+
+
+
+B { "ida" : 41, "idb" : 10 } no anc, no desc ****
+
+G { "ida" : 41, "idg" : 10 } No anc, no desc *****
+
+D { "ida" : 42, "idb" :  4, "idc" : 10, "idd" : 10 } No anc ****
+
+
+
+A { "ida" : 45 }
+
+J { "ida" : 45, "idg" : 5, "idj":10 }
+
+A { "ida" : 50 }
+
+A { "ida" : 55 }
+
+A { "ida" : 60 }
+
+{ "ida" : 65 }
+
+{ "ida" : 70 }
+
+{ "ida" : 75 }
+
+{ "ida" : 80 }
+
+{ "ida" : 85 }
+
+{ "ida" : 90 }
+
+{ "ida" : 95 }
+
+

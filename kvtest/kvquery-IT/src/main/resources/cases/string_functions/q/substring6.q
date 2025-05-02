@@ -1,0 +1,1 @@
+select id, str1, substring(str1, 4, 0) from stringsTable ORDER BY id

@@ -1,0 +1,20 @@
+unordered-result
+{"ida1":"A11_Dgp2YJJdeO","a2":1,"a3":"A31pptPWmSC28AdHvO2xBTm","idb1":0,"idb2":-473,"idd1":0.0,"d2":2.83E-100,"d3":4003,"d4":["ryV","b5TF9M"]}
+{"ida1":"A11_Dgp2YJJdeO","a2":1,"a3":"A31pptPWmSC28AdHvO2xBTm","idb1":12,"idb2":2147483647,"idd1":-0.1,"d2":12345.0,"d3":4001,"d4":["abc","2lZX","EhzQ"]}
+{"ida1":"A11_Dgp2YJJdeO","a2":1,"a3":"A31pptPWmSC28AdHvO2xBTm","idb1":12,"idb2":2147483647,"idd1":3.1415,"d2":234.56,"d3":4002,"d4":["lmnopq","rst"]}
+{"ida1":"A12_nqlyEhzQef0EGbu","a2":0,"a3":"A32ec9CWK0funvz91krWV1rVFTIkwQy","idb1":-56,"idb2":-4781,"idd1":8.65E12,"d2":2.92E85,"d3":4004,"d4":null}
+{"ida1":"A12_nqlyEhzQef0EGbu","a2":0,"a3":"A32ec9CWK0funvz91krWV1rVFTIkwQy","idb1":0,"idb2":8965,"idd1":null,"d2":null,"d3":null,"d4":null}
+{"ida1":"A13_NFe2lZXfxsmrFpn","a2":-3,"a3":"A33qcyUB24Iy2Vgy0YJ","idb1":-2147483648,"idb2":456789,"idd1":4.516E-100,"d2":8.34E8,"d3":4005,"d4":["uvw"]}
+{"ida1":"A13_NFe2lZXfxsmrFpn","a2":-3,"a3":"A33qcyUB24Iy2Vgy0YJ","idb1":-56,"idb2":-2147483648,"idd1":7.8E-99,"d2":7.7892,"d3":4006,"d4":[""]}
+{"ida1":"A14_Mb5TF9MryV3vsvI","a2":-2147483648,"a3":"A34DAdly0zFb7","idb1":-123,"idb2":2147483647,"idd1":null,"d2":null,"d3":null,"d4":null}
+{"ida1":"A14_Mb5TF9MryV3vsvI","a2":-2147483648,"a3":"A34DAdly0zFb7","idb1":2147483647,"idb2":-5843,"idd1":null,"d2":null,"d3":null,"d4":null}
+{"ida1":null,"a2":null,"a3":null,"idb1":-2147483648,"idb2":4748,"idd1":null,"d2":null,"d3":null,"d4":null}
+{"ida1":null,"a2":null,"a3":null,"idb1":999999,"idb2":-1111,"idd1":null,"d2":null,"d3":null,"d4":null}
+{"ida1":null,"a2":null,"a3":null,"idb1":-56,"idb2":-2147483648,"idd1":8.65E12,"d2":777.0,"d3":6677,"d4":[" ",""]}
+{"ida1":null,"a2":null,"a3":null,"idb1":-56,"idb2":-4781,"idd1":2.92E-56,"d2":555.5,"d3":87654321,"d4":["2oHsN","oMe1AN0"]}
+{"ida1":null,"a2":null,"a3":null,"idb1":6666,"idb2":-2147483648,"idd1":null,"d2":null,"d3":null,"d4":null}
+{"ida1":null,"a2":null,"a3":null,"idb1":8888,"idb2":-2147483648,"idd1":null,"d2":null,"d3":null,"d4":null}
+{"ida1":null,"a2":null,"a3":null,"idb1":8888,"idb2":7777,"idd1":null,"d2":null,"d3":null,"d4":null}
+{"ida1":null,"a2":null,"a3":null,"idb1":-2147483648,"idb2":2147483647,"idd1":null,"d2":null,"d3":null,"d4":null}
+{"ida1":null,"a2":null,"a3":null,"idb1":0,"idb2":0,"idd1":null,"d2":null,"d3":null,"d4":null}
+{"ida1":null,"a2":null,"a3":null,"idb1":2147483647,"idb2":-2147483648,"idd1":null,"d2":null,"d3":null,"d4":null}

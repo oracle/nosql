@@ -1,0 +1,180 @@
+<HTML>
+<BODY>
+This package provides general fault handling and error catalog facilities. It
+defines a consistent mechanism for exception and error handling by classifying
+fault domains as being restricted to just a request or extending beyond the
+request to the process level and handling them appropriately. It's always
+desirable to constrain the impact of the an exception to the request domain,
+since it minimizes its impact on the overall service. All faults handled
+by this framework result in POJO <i>ErrorResponse</i> using the response model
+specified by RFC7807. 
+<p>
+The framework provides for process cleanup and exit with well defined process
+exit codes for process domain faults. While the process exit codes are generated
+by the framework their handling is outside the scope of the framework.  Users of
+this framework can supply their own process-level fault handling procedures,
+based upon the process exit codes. For example, they can choose to alert a sys
+admin immediately, or attempt to restart the process some pre-determined number
+of times within a time interval before giving up and alterting a sys admin.
+<p>
+The framework can be extended by supplying appropriate overriding methods around
+<p>
+
+<h1>Class Descriptions:</h1>
+<h2>RequestFault</h2>
+Identifies faults (Exceptions or Errors) whose fault domain can be
+restricted to the request that was being processed at the time the fault was
+encountered. The server state is not impacted by the fault and the server can
+continue processing other requests.<p>
+<h2>RequestFaultException</h2>
+A wrapper exception, implementing <i>RequestFault</i> used to wrap existing
+exceptions when their fault domain is restricted to the request.<p>
+<h2>ProcessFault</h2>
+This interface, which is a subtype of RequestFault, identifies faults whose fault
+domain extends beyond the request to the entire process. That is, the integrity
+of the process servicing requests is questionable after encountering the
+associated fault and the process must exit. Any exception that does not
+implement RequestFault is treated implicitly as a ProcessFault with a predefined
+HTTP response and process exit code. 
+<h2>ProcessFaultException</h2>
+A wrapper exception used to wrap existing exceptions or errors when their
+fault domain is process level.<p>
+<h2>RequestWrapper</h2>
+This abstract class provides a centralized place to wrap every request
+execution, so that exceptions can be handled in a consistent way. Subtypes
+of this class can be used to provide request-specific behavior around the
+wrapped request execution, for example, they can be used to provide logging
+of requests.<p> 
+<h2>ExceptionHandler</h2>
+This abstract base class handles exceptions of request and process fault
+domains. The exceptions thrown from <i>RequestWrapper.execute()</i> are
+processed by this handler along with other exceptions that might be encountered
+by the framework being used. Every exception is translated and mapped to a
+POJO modeled according to RFC7807 used to build HTTP response payload. The
+handler handles <i>ProcessFault</i> exceptions by additionally arranging for
+the process to exit in response to the fault; the specifics of the process
+cleanup and exit, are implemented by subclasses of this handler via the
+<i>queueShutdown()</i> method.<p>
+<h2>Examples:</h2>
+<ol>
+<li>
+Exceptions thrown from <i>RequestWrapper.execute()</i> should implement 
+<i>RequestFault</i> or <i>ProcessFault</i> to clearly indicate the nature of
+the fault; the wrapper classes <i>RequestFaultException</i> and
+<i>ProcessFaultException</i> provide convenient implementation of these
+interfaces. All other exceptions are typically considered to be unanticipated
+errors and will result in the process being terminated.
+<pre>
+<code>
+try {
+...
+} catch (IOException ioe) {
+     throw new RequestFaultException(message,
+         ioe, ErrorCode.UNKNOWN_INTERNAL_ERROR);
+}
+</code>
+</pre>
+</li>
+<li>
+Using <i>RequestWrapper</i> to wrap operation execution. Users of the abstract
+class can specialize the behavior by defining the following methods that
+are invoked around the call to the execute method: <i>requestPreExecute</i>
+(before request execution), <i>requestSucceeded</i> (optionally after request
+execution), <i>requestFailed</i> (optionally after request execution).
+<i>requestPreExecute</i> is always executed. One of <i>requestSucceeded</i>
+or <i>requestFailed</i> is executed based upon the disposition of the request.
+Exceptions thrown by these methods are treated as localized <i>RequestFault</i>
+internal server errors.<p>
+
+createTable in oracle.nosql.sc.api.TMservice is a typical example using
+<i>RequestWrapper.</i>.
+<pre>
+<code>
+public class TMService {
+
+    ...
+    /**
+     * Specialize the requestXXX methods, logging context of request.
+     */
+    private final RequestWrapper wrapper = new RequestWrapper() {
+
+        @Override
+        public <R> void requestPreExecute(SimpleRequest<R> request,
+                                       RequestContext context) {
+            logger.info("Start " + context.describe());
+        }
+
+        @Override
+        public <R> void requestSucceeded(SimpleRequest<R> request,
+                                      RequestContext context) {
+            logger.info(context.describe() + " succeeded");
+        }
+
+        @Override
+        public <R> void requestFailed(SimpleRequest<R> request,
+                                   Throwable error,
+                                   RequestContext context) {
+            logger.info(context.describe() + " failed, " + error);
+        }
+    };
+
+    @POST
+    @Path("/tables/{tablename}")
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    public Response createTable(@PathParam("tablename") String tablename,
+                                CreateTableInputs createTableInputs,
+                                @Context HttpServletRequest request) {
+
+        final String returnInfoPayload = wrapper.execute(
+          (RequestWrapper.SimpleRequest<String>)() -> {
+          ...
+       },  new HttpRequestContext(request));
+       ...
+}
+</code>
+</pre>
+</li>
+<li>
+Extend <i>ExceptionHandler</i> with specializing process shutdown procedure and
+exceptions handling. <i>SCExceptionHandler</i> is a typical example used by
+REST API services, it also extends javax.ws.rs.ext.ExceptionMapper.
+<pre>
+<code>
+@Provider
+public class SCExceptionHandler extends ExceptionHandler
+    implements ExceptionMapper<Exception> {
+
+    @Override
+    public Response toResponse(Exception ex) {
+        final ErrorResponse payload = handleException(ex);
+        final String json = objectMapper.writeValueAsString(payload);
+        Response
+            .status(error.getStatus)
+            .entity(json)
+            .type(APPLICATION_PROBLEM_JSON)
+            .header("Cache-Control", "no-cache, no-store, must-revalidate")
+            .header("Pragma", "no-cache")
+            .build();
+    }
+
+    @Override
+    void queueShutdown(Exception exception, ProcessExitCode exitCode) {
+        ...
+    }
+}
+</code>
+</pre>
+Note that <i>handleException</i> in <i>ExceptionHandler</i>
+translates <i>RequestFault</i> and <i>UnsupportedOperationException</i>, other
+exceptions are all translated to a HTTP response with UNKNWON_INTERNAL_ERROR.
+If subclasses need to handle other exceptions, override the method
+<i>handleUnknownException.</i><p>
+
+In addition, subclasses of <i>ExceptionHandler</i> must define process cleanup
+and exit procedure in the method <i>queueShutdown</i> for handling process-level
+faults.
+</li>
+</ol> 
+</BODY>
+</HTML>

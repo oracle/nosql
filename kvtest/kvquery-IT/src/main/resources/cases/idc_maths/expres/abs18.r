@@ -1,0 +1,2 @@
+unordered-result
+{"numMap":{"zero":0},"absnumMap":null,"numNestedMap":{"x":{"zero":0}},"absnumNestedMap":null,"douMap":{"infinity":Infinity},"absdouMap":null,"douNestedMap":{"z":{"infinity":-Infinity}},"absdouNestedMap":null,"docnumMap":{"zero":0},"absdocnumMap":null,"docnumNestedMap":{"x":{"zero":0}},"absdocnumNestedMap":null,"docdouMap":{"infinity":2.7976931348623157E+308},"absdocdouMap":null,"docdouNestedMap":{"z":{"infinity":-5.7976931348623157E+308}},"absdocdouNestedMap":null}

@@ -1,0 +1,9 @@
+ordered-result
+{"int":5,"Column_2":10}
+{"int":null,"Column_2":20}
+{"int":-2,"Column_2":30}
+{"int":10,"Column_2":30}
+{"int":4,"Column_2":40}
+{"int":1,"Column_2":50}
+{"int":2,"Column_2":50}
+{"int":20,"Column_2":70}

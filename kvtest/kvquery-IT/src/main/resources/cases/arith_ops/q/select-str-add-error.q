@@ -1,0 +1,1 @@
+select int + "x" + 100 + " chickens" from Foo

@@ -1,0 +1,1 @@
+select id1, int from Foo where (-int +----flt + - - - + - lng + -- - dbl) > 14

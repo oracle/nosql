@@ -1,0 +1,1 @@
+select id1, id1 - lng * dbl + int / flt from Foo where flt != 0

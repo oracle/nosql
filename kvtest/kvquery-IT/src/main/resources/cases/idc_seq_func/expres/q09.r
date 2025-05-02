@@ -1,0 +1,11 @@
+unordered-result
+{"id1":1,"stats1keys":3}
+{"id1":2,"stats1keys":3}
+{"id1":3,"stats1keys":3}
+{"id1":4,"stats1keys":null}
+{"id1":5,"stats1keys":1}
+{"id1":6,"stats1keys":null}
+{"id1":7,"stats1keys":null}
+{"id1":8,"stats1keys":null}
+{"id1":9,"stats1keys":null}
+{"id1":10,"stats1keys":null}

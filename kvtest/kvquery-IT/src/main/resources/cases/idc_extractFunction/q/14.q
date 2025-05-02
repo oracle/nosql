@@ -1,0 +1,2 @@
+#expression returns month using Extract Function for records with timestamp of all nine precision
+SELECT id,extract(month from t.rec.tsr0) as ts0,extract(month from t.rec.tsr1) as ts1,extract(month from t.rec.tsr2) as ts2,extract(month from t.rec.tsr3) as ts3,extract(month from t.rec.tsr4) as ts4,extract(month from t.rec.tsr5) as ts5,extract(month from t.rec.tsr6) as ts6,extract(month from t.rec.tsr7) as ts7 ,extract(month from t.rec.tsr8) as ts8 ,extract(month from t.rec.tsr9) as ts9 FROM Extract t

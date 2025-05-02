@@ -1,0 +1,156 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>com.oracle.nosql</groupId>
+    <artifactId>proxy</artifactId>
+    <version>25.2.0-SNAPSHOT</version>
+  </parent>
+
+  <artifactId>cloudsim</artifactId>
+
+  <name>Oracle NoSQL Database Cloud Simulator</name>
+  <url>https://www.oracle.com/database/nosql/</url>
+
+  <dependencies>
+    <dependency>
+      <groupId>com.oracle.nosql</groupId>
+      <artifactId>httpproxy</artifactId>
+      <version>${project.version}</version>
+      <!-- excludes these packages to suppress conflict warnings -->
+      <!-- all classes in these packages are provided from kvstore -->
+      <exclusions>
+        <exclusion>
+          <groupId>com.oracle.nosql</groupId>
+          <artifactId>kvclient</artifactId>
+        </exclusion>
+      </exclusions>
+    </dependency>
+    <dependency>
+      <groupId>com.oracle.nosql</groupId>
+      <artifactId>kvstore</artifactId>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <plugins>
+      <plugin>
+        <artifactId>maven-clean-plugin</artifactId>
+      </plugin>
+      <plugin>
+        <artifactId>maven-resources-plugin</artifactId>
+      </plugin>
+      <plugin>
+        <artifactId>maven-compiler-plugin</artifactId>
+      </plugin>
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>buildnumber-maven-plugin</artifactId>
+      </plugin>
+      <plugin>
+        <artifactId>maven-install-plugin</artifactId>
+      </plugin>
+      <plugin>
+        <artifactId>maven-deploy-plugin</artifactId>
+      </plugin>
+      <plugin>
+        <artifactId>maven-project-info-reports-plugin</artifactId>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-shade-plugin</artifactId>
+        <configuration>
+          <useDependencyReducedPomInJar>true</useDependencyReducedPomInJar>
+          <!-- jline is not used by cloudsim -->
+          <artifactSet>
+            <excludes>
+              <exclude>org.jline:*</exclude>
+            </excludes>
+          </artifactSet>
+          <!-- remove these common files to suppress conflict warnings -->
+          <filters>
+            <filter>
+              <artifact>*:*</artifact>
+              <excludes>
+                <exclude>META-INF/versions/9/module-info.class</exclude>
+                <exclude>META-INF/MANIFEST.MF</exclude>
+                <exclude>META-INF/io.netty.versions.properties</exclude>
+              </excludes>
+            </filter>
+          </filters>
+
+          <relocations>
+            <!-- 3rd party libs - Jackson, Netty, gson, reactivestreams -->
+            <relocation>
+              <pattern>com.fasterxml.jackson</pattern>
+              <shadedPattern>shaded.nosql.com.fasterxml.jackson</shadedPattern>
+            </relocation>
+            <relocation>
+              <pattern>com.google</pattern>
+              <shadedPattern>shaded.nosql.com.google</shadedPattern>
+            </relocation>
+            <relocation>
+              <pattern>io.netty</pattern>
+              <shadedPattern>shaded.nosql.io.netty</shadedPattern>
+            </relocation>
+            <relocation>
+              <pattern>org.reactivestreams</pattern>
+              <shadedPattern>shaded.nosql.org.reactivestreams</shadedPattern>
+            </relocation>
+            <!-- all oracle.* artifacts except cloudsim itself -->
+            <relocation>
+              <pattern>oracle</pattern>
+              <excludes>
+                <exclude>oracle.nosql.cloudsim.*</exclude>
+              </excludes>
+              <shadedPattern>shaded.nosql.oracle</shadedPattern>
+            </relocation>
+            <!-- JE -->
+            <relocation>
+              <pattern>com.sleepycat</pattern>
+              <shadedPattern>shaded.nosql.com.sleepycat</shadedPattern>
+            </relocation>
+          </relocations>
+
+
+          <transformers>
+            <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+              <mainClass>oracle.nosql.cloudsim.CloudSim</mainClass>
+            </transformer>
+          </transformers>
+        </configuration>
+        <executions>
+          <execution>
+            <phase>package</phase>
+            <goals>
+              <goal>shade</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-assembly-plugin</artifactId>
+        <configuration>
+          <finalName>oracle-nosql-cloud-simulator-${project.version}</finalName>
+          <descriptors>
+            <descriptor>src/assembly/cloudsim.xml</descriptor>
+          </descriptors>
+          <appendAssemblyId>false</appendAssemblyId>
+        </configuration>
+        <executions>
+          <execution>
+            <id>make-assembly</id>
+            <phase>package</phase>
+            <goals>
+              <goal>single</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
+</project>

@@ -1,0 +1,431 @@
+###
+# Table and records can be on multiple lines but they must be delimited by an
+# empty line.
+#
+# Line  "Table: table-name" defines the table name to be used and it must
+# precede the records. Multiple tables can be populated in the same file.
+###
+
+
+Table: fooNew
+
+{ 
+  "id"   : 0,
+  "shardId":0,
+  "foo1" : 7, "foo2" : 3.5, "foo3" : "a", "foo4" : 100, 
+  "info" :
+  {
+    "bar1" : 7, "bar2" : 3.5, "bar3" : "a", "bar4" : 100,
+    "phones" : [ {"num" : 3, "kind" : "a"}, 
+                 {"num" : 5, "kind" : "b"},
+                 {"num" : 6, "kind" : "c"} ]
+  }
+}
+
+{ 
+  "id"   : 1,
+  "shardId":1,
+  "foo1" : 8, "foo2" : 3.4, "foo3" : "x", "foo4" : 101, 
+  "info" :
+  {
+    "bar1" : 7, "bar2" : 3.0, "bar3" : "r", "bar4" : 107,
+    "phones" : [ {"num" : 3, "kind" : "x" }, 
+                 {"num" : 8, "kind" : "r"},
+                 {"num" : 5, "kind" : "r"} ]
+  }
+}
+
+{ 
+  "id"   : 2,
+  "shardId":2,
+  "foo1" : 1, "foo2" : 3.9, "foo3" : "b", "foo4" : 105, 
+  "info" :
+  {
+    "bar1" : 3, "bar2" : 3.1, "bar3" : "c", "bar4" : 106,
+    "phones" : [ {"num" : 5, "kind" : "c"}, 
+                 {"num" : 5, "kind" : "b"},
+                 {"num" : 7, "kind" : "w"} ]
+  }
+}
+
+{ 
+  "id"   : 3,
+  "shardId":3,
+  "foo1" : 9, "foo2" : 3.4, "foo3" : "t", "foo4" : 101, 
+  "info" :
+  {
+    "bar1" : 4, "bar2" : 3.5, "bar3" : "v", "bar4" : 109,
+    "phones" : [ {"num" : 4, "kind" : "h"}, 
+                 {"num" : 9, "kind" : "m"},
+                 {"num" : 6, "kind" : "w"} ]
+  }
+}
+
+{ 
+  "id"   : 4,
+  "shardId":4,
+  "foo1" : 4, "foo2" : 3.5, "foo3" : "d", "foo4" : 104, 
+  "info" :
+  {
+    "bar1" : 7, "bar2" : 3.9, "bar3" : "d", "bar4" : 106,
+    "phones" : [ {"num" : 4, "kind" : "o"}, 
+                 {"num" : 4, "kind" : "o"},
+                 {"num" : 9, "kind" : "k"} ]
+  }
+}
+
+{ 
+  "id"   : 5,
+  "shardId":5,
+  "foo1" : 3, "foo2" : 3.0, "foo3" : "h", "foo4" : 108, 
+  "info" :
+  {
+    "bar1" : 7, "bar2" : 3.1, "bar3" : "g", "bar4" : 107,
+    "phones" : [ {"num" : 6, "kind" : "e"}, 
+                 {"num" : 8, "kind" : "m"},
+                 {"num" : 2, "kind" : "r"} ]
+  }
+}
+
+{ 
+  "id"   : 6,
+  "shardId":6,
+  "foo1" : 8, "foo2" : 3.7, "foo3" : "f", "foo4" : 100, 
+  "info" :
+  {
+    "bar1" : 8, "bar2" : 3.5, "bar3" : "u", "bar4" : 100,
+    "phones" : [ {"num" : 8, "kind" : "g"}, 
+                 {"num" : 9, "kind" : "h"},
+                 {"num" : 7, "kind" : "t"} ]
+  }
+}
+
+{ 
+  "id"   : 7,
+  "shardId":7,
+  "foo1" : 7, "foo2" : 3.9, "foo3" : "a", "foo4" : 104, 
+  "info" :
+  {
+    "bar1" : 7, "bar2" : 3.1, "bar3" : "u", "bar4" : 105,
+    "phones" : [ {"num" : 3, "kind" : "w"}, 
+                 {"num" : 5, "kind" : "x"},
+                 {"num" : 6, "kind" : "s"}]
+  }
+}
+
+{ 
+  "id"   : 8,
+  "shardId":8,
+  "foo1" : 2, "foo2" : 3.3, "foo3" : "p", "foo4" : 100, 
+  "info" :
+  {
+    "bar1" : 3, "bar2" : 3.4, "bar3" : "e", "bar4" : 105,
+    "phones" : [ {"num" : 3, "kind" : "e"}, 
+                 {"num" : 3, "kind" : "p"},
+                 {"num" : 1, "kind" : "w"}]
+  }
+}
+
+{ 
+  "id"   : 9,
+  "shardId":9,
+  "foo1" : 4, "foo2" : 3.6, "foo3" : "r", "foo4" : 103, 
+  "info" :
+  {
+    "bar1" : 6, "bar2" : 3.5, "bar3" : "k", "bar4" : 103,
+    "phones" : [ {"num" : 8, "kind" : "r"}, 
+                 {"num" : 3, "kind" : ""},
+                 {"num" : 4, "kind" : "k"}]
+  }
+}
+
+{ 
+  "id"   : 10,
+  "shardId":10,
+  "foo1" : 6, "foo2" : 3.3, "foo3" : "j", "foo4" : 101, 
+  "info" :
+  {
+    "bar1" : 7, "bar2" : 3.7, "bar3" : "l", "bar4" : 105,
+    "phones" : [ {"num" : 5, "kind" : "f"}, 
+                 {"num" : 2, "kind" : "d"},
+                 {"num" : 1, "kind" : "n"}]
+  }
+}
+
+{ 
+  "id"   : 11,
+  "shardId":11,
+  "foo1" : 6, "foo2" : 3.9, "foo3" : "p", "foo4" : 108, 
+  "info" :
+  {
+    "bar1" : 4, "bar2" : 3.9, "bar3" : "p", "bar4" : 102,
+    "phones" : [ {"num" : 2, "kind" : "u"}, 
+                 {"num" : 8, "kind" : "x"},
+                 {"num" : 9, "kind" : "z"}]
+  }
+}
+
+{ 
+  "id"   : 12,
+  "shardId":12,
+  "foo1" : 5, "foo2" : 3.0, "foo3" : "f", "foo4" : 102, 
+  "info" :
+  {
+    "bar1" : 7, "bar2" : 3.0, "bar3" : "y", "bar4" : 102,
+    "phones" : [ {"num" : 3, "kind" : "b"}, 
+                 {"num" : 6, "kind" : "v"},
+                 {"num" : 9, "kind" : "c"}]
+  }
+}
+
+{ 
+  "id"   : 13,
+  "shardId":13,
+  "foo1" : 5, "foo2" : 3.4, "foo3" : "h", "foo4" : 106, 
+  "info" :
+  {
+    "bar1" : 5, "bar2" : 3.6, "bar3" : "r", "bar4" : 104,
+    "phones" : [ {"num" : 7, "kind" : "h"}, 
+                 {"num" : 7, "kind" : "m"},
+                 {"num" : 6, "kind" : "r"}]
+  }
+}
+
+{ 
+  "id"   : 14,
+  "shardId":14,
+  "foo1" : 9, "foo2" : 3.9, "foo3" : "x", "foo4" : 108, 
+  "info" :
+  {
+    "bar1" : 1, "bar2" : 3.8, "bar3" : "q", "bar4" : 100,
+    "phones" : [ {"num" : 1, "kind" : "q"}, 
+                 {"num" : 8, "kind" : "z"},
+                 {"num" : 5, "kind" : "a"}]
+  }
+}
+
+{ 
+  "id"   : 15,
+  "shardId":15,
+  "foo1" : 9, "foo2" : 3.4, "foo3" : "w", "foo4" : 100, 
+  "info" :
+  {
+    "bar1" : 3, "bar2" : 3.6, "bar3" : "a", "bar4" : 100,
+    "phones" : [ {"num" : 2, "kind" : "w"}, 
+                 {"num" : 4, "kind" : "e"},
+                 {"num" : 6, "kind" : "t"}]
+  }
+}
+
+{ 
+  "id"   : 16,
+  "shardId":16,
+  "foo1" : 8, "foo2" : 3.8, "foo3" : "a", "foo4" : 103, 
+  "info" :
+  {
+    "bar1" : 4, "bar2" : 3.9, "bar3" : "a", "bar4" : 102,
+    "phones" : [ {"num" : 9, "kind" : "l"}, 
+                 {"num" : 8, "kind" : "t"},
+                 {"num" : 7, "kind" : "o"}]
+  }
+}
+
+{ 
+  "id"   : 17,
+  "shardId":17,
+  "foo1" : 5, "foo2" : 3.0, "foo3" : "q", "foo4" : 104, 
+  "info" :
+  {
+    "bar1" : 1, "bar2" : 3.0, "bar3" : "m", "bar4" : 107,
+    "phones" : [ {"num" : 5, "kind" : "t"}, 
+                 {"num" : 3, "kind" : "q"},
+                 {"num" : 4, "kind" : "q"}]
+  }
+}
+
+{ 
+  "id"   : 18,
+  "shardId":18,
+  "foo1" : 7, "foo2" : 3.1, "foo3" : "n", "foo4" : 108, 
+  "info" :
+  {
+    "bar1" : 9, "bar2" : 3.0, "bar3" : "m", "bar4" : 108,
+    "phones" : [ {"num" : 4, "kind" : "j"}, 
+                 {"num" : 5, "kind" : "r"},
+                 {"num" : 6, "kind" : "x"}]
+  }
+}
+
+{ 
+  "id"   : 19,
+  "shardId":19,
+  "foo1" : 2, "foo2" : 3.6, "foo3" : "r", "foo4" : 100, 
+  "info" :
+  {
+    "bar1" : 2, "bar2" : 3.9, "bar3" : "a", "bar4" : 104,
+    "phones" : [ {"num" : 7, "kind" : "w"}, 
+                 {"num" : 6, "kind" : "i"},
+                 {"num" : 6, "kind" : "o"}]
+  }
+}
+
+{ 
+  "id"   : 20,
+  "shardId":20,
+  "foo1" : 6, "foo2" : 3.8, "foo3" : "b", "foo4" : 106, 
+  "info" :
+  {
+    "bar1" : 8, "bar2" : 3.4, "bar3" : "a", "bar4" : 130,
+    "phones" : [ {"num" : 3, "kind" : "e"}, 
+                 {"num" : 5, "kind" : "a"},
+                 {"num" : 6, "kind" : "o"}]
+  }
+}
+
+
+{ 
+  "id"   : 21,
+  "shardId":21,
+  "foo1" : 6, "foo3" : "b", "foo4" : 106, 
+  "info" :
+  {
+    "bar1" : 8, "bar2" : 3.4, "bar3" : "a", 
+    "phones" : [ {"num" : 3, "kind" : "e"}, 
+                 {"num" : 5, "kind" : "a"},
+                 {"num" : 6, "kind" : "o"}]
+  }
+}
+
+{ 
+  "id"   : 22,
+  "shardId":22,
+  "foo3" : "r", "foo4" : 100, 
+  "info" :
+  {
+    "bar2" : 3.9, "bar3" : "a", "bar4" : 104,
+    "phones" : [ {"num" : 7, "kind" : "w"}, 
+                 {"num" : 6, "kind" : "i"},
+                 {"num" : 6, "kind" : "o"}]
+  }
+}
+
+
+{ 
+  "id"   : 23,
+  "shardId":23,
+  "foo1" : 7, "foo2" : 3.1,
+  "info" :
+  {
+    "bar1" : 9, "bar2" : null, "bar3" : null, "bar4" : 108,
+    "phones" : [ {"num" : 4, "kind" : "j"}, 
+                 {"num" : 5, "kind" : "r"},
+                 {"num" : 6, "kind" : "x"}]
+  }
+}
+
+
+{ 
+  "id"   : 24,
+  "shardId":24,
+  "foo1" : 5, "foo2" : 3.0, "foo3" : "q", "foo4" : 104, 
+  "info" :
+  {
+    "bar1" : null, "bar2" : 3.0, "bar4" : 107
+  }
+}
+
+
+{ 
+  "id"   : 25,
+  "shardId":25,
+  "foo1" : 5, "foo2" : 3.0, "foo3" : "q", "foo4" : 104, 
+  "info" :
+  {
+    "bar3" : "d", "bar4" : 107
+  }
+}
+
+Table: ComplexType
+
+{ "id":0, "firstName":"first0", "lastName":"last0","age":10,"ptr":"firstName",
+  "address":
+  {
+    "city": "San Fransisco",
+    "state"  : "CA",
+    "phones" : [ { "work" : 504,  "home" : 50 },
+                 { "work" : 518,  "home" : 51 },
+                 { "work" : 528,  "home" : 52 },
+                 { "work" : 538,  "home" : 53 },
+                 { "work" : 548,  "home" : 54 } ],
+    "ptr"    : "city"
+  },
+  "children":
+  {
+    "John" : { "age" : 10, "friends" : ["Anna", "John", "Maria"]},
+    "Lisa" : { "age" : 12, "friends" : ["Ada"]}
+  },
+ "lng":0, "flt":10.5, "dbl":3.5,"bool":true, "enm":"tok1", "bin" :"dGVzdGJpbmFyeQ==", "fbin":"dGVzdGJpbmFyeQ=="
+}
+
+{ "id":1, "firstName":"first1", "lastName":"last1","age":11,"ptr":"lastName",
+  "address":
+  {
+    "city"   : "Boston",
+    "state"  : "MA",
+    "phones" : [ { "work" : 304,  "home" : 30 },
+                 { "work" : 318,  "home" : 31 } ],
+    "ptr"    : "state"
+  },
+  "children":
+  {
+    "Anna" : { "age" : 9, "friends" : ["Bobby", "John"]},
+    "Mark" : { "age" : 4, "friends" : ["George"]}
+  },
+  "flt":5.5
+}
+
+{ "id":2, "firstName":"first2", "lastName":"last2","age":12,"ptr":"firstName",
+  "address":
+  {
+    "city"   : "Portland",
+    "state"  : "OR",
+    "phones" : [ { "work" : 104,  "home" : 10 },
+                 { "work" : 118,  "home" : 11 } ],
+    "ptr"    : "phones"
+  },
+  "children":
+  {
+  }
+}
+
+{ "id":3, "firstName":"first3", "lastName":"last3","age":13,"ptr":"lastName",
+  "address":
+  {
+    "city"   : "Seattle",
+    "state"  : "WA",
+    "phones" : [ ],
+    "ptr"    : "phones",
+    "test"   : null
+  },
+  "children":
+  {
+    "George" : { "age" : 7,  "friends" : ["Bill", "Mark"]},
+    "Matt" :   { "age" : 14, "friends" : ["Bill"]}
+  }
+}
+
+Table: SimpleDatatype
+
+{ "id":3, "shardId":13, "name":"Sonam", "salary":12000.0, "percentage":4.5, "rank":16000, "rating":4.1, "isEmp":true, "enm":"tok1", "lastname":"Gupta", "age":25, "bin":"dGVzdGJpbmFyeQ==", "fbin":"dGVzdGJpbmFyeQ==" }
+
+{ "id":2, "shardId":12, "name":"Manoj", "salary":1200.0, "percentage":7.5, "rank":13676000, "rating":3.1, "isEmp":true, "enm":"tok3", "lastname":"Gupta", "age":35, "bin":null, "fbin":null }
+
+{ "id":1, "shardId":11, "name":"Rohit", "salary":120.0, "percentage":5.5, "rank":1003676000, "rating":2.1, "isEmp":true, "enm":"tok1", "lastname":"Verma", "age":30, "bin":null, "fbin":null }
+
+{ "id":0, "shardId":10, "name":"Shyam", "salary":12.0, "percentage":6.5, "rank":1000000, "rating":1.1, "isEmp":false, "enm":"tok2", "lastname":"Sharma", "age":25, "bin":null, "fbin":null }
+
+{ "id":4, "shardId":14, "name":"Sonam", "salary":1200.0, "percentage":4.5, "rank":26000, "rating":4.1, "isEmp":false, "enm":null, "lastname":"Sharma", "age":35, "bin":null, "fbin":"dGVzdGJpbmFyeQ==" }
+
+{ "id":5, "shardId":11, "name":"Radha", "salary":14000.0, "percentage":7.5, "rank":1000000, "rating":1.1, "isEmp":false, "enm":null, "lastname":"Singh", "age":30, "bin":"dGVzdGJpbmFyeQ==", "fbin":null }
+
+

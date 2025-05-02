@@ -1,0 +1,2 @@
+#expression returns minute using minute() function for record type with timestamp of all nine precision
+SELECT id,minute(t.rec.tsr0) as tsr0,minute(t.rec.tsr1) as tsr1,minute(t.rec.tsr2) as tsr2,minute(t.rec.tsr3) as tsr3,minute(t.rec.tsr4) as tsr4,minute(t.rec.tsr5) as tsr5,minute(t.rec.tsr6) as tsr6,minute(t.rec.tsr7) as tsr7 ,minute(t.rec.tsr8) as tsr8 ,minute(t.rec.tsr9) as tsr9 FROM Extract t

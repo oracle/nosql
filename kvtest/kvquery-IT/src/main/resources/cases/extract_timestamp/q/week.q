@@ -1,0 +1,1 @@
+select week(t.ts0), week(t.rec.ts3), week(t.mts6.values($key="k1")), week(t.ats9[0]) from Foo t order by id

@@ -1,0 +1,85 @@
+
+Table: foo
+
+{
+  "str"  : "abc",
+  "id1"  : 1,
+  "id2"  : 100,
+  "info" : { },
+  "rec1" : {
+     "long" : 100,
+     "rec2" : { "str" : "dfg",
+                "num" : 23.4,
+                "arr" : [ 4, 6]
+              },
+     "map" : { "foo" : "xyz", "bar" : "dfw" }
+  }
+}
+
+
+{
+  "str"  : "abc",
+  "id1"  : 2,
+  "id2"  : 100,
+  "info" : { "a" : 10, "b" : [ 3, 6 ] },
+  "rec1" : {
+     "long" : 100,
+     "rec2" : { "str" : "dfg",
+                "num" : 23.4,
+                "arr" : [ 4, 6]
+              },
+     "map" : { "foo" : "xyz", "bar" : "dfw" }
+  }
+}
+
+
+{
+  "str"  : "abc",
+  "id1"  : 3,
+  "id2"  : 100,
+  "info" : { "a" : 10, "b" : [ 3, 6 ] },
+  "rec1" : {
+     "long" : 100,
+     "rec2" : { "str" : "dfg",
+                "num" : 23.4,
+                "arr" : [ 4, 6]
+              },
+     "map" : { "foo" : "xyz", "bar" : "dfw" }
+  }
+}
+
+
+{
+  "str"  : "abc",
+  "id1"  : 4,
+  "id2"  : 100,
+  "info" : { "a" : 10, "b" : [ 3, 6 ] },
+  "rec1" : {
+     "long" : 100,
+     "rec2" : { "str" : "dfg",
+                "num" : 23.4,
+                "arr" : [ 4, 6]
+              },
+     "map" : { "foo" : "xyz", "bar" : "dfw" }
+  }
+}
+
+
+{
+  "str"  : "abc",
+  "id1"  : 5,
+  "id2"  : 100,
+  "info" : { "a" : 10, "b" : [ 3, 6 ] },
+  "rec1" : {
+     "long" : 100,
+     "rec2" : { "str" : "dfg",
+                "num" : 23.4,
+                "arr" : [ 4, 6]
+              },
+     "map" : { "foo" : "xyz", "bar" : "dfw" }
+  }
+}
+
+
+
+

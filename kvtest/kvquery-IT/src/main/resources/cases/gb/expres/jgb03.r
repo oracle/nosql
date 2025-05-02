@@ -1,0 +1,10 @@
+unordered-result
+{"acctno":345,"count":5}
+{"acctno":345,"count":1}
+{"acctno":346,"count":1}
+{"acctno":346,"count":1}
+{"acctno":346,"count":1}
+{"acctno":347,"count":3}
+{"acctno":348,"count":3}
+{"acctno":349,"count":2}
+{"acctno":349,"count":2}

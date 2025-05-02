@@ -1,0 +1,17 @@
+select st.id,
+    ltrim([][]) as l0,
+    ltrim( ['  abc'][]) as l1,
+    ltrim( ['  abc', '  cde'][]) as l2,
+    rtrim([][]) as r0,
+    rtrim( ['abc  '][]) as r1,
+    rtrim( ['abc  ', 'cde  '][]) as r2,
+    trim([][]) as b0,
+    trim( ['  abc  '][]) as b1,
+    trim( ['  abc  ', '  cde  '][]) as b2,
+    trim('  abc  ', [][]) as arg20,
+    trim('  abc  ', ['both'][]) as arg21,
+    trim('  abc  ', ['both', 'both'][]) as arg22,
+    trim('---abc---', 'both', [][]) as arg30,
+    trim('---abc---', 'both', ['---'][]) as arg31,
+    trim('---abc---', 'both', ['---', '--'][]) as arg32
+from stringsTable2 st ORDER BY st.id

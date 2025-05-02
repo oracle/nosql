@@ -1,0 +1,141 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>com.oracle.nosql</groupId>
+    <artifactId>kv</artifactId>
+    <version>25.2.0-SNAPSHOT</version>
+  </parent>
+
+  <artifactId>kvstore</artifactId>
+
+  <name>Oracle NoSQL Database KV</name>
+  <url>https://www.oracle.com/database/nosql/</url>
+
+  <dependencies>
+    <dependency> <groupId>com.oracle.nosql</groupId> <artifactId>kvmain</artifactId> <version>${project.version}</version> <scope>provided</scope> </dependency>
+
+    <dependency> <groupId>org.apache.sshd</groupId> <artifactId>sshd-core</artifactId> </dependency>
+    <dependency> <groupId>org.apache.sshd</groupId> <artifactId>sshd-common</artifactId> </dependency>
+    <dependency> <groupId>org.apache.sshd</groupId> <artifactId>sshd-sftp</artifactId> </dependency>
+    <dependency> <groupId>com.fasterxml.jackson.core</groupId> <artifactId>jackson-core</artifactId> </dependency>
+    <dependency> <groupId>com.google.code.gson</groupId> <artifactId>gson</artifactId> </dependency>
+    <dependency> <groupId>org.reactivestreams</groupId> <artifactId>reactive-streams</artifactId> </dependency>
+    <dependency> <groupId>org.jline</groupId> <artifactId>jline-native</artifactId> </dependency>
+    <dependency> <groupId>org.jline</groupId> <artifactId>jline-reader</artifactId> </dependency>
+    <dependency> <groupId>org.jline</groupId> <artifactId>jline-terminal</artifactId> </dependency>
+
+    <dependency> <groupId>io.netty</groupId> <artifactId>netty-buffer</artifactId> </dependency>
+    <dependency> <groupId>io.netty</groupId> <artifactId>netty-codec</artifactId> </dependency>
+    <dependency> <groupId>io.netty</groupId> <artifactId>netty-codec-http</artifactId> </dependency>
+    <dependency> <groupId>io.netty</groupId> <artifactId>netty-codec-socks</artifactId> </dependency>
+    <dependency> <groupId>io.netty</groupId> <artifactId>netty-common</artifactId> </dependency>
+    <dependency> <groupId>io.netty</groupId> <artifactId>netty-handler</artifactId> </dependency>
+    <dependency> <groupId>io.netty</groupId> <artifactId>netty-handler-proxy</artifactId> </dependency>
+    <dependency> <groupId>io.netty</groupId> <artifactId>netty-resolver</artifactId> </dependency>
+    <dependency> <groupId>io.netty</groupId> <artifactId>netty-transport</artifactId> </dependency>
+  </dependencies>
+  <build>
+    <plugins>
+      <plugin>
+        <artifactId>maven-clean-plugin</artifactId>
+      </plugin>
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>buildnumber-maven-plugin</artifactId>
+      </plugin>
+      <plugin>
+        <artifactId>maven-dependency-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>extract</id>
+            <phase>prepare-package</phase>
+            <goals>
+              <goal>unpack</goal>
+            </goals>
+          </execution>
+        </executions>
+        <configuration>
+          <outputDirectory>${project.build.outputDirectory}</outputDirectory>
+          <artifactItems>
+            <artifactItem> <groupId>com.oracle.nosql</groupId> <artifactId>kvmain</artifactId> <version>${project.version}</version> </artifactItem>
+            <artifactItem> <groupId>org.antlr</groupId> <artifactId>antlr4-runtime</artifactId> </artifactItem>
+          </artifactItems>
+          <includes>
+            oracle/**/*.class,
+            com/sleepycat/**/*.class,
+            org/antlr/**/*.class,
+            messages*.properties,
+            version/build.properties,
+          </includes>
+          <excludes>
+            oracle/kv/**/exttab/*.class,
+            oracle/kv/coherence/*.class,
+            oracle/kv/coherence/pof/*.class,
+            oracle/kv/pubsub/*.class,
+            oracle/kv/xregion/*.class,
+            oracle/kv/impl/pubsub/**/*.class,
+            oracle/kv/impl/xregion/agent/pitr/**/*.class,
+            oracle/kv/impl/xregion/agent/mrt/**/*.class,
+            oracle/kv/impl/xregion/agent/Base*.class,
+            oracle/kv/impl/xregion/agent/Region*.class,
+            oracle/kv/impl/xregion/service/**/*.class,
+            oracle/kv/impl/security/wallet/*.class,
+            oracle/kv/impl/util/Wallet*.class,
+            oracle/kv/impl/security/kerberos/*.class,
+            oracle/kv/impl/security/oauth/*.class,
+            oracle/kv/impl/tif/esclient/security/*.class,
+            oracle/security/**/*.class,
+          </excludes>
+        </configuration>
+      </plugin>
+      <plugin>
+        <artifactId>maven-antrun-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>set-release-edition</id>
+            <phase>prepare-package</phase>
+            <configuration>
+              <target>
+                <propertyfile file="${project.build.outputDirectory}/version/build.properties">
+                  <entry key="release.edition" value="${release.edition}"/>
+                </propertyfile>
+              </target>
+            </configuration>
+            <goals>
+              <goal>run</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <artifactId>maven-jar-plugin</artifactId>
+        <configuration>
+          <archive>
+            <manifest>
+              <mainClass>oracle.kv.impl.util.KVStoreMain</mainClass>
+            </manifest>
+            <manifestEntries>
+              <Class-Path>nosqlnode-plugins.jar objectstorage_archive.jar</Class-Path>
+            </manifestEntries>
+          </archive>
+        </configuration>
+      </plugin>
+      <plugin>
+        <artifactId>maven-install-plugin</artifactId>
+      </plugin>
+      <plugin>
+        <artifactId>maven-deploy-plugin</artifactId>
+        <configuration>
+          <skip>false</skip>
+        </configuration>
+      </plugin>
+      <plugin>
+        <artifactId>maven-project-info-reports-plugin</artifactId>
+      </plugin>
+    </plugins>
+  </build>
+</project>

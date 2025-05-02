@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>com.oracle.nosql</groupId>
+    <artifactId>kv</artifactId>
+    <version>25.2.0-SNAPSHOT</version>
+  </parent>
+
+  <artifactId>proxy</artifactId>
+  <packaging>pom</packaging>
+
+  <name>Oracle NoSQL Database Proxy</name>
+  <url>https://www.oracle.com/database/nosql/</url>
+
+  <profiles>
+    <profile>
+      <id>pleasing-IDE</id>
+      <activation>
+        <activeByDefault>true</activeByDefault>
+      </activation>
+      <dependencies>
+        <dependency>
+          <groupId>com.oracle.nosql</groupId>
+          <artifactId>kvmain</artifactId>
+          <version>${project.version}</version>
+          <scope>provided</scope>
+        </dependency>
+      </dependencies>
+    </profile>
+  </profiles>
+
+  <modules>
+    <module>httpproxy</module>
+    <module>cloudsim</module>
+  </modules>
+
+  <properties>
+    <nosqldriver.version>5.4.17-SNAPSHOT</nosqldriver.version>
+    <qtf.version>1.0.0</qtf.version>
+    <qtf.cases.version>25.1.11</qtf.cases.version>
+
+    <!-- nosql test dependencies version -->
+    <oci.sdk.version>3.44.0</oci.sdk.version>
+
+    <!-- Make it easier to run single test from parent folder -->
+    <failIfNoTests>false</failIfNoTests>
+  </properties>
+
+  <!-- dependencyManagement in the parent pom defines the common configuration for all dependencies -->
+  <!-- sub-modules inherit these settings, but still need to list subset of dependencies in their own pom -->
+  <!-- if we plan to change the artifact's name, we need to modify both parent pom and sub-module pom -->
+  <dependencyManagement>
+    <dependencies>
+      <!-- Internal libraries -->
+      <dependency> <groupId>com.oracle.nosql</groupId> <artifactId>kvclient</artifactId> <version>${project.version}</version> </dependency>
+      <dependency> <groupId>com.oracle.nosql</groupId> <artifactId>kvstore</artifactId> <version>${project.version}</version> </dependency>
+
+      <!-- NOTE: these artifacts are embedded in kvclient, so don't need to be included here
+
+         <dependency> <groupId>com.oracle.nosql.common</groupId> <artifactId>commonkv</artifactId> </dependency>
+         <dependency> <groupId>com.oracle.nosql.cloud</groupId> <artifactId>cloudutil</artifactId> </dependency>
+         <dependency> <groupId>com.oracle.nosql.common</groupId> <artifactId>sklogger</artifactId> </dependency>
+         <dependency> <groupId>com.oracle.nosql</groupId> <artifactId>nson</artifactId> </dependency>
+         <dependency> <groupId>com.oracle.nosql.common</groupId> <artifactId>commonutil</artifactId> </dependency>
+      -->
+
+      <!-- build/test only and not shipped or used at runtime for cloudsim and httpproxy -->
+      <!-- tests sub-models will overwrite the scope of these dependencies to compile though -->
+
+      <!-- NoSQL Driver and qtf -->
+      <dependency> <groupId>com.oracle.nosql.sdk</groupId> <artifactId>nosqldriver</artifactId> <version>${nosqldriver.version}</version> <scope>test</scope> </dependency>
+      <dependency> <groupId>com.oracle.nosql.common</groupId> <artifactId>qtf</artifactId> <version>${qtf.version}</version> <scope>test</scope> </dependency>
+      <dependency> <groupId>com.oracle.nosql.common</groupId> <artifactId>qtfcases</artifactId> <version>${qtf.cases.version}</version> <scope>test</scope> </dependency>
+
+      <!-- for rest tests -->
+      <dependency> <groupId>com.oracle.oci.sdk</groupId> <artifactId>oci-java-sdk-common</artifactId> <version>${oci.sdk.version}</version> <scope>test</scope> </dependency>
+      <dependency> <groupId>com.oracle.oci.sdk</groupId> <artifactId>oci-java-sdk-nosql</artifactId> <version>${oci.sdk.version}</version> <scope>test</scope> </dependency>
+      <dependency> <groupId>com.oracle.oci.sdk</groupId> <artifactId>oci-java-sdk-common-httpclient-jersey3</artifactId> <version>${oci.sdk.version}</version> <scope>test</scope> </dependency>
+
+      <!-- add slf4j-nop.jar to suppresss warning
+         SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder"-->
+      <dependency> <groupId>org.slf4j</groupId> <artifactId>slf4j-nop</artifactId> <version>1.7.33</version> <scope>test</scope> </dependency>
+    </dependencies>
+  </dependencyManagement>
+
+  <build>
+    <pluginManagement>
+      <plugins>
+        <plugin>
+          <artifactId>maven-surefire-plugin</artifactId>
+          <version>3.1.2</version>
+          <configuration>
+            <failIfNoSpecifiedTests>false</failIfNoSpecifiedTests>
+          </configuration>
+        </plugin>
+        <plugin>
+          <artifactId>maven-project-info-reports-plugin</artifactId>
+          <version>3.4.1</version>
+        </plugin>
+      </plugins>
+    </pluginManagement>
+  </build>
+</project>

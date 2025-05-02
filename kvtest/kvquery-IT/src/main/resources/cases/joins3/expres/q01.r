@@ -1,0 +1,9 @@
+unordered-result
+{"u":{"uid":10,"name":"John","email":"john@foo.com","salary":70},"f":{"uid":10,"fid":1,"name":"work","ancestors":null,"children":[{"fid":2,"name":"proj1"}]},"m":{"uid":10,"fid":1,"mid":1,"sender":"jim@bar.com","receiver":"john@foo.com","time":"2017-12-12T10:05:30.000","size":50,"content":"Hello"},"p":null}
+{"u":{"uid":10,"name":"John","email":"john@foo.com","salary":70},"f":{"uid":10,"fid":1,"name":"work","ancestors":null,"children":[{"fid":2,"name":"proj1"}]},"m":{"uid":10,"fid":1,"mid":2,"sender":"tim@bar.com","receiver":"john@foo.com","time":"2017-12-12T11:05:30.000","size":500,"content":"Thanks"},"p":null}
+{"u":{"uid":10,"name":"John","email":"john@foo.com","salary":70},"f":{"uid":10,"fid":1,"name":"work","ancestors":null,"children":[{"fid":2,"name":"proj1"}]},"m":{"uid":10,"fid":1,"mid":3,"sender":"tim@bar.com","receiver":"john@foo.com","time":"2017-12-10T11:05:30.000","size":50,"content":"Good news!"},"p":null}
+{"u":{"uid":10,"name":"John","email":"john@foo.com","salary":70},"f":{"uid":10,"fid":1,"name":"work","ancestors":null,"children":[{"fid":2,"name":"proj1"}]},"m":{"uid":10,"fid":1,"mid":4,"sender":"jane@bar.com","receiver":"john@foo.com","time":"2017-12-10T11:05:30.000","size":150,"content":"Bad news!"},"p":null}
+{"u":{"uid":10,"name":"John","email":"john@foo.com","salary":70},"f":{"uid":10,"fid":2,"name":"proj1","ancestors":[{"fid":1,"name":"work"}],"children":null},"m":null,"p":null}
+{"u":{"uid":10,"name":"John","email":"john@foo.com","salary":70},"f":null,"m":null,"p":{"uid":10,"pid":5,"size":10,"content":null}}
+{"u":{"uid":10,"name":"John","email":"john@foo.com","salary":70},"f":null,"m":null,"p":{"uid":10,"pid":6,"size":12,"content":null}}
+{"u":{"uid":10,"name":"John","email":"john@foo.com","salary":70},"f":null,"m":null,"p":{"uid":10,"pid":7,"size":11,"content":null}}

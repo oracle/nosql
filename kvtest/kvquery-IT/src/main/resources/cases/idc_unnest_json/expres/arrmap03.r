@@ -1,0 +1,14 @@
+unordered-result
+{"id":1,"areacode":104}
+{"id":2,"areacode":104}
+{"id":2,"areacode":104}
+{"id":5,"areacode":104}
+{"id":1,"areacode":318}
+{"id":4,"areacode":400}
+{"id":1,"areacode":480}
+{"id":2,"areacode":480}
+{"id":2,"areacode":480}
+{"id":4,"areacode":610}
+{"id":1,"areacode":null}
+{"id":2,"areacode":null}
+{"id":2,"areacode":null}

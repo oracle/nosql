@@ -1,0 +1,165 @@
+################
+q01.q
+################
+select id
+from foo f
+where f.info.addresses.phones.values().values().areacode =any 408
+
+
+
+################
+q02.q
+################
+select id
+from foo f
+where exists f.info.addresses.phones.values().values($value.areacode = 408 and $value.kind = "home")
+
+
+
+################
+q03.q
+################
+select id
+from foo f
+where exists f.info.addresses[$element.state = "CA"].
+             phones.values().values($value.areacode = 408 and $value.kind = "work")
+
+
+
+################
+q04.q
+################
+select id
+from foo f
+where exists f.info.addresses.phones.values().values($key = "phone6" and
+                                                     $value.areacode = 650 and
+                                                     $value.number > 30)
+
+
+
+################
+q05.q
+################
+select id
+from foo f
+where exists f.info.addresses.phones.values().phone1[$element.areacode = 650 and $element.number > 30]
+
+
+
+################
+q06.q
+################
+select id
+from foo f
+where exists f.info.addresses.phones.values($value.areacode = 408 and $value.kind = "work")
+
+
+
+################
+q07.q
+################
+select id
+from foo f
+where exists f.info.addresses.phones.values($value.phone1.areacode = 510)
+
+
+
+################
+q08.q
+################
+select id
+from foo f
+where exists f.info.addresses.phones.values($value.values().areacode = 510)
+
+
+
+################
+q09.q
+################
+select id
+from foo f
+where exists f.info.addresses.phones.values($value.values().areacode =any 510)
+
+
+
+################
+q10.q
+################
+select id
+from foo f
+where exists f.info.addresses.phones[exists $element.values($value.areacode =any 104)]
+
+
+
+################
+q11.q
+################
+select id
+from foo f
+where exists f.info.addresses.phones[$element.values().values().areacode =any 650]
+
+
+
+################
+q12.q
+################
+select id
+from foo f
+where exists f.info.addresses.phones[$element.values().values().areacode = 650]
+
+
+
+################
+q13.q
+################
+select id
+from foo f
+where exists f.info.addresses.phones.values($value.phone1.areacode =any 408).values($value.number > 30)
+
+
+
+################
+q16.q
+################
+select id
+from foo f
+where exists f.info.addresses.phones[not exists $element.values($value.values().areacode =any 500)]
+
+
+
+################
+q18.q
+################
+select id
+from foo f
+where exists f.info.addresses.phones.values().values().areacode
+
+
+
+################
+q21.q
+################
+select id
+from foo f
+where f.info.map1.key1.map2.values() =any 35
+
+
+
+################
+q22.q
+################
+select id
+from foo f
+where f.info.map1.values($key = "key1").map2.values() =any 35
+
+
+
+################
+q23.q
+################
+select id
+from foo f
+where f.info.map1.values().map2.key1 =any 10
+
+
+

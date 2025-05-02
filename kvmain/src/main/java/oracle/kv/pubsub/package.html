@@ -1,0 +1,21 @@
+<HTML>
+<BODY>
+Provides the classes used to define a Subscription to all logical changes
+(table row puts and deletes) made to a NoSQL store.
+
+<p>
+    The classes defined here extend or implement the interfaces defined by the
+    reactive stream APIs. Generally, the Oracle NoSQL Subscription API allows
+    users to create subscription streams from each replication group in the
+    Oracle NoSQL Database on a given tables. The subscription stream, as a
+    sequence of onNext calls defined in reactive stream API, represents a
+    partial order which guarantees that for any single key, the order of
+    operations performed on that key on the Oracle NoSQL Database is strictly
+    preserved.
+
+    The interfaces and classes defined in this package includes NoSQLPublisher,
+    NoSQLSubscriber, NoSQLSubscription and other auxiliary configuration
+    classes required to use the Oracle NoSQL Subscription API.
+
+</BODY>
+</HTML>

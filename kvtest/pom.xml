@@ -1,0 +1,328 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>com.oracle.nosql</groupId>
+    <artifactId>kv</artifactId>
+    <version>25.2.0-SNAPSHOT</version>
+  </parent>
+
+  <artifactId>kvtest</artifactId>
+  <packaging>pom</packaging>
+
+  <name>Oracle NoSQL Database Test Aggregator</name>
+  <url>https://www.oracle.com/database/nosql/</url>
+
+  <properties>
+    <!-- Prevent ocibuild from publishing test jars -->
+    <skipPublish>true</skipPublish>
+    <!--
+      This property is used in submodules, so here test.sandboxdir
+      is really pointing to each <submodule>/target/sandbox.
+    -->
+    <test.sandboxdir>${project.build.directory}/sandbox</test.sandboxdir>
+
+    <test.undependable.extra>
+	oracle.kv.impl.admin.plan.PlanExecutionTest.testPlannerRejectedExecution,
+	oracle.kv.impl.api.table.TableBackupTest.testBackup,
+	oracle.kv.impl.api.table.TableErasureTest.testErasureBackupAndLoad
+    </test.undependable.extra>
+    <test.undependable.table-metadata>oracle.kv.impl.rep.TableTest.testTableRemove</test.undependable.table-metadata>
+
+    <test.extArgLine>
+      --add-opens java.base/java.lang=ALL-UNNAMED
+      --add-opens java.base/java.security=ALL-UNNAMED
+      --add-opens java.base/sun.security.provider=ALL-UNNAMED
+      --add-opens java.base/sun.security.x509=ALL-UNNAMED
+      --add-opens java.rmi/sun.rmi.server=ALL-UNNAMED
+    </test.extArgLine>
+
+    <!-- automatically set when using Azul Java -->
+    <test.zing.jvm.options/>
+
+    <!-- any addtional jvm args by 'mvn -DjvmArgs="<args>"'-->
+    <jvmArgs/>
+
+    <!--
+      argLine is the property name used by failsafe/surefire plugins.
+      When enable coverage profile, the jacoco plugin injects the agent
+      by changing the value of argLine, so the agent will be attached to
+      the test.
+    -->
+    <argLine/>
+  </properties>
+
+  <modules>
+    <module>kvclient-IT</module>
+    <module>kvquery-IT</module>
+    <module>kvstore-IT</module>
+    <module>kvdatacheck-IT</module>
+    <module>kvtif-IT</module>
+  </modules>
+
+  <profiles>
+    <!-- Auto-activate when running under Zing -->
+    <profile>
+      <id>zing-env</id>
+      <activation>
+        <property>
+          <name>java.vendor</name>
+          <value>Azul Systems, Inc.</value>
+        </property>
+      </activation>
+      <properties>
+        <test.zing.jvm.options>
+          -XX:+UseZingMXBeans
+        </test.zing.jvm.options>
+      </properties>
+    </profile>
+
+    <!--
+    Suspend the integration test on each test class
+    Waiting for remote attach on port 5005
+    Better to run this with single test
+    mvn -PIT,debug verify -Dit.test=TestClassName#testMethodName
+    -->
+    <profile>
+      <id>debug</id>
+      <properties>
+        <maven.failsafe.debug>true</maven.failsafe.debug>
+      </properties>
+      <build>
+        <plugins>
+          <plugin>
+            <artifactId>maven-failsafe-plugin</artifactId>
+            <configuration>
+              <reuseForks>true</reuseForks>
+            </configuration>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+
+    <!--
+    The default profile that dependents on the kvmain module.
+    When IDE imports the Maven project, all integration tests
+    have kvmain on the classpath such that IDE knows where to
+    find the source code.
+
+    When activating any other profile in the same pom file,
+    the default profile will be deactivated, so kvmain will be
+    removed from classpath, this is expected environment for
+    integration tests.
+    -->
+    <profile>
+      <id>pleasing-IDE</id>
+      <activation>
+        <activeByDefault>true</activeByDefault>
+      </activation>
+      <dependencies>
+        <dependency>
+          <groupId>com.oracle.nosql</groupId>
+          <artifactId>kvmain</artifactId>
+          <version>${project.version}</version>
+          <scope>provided</scope>
+        </dependency>
+      </dependencies>
+    </profile>
+
+    <!--
+    Activate this profile to run ALL integration tests
+    mvn -P IT verify
+    -->
+    <profile>
+      <id>IT</id>
+    </profile>
+
+    <!--
+    Activate this profile to run just kvclient test
+    mvn -P it.kvclient verify
+    -->
+    <profile>
+      <id>it.kvclient</id>
+    </profile>
+
+    <!--
+    Activate this profile to run just kvstore tests
+    mvn -P it.kvstore verify
+    -->
+    <profile>
+      <id>it.kvstore</id>
+    </profile>
+
+    <!--
+    Activate this profile to run just kvquery test
+    mvn -P it.kvquery verify
+    -->
+    <profile>
+      <id>it.kvquery</id>
+    </profile>
+
+    <!--
+    Activate this profile to run just kvtif test
+    mvn -P it.kvtif verify
+    -->
+    <profile>
+      <id>it.kvtif</id>
+    </profile>
+
+    <profile>
+      <id>sync</id>
+      <build>
+        <pluginManagement>
+          <plugins>
+            <plugin>
+              <artifactId>maven-failsafe-plugin</artifactId>
+              <configuration>
+                <systemPropertyVariables>
+                  <oracle.kv.async>false</oracle.kv.async>
+                  <oracle.kv.async.server>false</oracle.kv.async.server>
+                  <oracle.kv.jvm.extraargs>-Doracle.kv.async.server=false;-Doracle.kv.async=false</oracle.kv.jvm.extraargs>
+                </systemPropertyVariables>
+              </configuration>
+            </plugin>
+          </plugins>
+        </pluginManagement>
+      </build>
+    </profile>
+
+    <profile>
+      <id>coverage</id>
+      <modules>
+        <module>coverage-report</module>
+      </modules>
+      <build>
+        <pluginManagement>
+          <plugins>
+            <plugin>
+              <groupId>org.jacoco</groupId>
+              <artifactId>jacoco-maven-plugin</artifactId>
+              <executions>
+                <execution>
+                  <goals>
+                    <goal>prepare-agent-integration</goal>
+                  </goals>
+                  <configuration>
+                    <destFile>${project.build.directory}/${project.artifactId}.exec</destFile>
+                  </configuration>
+                </execution>
+              </executions>
+            </plugin>
+          </plugins>
+        </pluginManagement>
+      </build>
+    </profile>
+  </profiles>
+
+  <build>
+    <pluginManagement>
+      <plugins>
+        <plugin>
+          <artifactId>maven-compiler-plugin</artifactId>
+          <configuration>
+            <useIncrementalCompilation>false</useIncrementalCompilation>
+          </configuration>
+        </plugin>
+        <plugin>
+          <artifactId>maven-antrun-plugin</artifactId>
+          <executions>
+            <execution>
+              <id>prepare-test-directories</id>
+              <phase>pre-integration-test</phase>
+              <configuration>
+                <target>
+                  <mkdir dir="${test.sandboxdir}"/>
+                  <mkdir dir="${test.sandboxdir}/kdc"/>
+                </target>
+              </configuration>
+              <goals>
+                <goal>run</goal>
+              </goals>
+            </execution>
+          </executions>
+        </plugin>
+        <plugin>
+          <artifactId>maven-surefire-plugin</artifactId>
+          <configuration>
+            <skipTests>true</skipTests>
+          </configuration>
+        </plugin>
+        <plugin>
+          <artifactId>maven-failsafe-plugin</artifactId>
+          <executions>
+            <execution>
+              <id>integration-test</id>
+              <goals>
+                <goal>integration-test</goal>
+                <goal>verify</goal>
+              </goals>
+            </execution>
+          </executions>
+          <configuration>
+            <runOrder>random</runOrder>
+            <systemPropertyVariables>
+              <testdestdir>${test.sandboxdir}</testdestdir>
+              <testssldir>${project.parent.basedir}/resources/ssl</testssldir>
+              <testkrbdir>${project.parent.basedir}/resources/kerberos</testkrbdir>
+              <testkdcdir>${test.sandboxdir}/kdc</testkdcdir>
+              <testoauthdir>${project.parent.basedir}/resources/oauth</testoauthdir>
+              <sun.rmi.registry.registryFilter>oracle.kv.**;java.lang.Enum</sun.rmi.registry.registryFilter>
+              <!-- JE test settings -->
+              <test.je.props>
+                je.env.runEraser true;
+                je.erase.period 1 s;
+                je.testMode=true;
+              </test.je.props>
+
+              <!-- Fully qualified names of classes and methods, separated by commas
+                or whitespace, for all tests that are considered undependable.
+                These are tests whose results can temporarily be ignored, except
+                for release regression testing, but that either need to be made
+                more robust so that they can be returned to normal testing,
+                should be removed, or should be permanently skipped by adding
+              them to the skipped property. -->
+              <test.undependable>
+                ${test.undependable.table-metadata}
+                ${test.undependable.extra}
+              </test.undependable>
+              <test.undependable.skip>true</test.undependable.skip>
+
+              <!-- Set the system property java.security.policy to the policy file created for unit tests. -->
+              <java.security.policy>${project.parent.basedir}/resources/unittest.security.policy</java.security.policy>
+              <!-- Set the java util logging file to the desired value. For example,
+                to run each test with logging, set
+              -Djava.util.logging.config.file="kvlog.properties" -->
+              <java.util.logging.config.file/>
+              <!-- Set the Log4j config file; either default (logging off),
+              or a user-supplied logging config. -->
+              <log4j.configuration>file://${project.parent.basedir}/resources/log4j-default.properties</log4j.configuration>
+              <log4j.configurationFile>file://${project.parent.basedir}/resources/log4j-default.properties</log4j.configurationFile>
+              <!-- Specify override arguments to JE data verifier -->
+              <test.je.env.runVerifier>true</test.je.env.runVerifier>
+              <test.je.env.verifierSchedule>* * * * *</test.je.env.verifierSchedule>
+            </systemPropertyVariables>
+            <!-- start new JVM for each test class -->
+            <reuseForks>false</reuseForks>
+            <!-- @{argLine} here is a late property evaluation, it is needed -->
+            <!-- by jacoco plugin to inject agent to the JUnit -->
+            <argLine>@{argLine} ${jvmArgs} ${test.extArgLine} ${test.zing.jvm.options}</argLine>
+            <includes>
+              <include>**/*Test.java</include>
+            </includes>
+            <testSourceDirectory>${project.build.sourceDirectory}</testSourceDirectory>
+            <testClassesDirectory>${project.build.outputDirectory}/</testClassesDirectory>
+          </configuration>
+        </plugin>
+      </plugins>
+    </pluginManagement>
+    <plugins>
+      <!-- activate the checkstyle plugin for all test submodules -->
+      <plugin>
+        <artifactId>maven-checkstyle-plugin</artifactId>
+      </plugin>
+    </plugins>
+  </build>
+</project>

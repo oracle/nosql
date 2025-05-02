@@ -1,0 +1,2 @@
+#Expression has logical and arithmetic operator with is null,is not null in predicate and is null in projection
+select s.map.IDP is null from sn s where age >50 is not null and exists  s.map.IDP[].DL is not null

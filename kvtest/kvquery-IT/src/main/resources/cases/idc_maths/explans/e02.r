@@ -1,0 +1,69 @@
+compiled-query-plan
+
+{
+"query file" : "idc_maths/q/e02.q",
+"plan" : 
+{
+  "iterator kind" : "RECEIVE",
+  "distribution kind" : "SINGLE_PARTITION",
+  "input iterator" :
+  {
+    "iterator kind" : "SELECT",
+    "FROM" :
+    {
+      "iterator kind" : "TABLE",
+      "target table" : "functional_test",
+      "row variable" : "$$functional_test",
+      "index used" : "primary index",
+      "covering index" : true,
+      "index scans" : [
+        {
+          "equality conditions" : {"id":1},
+          "range conditions" : {}
+        }
+      ],
+      "position in join" : 0
+    },
+    "FROM variable" : "$$functional_test",
+    "SELECT expressions" : [
+      {
+        "field name" : "Column_1",
+        "field expression" : 
+        {
+          "iterator kind" : "EQUAL",
+          "left operand" :
+          {
+            "iterator kind" : "TRUNC",
+            "input iterators" : [
+              {
+                "iterator kind" : "E",
+                "input iterators" : [
+
+                ]
+              },
+              {
+                "iterator kind" : "CONST",
+                "value" : 7
+              }
+            ]
+          },
+          "right operand" :
+          {
+            "iterator kind" : "TRUNC",
+            "input iterators" : [
+              {
+                "iterator kind" : "CONST",
+                "value" : 2.718281828459045
+              },
+              {
+                "iterator kind" : "CONST",
+                "value" : 7
+              }
+            ]
+          }
+        }
+      }
+    ]
+  }
+}
+}

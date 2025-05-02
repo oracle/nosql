@@ -1,0 +1,547 @@
+################
+bind01.q
+################
+declare
+$age long; // 2343242134322323
+select id
+from foo f
+where f.children.Anna.iage < $age
+
+
+
+################
+q10.q
+################
+
+select *
+from Boo
+where lastName = "xxx"
+
+
+
+################
+q11.q
+################
+select id, age
+from Boo t
+where t.age > 1342134321432454325
+
+
+
+################
+q12.q
+################
+select id
+from foo f
+where f.children.Anna.iage < 2342349827347439827
+
+
+
+################
+q13.q
+################
+select id
+from foo f
+where f.children.Anna.iage > 2342349827347439827
+
+
+
+################
+q14.q
+################
+select * 
+from t1 
+where name = "alex" and id > 0
+
+
+
+################
+q15.q
+################
+select /*+ FORCE_INDEX(keyOnly first) */ *
+from keyOnly
+where firstName > "first1"
+
+
+
+################
+q16.q
+################
+select id, age
+from foo t
+where t.address.state > "X"
+
+
+
+################
+q1.q
+################
+#
+# partial key and range, plus always-true preds
+#
+select id, age
+from foo t
+where t.address.state = "CA" and
+      t.address.city > "F" and
+      t.address.city > "G"
+
+
+
+################
+q2.q
+################
+#
+# always false
+#
+select id, age
+from foo t
+where "M" > t.address.state and
+      "S" < t.address.city and
+      t.address.city = "Boston" and
+      age > 50
+
+
+
+################
+q3.q
+################
+#
+# always false
+#
+select id, age
+from Foo t
+where "S" < t.address.city and
+      t.address.city = "Boston" and
+      "MA" = t.address.state and
+      age > 50
+
+
+
+################
+q4.q
+################
+#
+# complete key
+#
+select id, age
+from foo t
+where t.address.state = "CA" and
+      t.address.city = "San Fransisco" and
+      t.age = 10
+
+
+
+################
+q5.q
+################
+#
+# key gap
+#
+select id, age
+from foo t
+where t.address.state = "CA" and
+      t.age = 10
+
+
+
+################
+q6.q
+################
+#
+# equality via two range preds
+#
+select id, age
+from foo t
+where "MA" <= t.address.state and
+      t.address.city = "Boston" and
+      "MA" >= t.address.state and
+      age >= 11
+
+
+
+################
+q7.q
+################
+#
+# nothing pushed
+#
+select id, age
+from foo t
+where t.age > 10
+
+
+
+################
+q8.q
+################
+#
+# range only
+#
+select id, age
+from foo t
+where "MA" <= t.address.state
+
+
+
+################
+q9.q
+################
+select id, age
+from foo t
+where "MA" <= t.address.state and id > 1
+
+
+
+################
+rowprops01.q
+################
+select id, remaining_days($f)
+from foo $f
+where $f.address.state = "CA"
+
+
+
+################
+rowprops02.q
+################
+select id, 2 * remaining_days($f) as days, remaining_hours($f) < 15 as hours
+from foo $f
+where $f.address.state = "MA" and 2 * remaining_days($f) > 3
+
+
+
+
+################
+rowprops03.q
+################
+select id, year(expiration_time($f)) >= 2020
+from foo $f
+where $f.address.state = "CA"
+
+
+
+################
+rowprops04.q
+################
+select id, remaining_days($f)
+from foo $f
+
+
+
+################
+rowprops05.q
+################
+select id, row_storage_size($f) >= 190
+from foo $f
+
+
+
+################
+rowprops06.q
+################
+select id,
+       170 <= row_storage_size($f) and row_storage_size($f) <= 185
+from foo $f
+where $f.address.state = "MA"
+
+
+
+################
+rowprops07.q
+################
+select id,
+       32 <= index_entry_storage_size($f, "idx_state_city_age") and
+       index_entry_storage_size($f, "idx_state_city_age") <= 39 as index_size
+from foo $f
+
+
+
+
+################
+rowprops08.q
+################
+select id, 
+       170 <= row_storage_size($f) and row_storage_size($f) <= 185 as row_size,
+       index_entry_storage_size($f, "idx_state_city_age") as index_size
+from foo $f
+
+
+
+################
+rowprops09.q
+################
+select id,
+       40 <= index_entry_storage_size($f, "idx_state_city_age") and
+       index_entry_storage_size($f, "idx_state_city_age") <= 43 as index_size
+from foo $f
+where index_entry_storage_size($f, "idx_state_city_age") > 38
+
+
+
+################
+rowprops10.q
+################
+select id, firstName,
+       index_entry_storage_size($f, "idx_state_city_age") as index_size
+from foo $f
+
+
+
+################
+rowprops11.q
+################
+select id,
+       year(row_modification_time($f)) >= 2020
+from foo $f
+where $f.address.state = "MA"
+
+
+
+################
+rowprops12.q
+################
+select id,
+       year(row_modification_time($f)) >= 2020 and
+       month(row_modification_time($f)) >= 6
+from foo $f
+
+
+
+################
+sort10_desc.q
+################
+select id, t.info.name
+from T2 t
+order by t.info.name desc
+
+
+
+################
+sort10.q
+################
+select id, t.info.name
+from T2 t
+order by t.info.name
+
+
+
+################
+sort11.q
+################
+select id, age
+from foo t
+where t.address.state > "X"
+order by t.address.state, t.address.city, t.age
+
+
+
+################
+sort12.q
+################
+select id,
+       case
+       when exists t.info.name is null then "NULL"
+       when exists t.info.name then t.info.name
+       else "EMPTY"
+       end as name
+from T2 t
+order by t.info.name nulls first
+
+
+
+################
+sort13.q
+################
+select id,
+       case
+       when exists t.info.name is null then "NULL"
+       when exists t.info.name then t.info.name
+       else "EMPTY"
+       end as name
+from T2 t
+order by t.info.name desc nulls last
+
+
+
+################
+sort14.q
+################
+select id,
+       case
+       when exists t.info.name is null then "NULL"
+       when exists t.info.name then t.info.name
+       else "EMPTY"
+       end as name
+from T2 t
+order by t.info.name desc
+
+
+
+################
+sort15.q
+################
+SELECT fld_sid, fld_id, fld_str
+FROM Bar
+ORDER BY fld_sid, fld_id
+# OFFSET 4
+
+
+
+
+################
+sort1.q
+################
+#
+# nothing pushed
+#
+select id, age
+from foo t
+where t.age > 10
+order by t.address.state, t.address.city, t.age
+
+
+
+################
+sort2_desc.q
+################
+#
+# range only
+#
+declare
+$ext1 string; // "MA"
+
+select id, age
+from foo t
+where $ext1 <= t.address.state
+order by t.address.state desc, t.address.city desc, t.age desc
+
+
+
+################
+sort2.q
+################
+#
+# range only
+#
+select id, age
+from foo t
+where "MA" <= t.address.state
+order by t.address.state, t.address.city, t.age
+
+
+
+################
+sort3_desc.q
+################
+#
+# range only
+#
+select id, t.address.state, t.address.city 
+from foo t
+where "MA" <= t.address.state
+order by t.address.state desc, t.address.city desc
+
+
+
+################
+sort3.q
+################
+#
+# range only
+#
+select id, t.address.state, t.address.city 
+from foo t
+where "MA" <= t.address.state
+order by t.address.state, t.address.city
+
+
+
+################
+sort4_desc.q
+################
+select id, t.address.state, t.address.city 
+from foo t
+where "MA" <= t.address.state
+order by t.address.state desc nulls last
+
+
+
+
+################
+sort4.q
+################
+#
+# nothing pushed
+#
+select *
+from foo t
+order by t.address.state, t.address.city, t.age
+
+
+
+################
+sort5.q
+################
+#
+# range only, order-by done by sort iter.
+#
+select *
+from foo t
+where "MA" <= t.address.state
+order by id desc
+
+
+
+################
+sort6.q
+################
+#
+# range only
+#
+select t.address.state, t.address.city 
+from foo t
+where 'MA' <= t.address.state
+order by t.address.state, t.address.city
+
+
+
+################
+sort7.q
+################
+select f.address.state
+from Foo f
+order by f.address.state
+
+
+
+################
+sort8.q
+################
+select firstName
+from boo t
+order by t.age
+
+
+
+################
+sort9.q
+################
+select *
+from boo t
+order by t.age
+
+
+
+################
+sort_primkey.q
+################
+#
+# range only
+#
+select id, age
+from foo t
+where id = 3
+order by t.address.state, t.address.city, t.age
+
+
+

@@ -1,0 +1,234 @@
+################
+ext_q03.q
+################
+declare $uuid2 string; // "28acbcb9-137b-4fc8-99f7-812f20240356"
+select uid2
+from foo
+where uid2 = $uuid2
+
+
+
+################
+ext_q12.q
+################
+declare $uuid1 string; // "28ac"
+select uid2
+from foo
+where uid2 > $uuid1
+
+
+
+################
+ext_q13.q
+################
+declare $uuid1 string; // "28ac"
+select uid2
+from foo
+where uid2 = $uuid1
+
+
+
+################
+ins01.q
+################
+insert into bad1 values ("18acbcb90137b04fc8099f70812f20240356", 1)
+returning *
+
+
+
+################
+ins02.q
+################
+insert into bad2 values ("18b", 1)
+
+
+
+################
+q01.q
+################
+select *
+from foo
+where uid1 = "18acbcb9-137b-4fc8-99f7-812f20240356"
+
+
+
+################
+q02.q
+################
+select uid1
+from foo
+where uid1 = "18acbcb9-137b-4fc8-99f7-812f20240356"
+
+
+################
+q03.q
+################
+select uid2
+from foo
+where uid2 = "28acbcb9-137b-4fc8-99f7-812f20240356"
+
+
+################
+q04.q
+################
+select uid1
+from foo
+where uid1 > "18acbcb9-137b-4fc8-99f7-812f20240356"
+
+
+################
+q05.q
+################
+select uid1
+from foo
+where uid1 < "18acbcb9-137b-4fc8-99f7-812f20240358"
+
+
+################
+q06.q
+################
+select uid2
+from foo
+where uid2 < "28acbcb9-137b-4fc8-99f7-812f20240358"
+
+
+################
+q07.q
+################
+select uid2
+from foo
+where uid2 > "28acbcb9-137b-4fc8-99f7-812f20240358"
+
+
+################
+q08.q
+################
+select uid3
+from foo
+where uid3 = "38acbcb9-137b-4fc8-99f7-812f20240358"
+
+
+################
+q09.q
+################
+select uid3
+from foo
+where uid3 > "38acbcb9-137b-4fc8-99f7-812f20240358"
+
+
+################
+q10.q
+################
+select uid3
+from foo
+where uid3 < "38acbcb9-137b-4fc8-99f7-812f20240358"
+
+
+################
+q11.q
+################
+select uid2
+from foo
+where uid2 > "28acbcb9-137b-4fc8-99f7-812f2fffffff"
+
+
+
+################
+q12.q
+################
+select uid2
+from foo
+where uid2 > "28ac"
+
+
+
+################
+q13.q
+################
+select uid2
+from foo
+where uid2 >= "28ac"
+
+
+
+################
+q14.q
+################
+select uid3
+from foo
+where uid3 >= "38ac"
+
+
+
+################
+q15.q
+################
+select uid1, int
+from foo
+where uid1 in ("18acbcb9-137b-4fc8-99f7-812f20240356", "38xc", "48acbcb9-137b-4fc8-99f7-812f20240356")
+
+
+
+################
+q16.q
+################
+select uid1, int
+from foo
+where uid1 = "38ac"
+
+
+
+################
+q17.q
+################
+select uid2
+from foo
+where uid2 > "ffffffff-ffff-ffff-ffff-fffffffffffe"
+
+
+
+################
+q18.q
+################
+select int, uid2
+from foo
+where int = 3 and uid2 > "ffffffff-ffff-ffff-ffff-ffffffffffff"
+
+
+
+################
+q19.q
+################
+select count(*)
+from foo_default
+where uid="fb703151-bfec-4dc9-ae63-651f5bde91b1"
+
+
+################
+q20.q
+################
+insert into foo_default values(default, 2)
+
+
+################
+q21.q
+################
+select count(*)
+from foo2_default
+where uid="fb703151-bfec-4dc9-ae63-651f5bde91b2"
+
+
+################
+q22.q
+################
+select count(*)
+from foo2_default
+where uid is NULL
+
+
+################
+q23.q
+################
+insert into foo2_default values(default, 3)
+
+

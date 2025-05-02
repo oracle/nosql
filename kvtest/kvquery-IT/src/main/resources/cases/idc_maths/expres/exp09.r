@@ -1,0 +1,2 @@
+unordered-result
+{"numMap":{"a":1,"b":2,"c":3},"expnumMap":null,"numNestedMap":{"x":{"a":1},"y":{"b":2}},"expnumNestedMap":null,"douMap":{"d":1.1,"e":2.2},"expdouMap":null,"douNestedMap":{"z":{"f":3.3}},"expdouNestedMap":null,"docnumMap":{"a":1,"b":2,"c":3},"expdocnumMap":null,"docnumNestedMap":{"x":{"a":1},"y":{"b":2}},"expdocnumNestedMap":null,"docdouMap":{"d":1.1,"e":2.2},"expdocdouMap":null,"docdouNestedMap":{"z":{"f":3.3}},"expdocdouNestedMap":null}

@@ -1,0 +1,11 @@
+unordered-result
+{"id1":1,"min1":null,"min2":null}
+{"id1":2,"min1":null,"min2":null}
+{"id1":3,"min1":null,"min2":null}
+{"id1":4,"min1":null,"min2":null}
+{"id1":5,"min1":null,"min2":null}
+{"id1":6,"min1":124,"min2":null}
+{"id1":7,"min1":-92233720368547758,"min2":null}
+{"id1":8,"min1":122,"min2":null}
+{"id1":9,"min1":"","min2":null}
+{"id1":10,"min1":187,"min2":null}

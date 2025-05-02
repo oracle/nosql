@@ -1,0 +1,12 @@
+ordered-result
+{"id":0,"str1":"abc","str2":"bcd","str3":"cde","s123":"abc","s132":"abc","s12W":"abc","s13X":"abc","s21":"bcd","s31":"cde","s1Null":"abc","sa1":"abcBabc","saempty":"B","samulti":null}
+{"id":1,"str1":null,"str2":"bcd","str3":"cde","s123":null,"s132":null,"s12W":null,"s13X":null,"s21":null,"s31":null,"s1Null":null,"sa1":null,"saempty":"B","samulti":null}
+{"id":2,"str1":null,"str2":null,"str3":"cde","s123":null,"s132":null,"s12W":null,"s13X":null,"s21":null,"s31":null,"s1Null":null,"sa1":null,"saempty":"B","samulti":null}
+{"id":3,"str1":null,"str2":null,"str3":null,"s123":null,"s132":null,"s12W":null,"s13X":null,"s21":null,"s31":null,"s1Null":null,"sa1":null,"saempty":"B","samulti":null}
+{"id":4,"str1":null,"str2":"","str3":null,"s123":null,"s132":null,"s12W":null,"s13X":null,"s21":null,"s31":null,"s1Null":null,"sa1":null,"saempty":"B","samulti":null}
+{"id":5,"str1":"abc","str2":"DEF","str3":"GhIj","s123":"abc","s132":"abc","s12W":"abc","s13X":"abc","s21":"DEF","s31":"GhIj","s1Null":"abc","sa1":"abcBabc","saempty":"B","samulti":null}
+{"id":6,"str1":"   a  b  c   ","str2":"--ABC--","str3":"0000","s123":"   a  b  c   ","s132":"   a  b  c   ","s12W":"   a  b  c   ","s13X":"   a  b  c   ","s21":"--ABC--","s31":"0000","s1Null":"   a  b  c   ","sa1":"   a  b  c   B   a  b  c   ","saempty":"B","samulti":null}
+{"id":7,"str1":"   a  b  c","str2":"--ABC","str3":"000","s123":"   a  b  c","s132":"   a  b  c","s12W":"   a  b  c","s13X":"   a  b  c","s21":"--ABC","s31":"000","s1Null":"   a  b  c","sa1":"   a  b  cB   a  b  c","saempty":"B","samulti":null}
+{"id":8,"str1":"a  b  c   ","str2":"ABC--","str3":"00","s123":"a  b  c   ","s132":"a  b  c   ","s12W":"a  b  c   ","s13X":"a  b  c   ","s21":"ABC--","s31":"00","s1Null":"a  b  c   ","sa1":"a  b  c   Ba  b  c   ","saempty":"B","samulti":null}
+{"id":9,"str1":"         ","str2":"---","str3":"0","s123":"         ","s132":"         ","s12W":"         ","s13X":"         ","s21":"---","s31":"0","s1Null":"         ","sa1":"         B         ","saempty":"B","samulti":null}
+{"id":10,"str1":"aӿ╳▟◿⛱😋⏳","str2":"😋","str3":" 😋⏳ ","s123":"aӿ╳▟◿⛱ 😋⏳ ⏳","s132":"aӿ╳▟◿⛱😋⏳","s12W":"aӿ╳▟◿⛱W⏳","s13X":"aӿ╳▟◿⛱😋⏳","s21":"😋","s31":" 😋⏳ ","s1Null":"aӿ╳▟◿⛱😋⏳","sa1":"aӿ╳▟◿⛱😋⏳Baӿ╳▟◿⛱😋⏳","saempty":"B","samulti":null}

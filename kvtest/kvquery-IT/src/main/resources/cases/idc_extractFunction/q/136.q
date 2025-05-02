@@ -1,0 +1,2 @@
+#expression returns second using second() function for record type with timestamp of all nine precision
+SELECT id,second(t.rec.tsr0) as tsr0,second(t.rec.tsr1) as tsr1,second(t.rec.tsr2) as tsr2,second(t.rec.tsr3) as tsr3,second(t.rec.tsr4) as tsr4,second(t.rec.tsr5) as tsr5,second(t.rec.tsr6) as tsr6,second(t.rec.tsr7) as tsr7 ,second(t.rec.tsr8) as tsr8 ,second(t.rec.tsr9) as tsr9 FROM Extract t

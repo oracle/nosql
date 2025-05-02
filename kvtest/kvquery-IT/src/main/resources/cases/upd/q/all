@@ -1,0 +1,872 @@
+################
+err01.q
+################
+update Foo f
+set f.info.children = 3
+where id > 3
+
+
+
+################
+err02.q
+################
+update Foo f
+set f.id = 5
+where id = 3
+
+
+
+################
+err03.q
+################
+update Foo f
+set f = { "id" = 3, "record" : null, "info" : null }
+where id = 3
+
+
+
+################
+err04.q
+################
+update Foo $f
+set $f[] = { "id" : 3, "record" : null, "info" : null }
+where id = 3
+
+
+
+################
+err05.q
+################
+update Foo u 
+set u.info.address.phones.areacode = $ + 1000
+where id = 0
+
+
+
+################
+err06.q
+################
+update Foo f
+set f.info.age = max(f.id)
+where id = 0
+
+
+
+################
+err07.q
+################
+# Negative case: can't remove the fields from RECORD.
+
+update Bar b
+remove b.record.int
+where id = 20
+
+
+
+################
+mupd01.q
+################
+update users
+set name = upper(name),
+set age = age + 1
+where sid = 0
+
+select id, name, age
+from users
+where sid = 0
+
+
+
+################
+mupd02.q
+################
+update users t
+add t.info.friends 'Jerry',
+put t.info {"hobbies":["Cooking", "Music"]},
+remove t.info.address.street
+where sid = $mupd2_sid and id < $mupd2_id
+
+
+
+################
+mupd03.q
+################
+update users
+set ttl 2 days 
+where sid = 0
+
+select sid, id, remaining_days($u) as days
+from users $u
+where sid = 0
+
+
+
+################
+mupd04.q
+################
+update users 
+set seqNo = null
+where sid = 0 
+
+select sid, id, seqNo
+from users
+where sid = 0
+
+
+
+################
+mupd_err01.q
+################
+#
+# Update fail:
+# RETURNING clause is not supported unless the complete primary key is
+# specified in the WHERE clause.
+#
+update users
+set age = age + 1
+where sid = 0
+returning *
+
+
+
+################
+mupd_err02.q
+################
+#
+# Update should fail:
+#   Invalid type for JSON index field: info.code. Type is STRING, expected type
+#   is INTEGER value = unknown
+#
+update users t 
+put t.info {"code":t.info.address.zipcode} 
+where sid = 1
+
+
+################
+teams2.q
+################
+declare $add integer; $position integer;
+update teams t
+add t.info.teams[1].userids $position $add
+where id = 2
+returning *
+
+
+
+################
+teams.q
+################
+declare $add integer;
+update teams t
+add t.info.teams[1].userids $add
+where id = 1
+returning *
+
+
+
+################
+ttl01.q
+################
+update Foo f
+set ttl 3 hours
+where id = 0
+
+select (expiration_time_millis($f) - current_time_millis()) / (1000 * 3600)
+from Foo $f
+where id = 0
+
+
+
+################
+ttl02.q
+################
+update Foo f
+set ttl 6 days
+where id = 1
+
+select (expiration_time_millis($f) - current_time_millis()) / (1000 * 3600 * 24)
+from Foo $f
+where id = 1
+
+
+
+################
+ttl03.q
+################
+update Foo f
+set ttl 1 hours,
+set ttl using table default
+where id = 2
+
+select (expiration_time_millis($f) - current_time_millis()) / (1000 * 3600 * 24)
+from Foo $f
+where id = 2
+
+
+
+################
+ttl04.q
+################
+update Foo f
+set f.info.address.state = "WI",
+set ttl 1 hours,
+set f.info.address.city = "Madison",
+set ttl seq_concat() hours
+where id = 3
+
+select (expiration_time_millis($f) - current_time_millis()) / (1000 * 3600 * 24),
+       $f.info.address.city
+from Foo $f
+where id = 3
+
+
+
+################
+ttl05.q
+################
+update Foo f
+set f.record.long = 20,
+set ttl -1 hours,
+set f.record.int = null
+where id = 4
+
+select expiration_time_millis($f),
+       $f.record
+from Foo $f
+where id = 4
+
+
+
+################
+ttl06.q
+################
+update Foo $f
+set ttl remaining_hours($f) + 13 hours
+where id = 5
+returning 
+  case when 133 <= remaining_hours($f) and remaining_hours($f) < 157 then
+         true
+       else
+         remaining_hours($f)
+  end
+
+
+
+################
+ttl07.q
+################
+update Foo $f
+set ttl remaining_days($f) + 2 days
+where id = 6
+returning 
+  case when remaining_days($f) = 7 then
+         true
+       else
+         remaining_days($f)
+  end
+
+
+
+################
+ttl20.q
+################
+update Bar $f
+set ttl remaining_hours($f) + 2 hours
+where id = 20
+returning 
+  case when remaining_hours($f) = 32 then
+         true
+       else
+         remaining_hours($f)
+  end
+
+
+
+################
+ttl21.q
+################
+update Bar $f
+set ttl remaining_days($f) + 2 days
+where id = 21
+returning
+  case when remaining_days($f) = 3 then
+         true
+       else
+         remaining_days($f)
+  end
+
+
+
+################
+ttl40.q
+################
+update NoTTL $f
+set ttl case 
+        when remaining_hours($f) < 0 then 2
+        else 10
+        end hours
+where id = 40
+returning 
+  case when remaining_hours($f) = 2 then
+         true
+       else
+         remaining_hours($f)
+  end
+
+
+
+################
+ttl41.q
+################
+update NoTTL $f
+set ttl case 
+        when remaining_hours($f) < 0 then 2
+        else 10
+        end hours
+where id = 41
+
+select
+  case when remaining_hours($f) = 2 then
+         true
+       else
+         remaining_hours($f)
+  end
+from NoTTL $f
+where id = 41
+
+
+
+################
+ttl42.q
+################
+UPDATE NoTTL $j
+SET TTL -1 DAYS
+WHERE id = 40
+RETURNING remaining_days($j) AS Expires
+
+
+
+################
+upd01.q
+################
+update Foo f
+set f.info.age = $ + 2,
+set f.info.lastName = "XYZ",
+json merge f.info with patch { "address" : { "state" : "OR" }, "firstName" : "abc" }
+where id = 0
+
+
+select *
+from Foo
+where id = 0
+
+
+
+################
+upd02.q
+################
+update Foo f
+json merge f.info.address with patch { "street" : "somewhere" },
+           f.info.children.Mark with patch { "hobbies" : [ { "football" : "defence"},
+                                                           "hokey"
+                                                         ],
+                                             "otherParent" : { "firstName" : "john" }
+                                           },
+set f.info.address.phones[$element.areacode > 400].number = $ + 2,
+set f.info.children.values().age = $ * 2,
+set f.info.children.Anna = { "age" : $.age + 1,  "school" : "sch_2", "friends" : []}
+where id = 1
+
+
+select *
+from Foo
+where id = 1
+
+
+
+################
+upd03.q
+################
+update Foo f
+set f.info.address.phones[0].number = $ + f.info.address.phones[1].number,
+    f.record.long = 100,
+    f.record.values($value = 50) = 100,
+    f.info.children = { "Anna" : {"age" : 10,  "school" : "sch_2", "friends" : []}},
+json merge f.info.address with patch { "city" : null }
+where id = 2
+
+
+select *
+from Foo
+where id = 2
+
+
+
+################
+upd04.q
+################
+update Foo f
+set f.record.map1 =
+    { "foo" : { "f1" : { "f1f1" : 1 }, 
+                "f2" : { "f2f1" : 4, "f2f2" : 5 } 
+              } 
+    },
+json merge f.info.children.George.friends with patch [ "Mark", "John" ],
+set f.record.map2 =
+    { "bar" : [ 1, 2, 3] },
+set f.info.address.phones = [],
+add f.info.address.phones { "areacode" : 400, "number" : 3445, "kind" : "work" },
+add f.info.address.phones 0 { "areacode" : 600, "number" : 13132, "kind" : "home" }
+where id = 3
+
+
+select f.record, 
+       f.record.map1.foo.f1 is of type (map(integer)) as typecheck1,
+       f.record.map1.foo.f2 is of type (only map(json)) as typecheck2,
+       f.info.address.phones,
+       f.info.children.George
+from Foo f
+where id = 3
+
+
+
+################
+upd05.q
+################
+update Foo f
+add f.info.address.phones 2 seq_concat("650-345-6798", "408-589-3456"),
+set f.info.phones[0].number = f.record.long,
+json merge f.info.children.Anna.friends with patch { "Mark" : 3, "John" : null }
+where id = 4
+returning f.info
+
+
+
+################
+upd06.q
+################
+declare $income integer;
+        $number integer;
+update Foo f
+put f.info.children 
+    seq_concat({"Matt" : { "age" : 14, "school" : "sch_2", "friends" : ["Bill"]}},
+               {"Dave" : null},
+               {"George" : {"age" : $.Tim.age}}),
+set record = { },
+json merge f.info with patch { "address" : { "city" : $city,
+                                             $state : "CA",
+                                             "phones" : { "areacode" : 610,
+                                                          "number" : $number,
+                                                          "kind" : "home" }
+                                           },
+                               "income" : $income
+                             }
+where id = 5
+returning *
+
+
+
+################
+upd07.q
+################
+update Foo f
+remove f.info.address.phones[].kind
+where id = 6
+
+
+select f.info.address.phones
+from foo f
+where id = 6
+
+
+
+################
+upd08.q
+################
+update Foo f
+set f.info.address.phones[$element.areacode = 408 and
+                          $element.number >= 5000000].areacode = 409,
+remove f.info.address.phones[$element.areacode = 408],
+add f.info.address.phones 3 { "areacode" : 650,  "number" : 400 }
+where id = 7
+
+
+select f.info.address
+from Foo f
+where id = 7
+
+
+
+################
+upd09.q
+################
+update Foo f
+add f.info.address[$element.phones is of type (array(any))].phones 
+    { "areacode" : 650, "number" : 80 },
+set f.info.address[$element.phones is of type (map(any))].phones =
+    [ f.info.address.phones, { "areacode" : 650, "number" : 80 } ]
+where id = 8
+
+
+select f.info.address.phones
+from foo f
+where id = 8
+
+
+
+################
+upd10.q
+################
+update Foo f
+set f.info.values[] = 
+    case when $ is of type (NUMBER) then $ + 10
+         when $ is of type (string) then seq_concat()
+         when $ is of type (map(any)) then {"new":"map"}
+         else "????"
+    end
+where id = 9
+
+select f.info.values
+from Foo f
+where id = 9
+
+
+
+################
+upd11_1.q
+################
+
+update Foo f
+set f.info.address.phones[0] = { "areacode" : 450,  "number" : 8000 }
+where id = 10
+returning f.info.address.phones
+
+
+
+################
+upd11.q
+################
+update Foo f
+set f.info.address.phones[] = { "areacode" : 450,  "number" : 8000 }
+where id = 10
+
+select f.info.address
+from Foo f
+where id = 10
+
+
+
+################
+upd12.q
+################
+update Foo $f
+set $f.info.address.phones[] =
+    case
+    when $ is of type (map(any)) and $.areacode = 415 and $.number >= 5000000 then
+      seq_concat($, { "areacode" : 416 })
+    when $ is of type (string) then
+      "416-500-0000"
+    end
+where id = 11
+returning $f.info.address, remaining_days($f)
+
+
+
+
+################
+upd13.q
+################
+update Foo f
+set f.info.address.state = "CA",
+set f.info.address.phones = $[3]
+where id = 12
+returning f.info.address
+
+
+
+################
+upd14.q
+################
+update Foo f
+remove f.info.children.values()
+where id = 13
+
+select f.info.children
+from Foo f
+where id = 13
+
+
+
+################
+upd15.q
+################
+update Foo f
+remove f.info.maps.values($value = 10 or $value = 20),
+remove f.info.children.keys()
+where id = 14
+returning *
+
+
+
+################
+upd16.q
+################
+update Foo f
+put f.info.map f.record
+where id = 15
+returning f.info.map
+
+
+
+################
+upd17.q
+################
+update Foo f
+set f.info.address.city = "Boston"
+where id = 16
+
+select *
+from foo f
+where id = 16
+
+
+
+################
+upd18.q
+################
+update Foo f
+remove f.info[][0:3]
+where id = 17
+
+
+select f.info
+from foo f
+where id = 17
+
+
+
+################
+upd20.q
+################
+update Foo f
+put f.record.map1 
+    {
+       "rec2" : { "f1" : {},
+                  "f2" : { "j1" : [], "j2" : [1, 3], "key3" : "foo" }
+                },
+       "rec1" : { "f1" : { "i1" : 11 },
+                  "f2" : $.rec1.f2
+                }
+    }
+where id = 19
+returning f.record.map1
+
+
+
+################
+upd21.q
+################
+UPDATE NoTTL $j
+SET TTL USING TABLE DEFAULT
+WHERE id = 40
+RETURNING remaining_days($j) as Expires
+
+
+
+################
+upd22.q
+################
+update T1 t set t.c2[0] = t.c2[1]
+where c1 = 1
+
+
+
+################
+upd23.q
+################
+update foo f
+add f.info.children.George.friends 1 seq_concat("Dave", "Mark", "Marry")
+where id = 20
+
+select f.info.children.George.friends
+from foo f
+where id = 20
+
+
+
+################
+upd24.q
+################
+update foo f
+add f.info.children.George.friends 1 seq_concat()
+where id = 20
+
+
+
+################
+upd25.q
+################
+update foo f
+put f.info.children seq_concat()
+where id = 20
+
+
+
+################
+upd26.q
+################
+update foo f
+set f.record = null
+where id = 0
+
+
+select f.record
+from foo f
+where id = 0
+
+
+
+################
+upd27.q
+################
+update foo f 
+put f.info.children $.values() 
+where id = 22
+
+select f.info.children
+from foo f
+where id = 22
+
+
+
+################
+upd28.q
+################
+update foo f 
+add f.info.phones 1 $[$element.areacode > 400]
+where id = 23
+
+select f.info.phones
+from foo f
+where id = 23
+
+
+
+################
+upd29.q
+################
+update foo f put f.info.children f.record.long 
+where id = 0
+
+
+
+################
+upd30.q
+################
+update foo f
+remove f.info.phones 
+where id = 24
+returning f.info
+
+
+
+################
+upd31.q
+################
+update foo f
+add f.info.phones 100 f.info.phones
+where id = 25
+
+select f.info.phones
+from foo f
+where id = 25
+
+
+
+################
+upd32.q
+################
+update foo f
+put f.info.children { "foo" : $ }
+where id = 26
+
+select f.info.children
+from foo f
+where id = 26
+
+
+
+################
+upd33.q
+################
+update foo f
+set f.info.phones[0] = f.info
+where id = 27
+
+select f.info.phones
+from foo f
+where id = 27
+
+
+
+################
+upd34.q
+################
+declare $ext1 string;
+update Foo f
+set f.info.age = $ + 2,
+set f.info.lastName = $ext1
+where id = 28
+returning *
+
+
+
+
+################
+upd35.q
+################
+update Foo f
+set f.record.map1 =
+    { "foo" : { "f1" : { "f1f1" : 1 }, 
+                "f2" : { "f2f1" : 4, "f2f2" : parse_json($json) } 
+              } 
+    }
+where id = 29
+returning *
+
+
+
+################
+upd36.q
+################
+update Bar b
+remove b.array[$element.ai=1],
+remove b.record.array1[$element.ras='ras1'],
+remove b.record.map1.keys($key='rec1')
+where id = 20
+returning b.array as a, b.record.array1 as ra1, b.record.map1 as rm1
+
+
+
+################
+upd37.q
+################
+update Foo f
+add f.info.address.phones ([ { "areacode" : 650,  "number" : 400 },
+                             { "areacode" : 650,  "number" : 400 } ][])
+where id = 30
+returning *
+
+
+
+################
+upd38.q
+################
+update Foo f
+json merge f.info with patch 5
+where id = 31
+
+select * from foo where id = 31
+
+
+

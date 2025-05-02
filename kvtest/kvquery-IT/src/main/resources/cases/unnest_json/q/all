@@ -1,0 +1,283 @@
+################
+arr01.q
+################
+select /* FORCE_PRIMARY_INDEX(Foo) */id, $phone.number
+from foo as $t, unnest($t.info.address.phones[] as $phone)
+where $t.info.address.state = "CA" and
+      $phone.areacode = 650
+
+
+
+################
+arr02.q
+################
+select /* FORCE_PRIMARY_INDEX(Foo) */id
+from foo as $t, unnest($t.info.address.phones[] as $phone)
+where $t.info.address.state = "CA" and
+      $phone.areacode = 650
+
+
+
+################
+arr03.q
+################
+select /* FORCE_PRIMARY_INDEX(Foo) */id, $phone.areacode
+from foo as $t, unnest($t.info.address.phones[] as $phone)
+where $t.info.address.state = "CA" and
+      408 < $phone.areacode and $phone.areacode <= 650
+
+
+
+################
+arr04.q
+################
+select /* FORCE_PRIMARY_INDEX(Foo) */id
+from foo as $t, unnest($t.info.address.phones[] as $phone)
+where $t.info.address.state = "CA" and
+      $phone.areacode in (650, 408)
+
+
+
+################
+arr05.q
+################
+select /* FORCE_PRIMARY_INDEX(Foo) */id, $phone.areacode
+from foo as $t, unnest($t.info.address.phones[] as $phone)
+where $t.info.address.state = "CA" and
+      600 <any $phone.areacode and $phone.areacode <=any 620
+
+
+
+################
+arr07.q
+################
+select /* FORCE_PRIMARY_INDEX(Foo) */
+       $phone.areacode, count(*) as age
+from foo as t, unnest(t.info.address.phones[] as $phone)
+group by $phone.areacode
+
+
+
+################
+arr08.q
+################
+select /* FORCE_PRIMARY_INDEX(Foo) */
+       $phone.areacode, avg(t.record.long) as age
+from foo as t, unnest(t.info.address.phones[] as $phone)
+group by $phone.areacode
+
+
+
+################
+arr09.q
+################
+select /* FORCE_PRIMARY_INDEX(Foo) */id, $phone.areacode
+from foo as $t, unnest($t.info.address.phones[] as $phone)
+where $t.info.address.state = "CA" and
+      $phone.kind = "home"
+
+
+
+################
+arr10.q
+################
+select /* FORCE_PRIMARY_INDEX(Foo) */id
+from foo as $t, unnest($t.info.address.phones[] as $phone)
+where $t.info.address.state = "MA" and
+      $phone.kind = "home" and
+      $t.info.address.phones[].areacode =any 500
+
+
+
+
+################
+arr11.q
+################
+select /* FORCE_PRIMARY_INDEX(Foo) */
+       $phone.areacode, avg(t.record.long) as age
+from foo as t, unnest(t.info.address.phones[] as $phone)
+where t.info.address.phones[].areacode =any 500
+group by $phone.areacode
+
+
+
+################
+arr12.q
+################
+select /* FORCE_PRIMARY_INDEX(Foo) */id, $phone.number
+from foo as $t, unnest($t.info.address.phones[] as $phone)
+where $t.info.address.state = "CA" and
+      600 <any $t.info.address.phones[].areacode and $phone.areacode <= 620
+
+
+
+################
+arr13.q
+################
+select /* FORCE_PRIMARY_INDEX(Foo) */id, $t.info.address.phones[].areacode
+from foo as $t, unnest($t.info.address.phones[] as $phone)
+where $t.info.address.state = "CA" and
+      $phone.areacode <= 620 and
+      600 <any $t.info.address.phones[].areacode and
+      $phone.areacode < 800
+
+
+
+################
+arr16.q
+################
+select /* FORCE_PRIMARY_INDEX(Foo) */id, $phone1.areacode
+from foo as $t,
+            $t.info.address.phones[] as $phone1,
+            $t.info.address.phones[] as $phone2
+where $t.info.address.state = "CA" and
+      $phone1.areacode = 650 and
+      $phone2.kind = "home"
+
+
+
+################
+arr17.q
+################
+select /* FORCE_PRIMARY_INDEX(Foo) */
+       id, $phone.areacode
+from foo as t, unnest(t.info.address.phones[] as $phone)
+order by $phone.areacode, id
+
+
+
+################
+arr18.q
+################
+select /* FORCE_PRIMARY_INDEX(Foo) */
+       $phone.areacode, min($phone.kind) as min
+from foo as t, unnest(t.info.address.phones[] as $phone)
+group by $phone.areacode
+
+
+
+################
+arr19.q
+################
+select /* FORCE_PRIMARY_INDEX(Foo) */
+       $phone.areacode, $phone.kind, count(*) as cnt
+from foo as t, unnest(t.info.address.phones[] as $phone)
+group by $phone.areacode, $phone.kind
+
+
+
+################
+arrmap01.q
+################
+select /* FORCE_PRIMARY_INDEX(Foo) */id
+from foo as t,
+            unnest(t.info.address.phones[] as $phone),
+            t.info.children.values() as $child
+where t.info.address.state = "CA" and
+      $phone.areacode = 650 and
+      $child.age > 7
+
+
+
+################
+arrmap02.q
+################
+select /* FORCE_PRIMARY_INDEX(Foo) */id
+from foo as t,
+            unnest(t.info.address.phones[] as $phone),
+            t.info.children.values() as $child
+where t.info.address.state = "MA" and
+      $phone.areacode = 500 and
+      $child.age > 8
+
+
+
+################
+arrmap03.q
+################
+select /* FORCE_PRIMARY_INDEX(Foo) */id
+from foo as t,
+            t.info.address.phones[] as $phone,
+            unnest(t.info.children.values() as $child)
+where $phone.areacode = 500 and
+      $child.age = 9 and
+      $child.school > "a"
+
+
+
+################
+arrmap04.q
+################
+select /* FORCE_PRIMARY_INDEX(Foo) */id
+from foo as t,
+            unnest(t.info.address.phones[] as $phone),
+            t.info.children.values() as $child
+where $phone.areacode > 500 and
+      $child.school > "sch_1" and $child.school < "sch_3"
+
+
+
+################
+arrmap05.q
+################
+select /* FORCE_PRIMARY_INDEX(Foo) */id
+from foo as t,
+            t.info.address.phones[] as $phone,
+            unnest(t.info.children.values() as $child)
+where $phone.kind > "h" and
+      $child.school > "sch_1" and $child.school < "sch_3"
+
+
+
+################
+arrmap06.q
+################
+select /* FORCE_PRIMARY_INDEX(Foo) */ id, $children.Mark
+from foo as $t, $t.info.address.phones[] as $phone, $t.info.children as $children
+where $children.keys() =any "Anna"
+
+
+
+################
+err01.q
+################
+select /* FORCE_PRIMARY_INDEX(Foo) */id, $areacode
+from foo as $t, unnest($t.info.address.phones[].areacode as $areacode)
+where $t.info.address.state = "CA" and
+      $areacode = 650 and
+      $areacode < 408
+
+
+
+################
+err02.q
+################
+select /* FORCE_PRIMARY_INDEX(Foo) */id, $areacode
+from foo as $t, unnest($t.info.address $address,
+                       $address.phones[].areacode as $areacode)
+where $address.state = "MA" and
+      $areacode < 800 and
+      $areacode = 500
+
+
+
+################
+err03.q
+################
+select /* FORCE_PRIMARY_INDEX(Foo) */id
+from foo as $t, unnest($t.info.address.phones[1:3] as $phone)
+where $t.info.address.state = "CA" and
+      $phone.areacode = 650
+
+
+
+################
+err04.q
+################
+select /* FORCE_PRIMARY_INDEX(Foo) */id
+from foo as $t, unnest($t.info.address as $addr, $addr.phones[1:3] as $phone)
+where $addr.state = "CA" and
+      $phone.areacode = 650
+
+
+

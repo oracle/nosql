@@ -1,0 +1,123 @@
+###
+# Table and records can be on multiple lines but they must be delimited by an
+# empty line.
+#
+# Line  "Table: table-name" defines the table name to be used and it must
+# precede the records. Multiple tables can be populated in the same file.
+###
+
+Table: Foo
+
+{
+  "id" : 0,
+  "g"  : 5,
+  "rec" :
+  {
+    "a" : 10,
+    "b" : [ 3, 20, 10, 10 ],
+    "c" : { "c1" : {"ca" :  3, "cb" : 10, "cc" : 100, "cd" : -100},
+            "c2" : {"ca" : 20, "cb" : 11, "cc" : 101, "cd" : -101},
+            "c3" : {"ca" : 10, "cb" : 12, "cc" : 101, "cd" : -102 },
+            "c4" : {"ca" : 10, "cb" : 13, "cc" : 101, "cd" : -103 } },
+    "d" : [ {"d2" : 10, "d1" :  4},
+            {"d2" : 20, "d3" : -6},
+            {"d2" :  5, "d3" :  3} ],
+    "f" : 4.5
+  }
+}
+
+{
+  "id" : 1,
+  "g"  : 5,
+  "rec" :
+  {
+    "a" : -10,
+    "b" : [ 3, 10, -50 ],
+    "c" : { "c1" : {"ca" :   3, "cb" : 11, "cc" : 105, "cd" : -1 },
+            "c2" : {"ca" :  10, "cb" : 11, "cc" : 105, "cd" : -5 },
+            "c3" : {"ca" : -50, "cb" : 11, "cc" : 105, "cd" : -1 } },
+    "d" : [ {"d1" :  8, "d4" :  4},
+            {"d2" : 18, "d3" : -6},
+            {"d2" : 15, "d3" :  3},
+            {"d2" : 15, "d3" :  3} ],
+    "f" : 4.5
+  }
+}
+
+{
+  "id" : 2,
+  "g"  : 10,
+  "rec" :
+  {
+    "a" : 10,
+    "b" : [ 1, 3, 6 ],
+    "c" : { "c1" : {"ca" : 1, "cb" : 21, "cc" : 101, "cd" : -200 },
+            "c2" : {"ca" : 3, "cb" : 22, "cc" : 101, "cd" : -101 },
+            "c3" : {"ca" : 6, "cb" : 23, "cc" : 101, "cd" : -111 } },
+    "d" : [ ],
+    "f" : -4.5
+  }
+}
+
+{
+  "id" : 3,
+  "g"  : 5,
+  "rec" :
+  {
+    "a" : 10,
+    "b" : [ 1, 3, -6 ],
+    "c" : { "c1" : {"ca" :  1, "cb" : 31, "cc" : 101, "cd" : -10 },
+            "c2" : {"ca" :  3, "cb" : 41, "cc" : 101, "cd" : -55 } },
+    "d" : [ {"d2" :  8, "d3" :  14},
+            {"d2" : -6, "d3" : -16},
+            {"d2" : 15, "d3" :  13} ],
+    "f" : 4.5 
+  }
+}
+
+{
+  "id" : 4,
+  "g"  : -10,
+  "rec" :
+  {
+    "a" : 0,
+    "b" : [ 1, 3, 6 ],
+    "c" : { "c1" : {"ca" : 10, "cb" : 21, "cc" : 101, "cd" : -200 },
+            "c2" : {"ca" : 3, "cb" : 22, "cc" : 101, "cd" : -101 },
+            "c3" : {"ca" : 6, "cb" : null, "cc" : 101, "cd" : -111 } },
+    "d" : [ ],
+    "f" : -4.5
+  }
+}
+
+Table: Boo
+
+{
+  "id":1,
+  "expenses":{"books":100,"housing":200,"travel":300}
+}
+
+{
+  "id":2,
+  "expenses":{"books":1000,"housing":2000,"travel":3000,"%%fo_od":10}
+}
+
+{
+  "id":3,
+  "expenses":null
+} 
+
+{
+  "id":4,
+  "expenses":{"":3, "\"":13}
+}
+
+{
+  "id":5,
+  "expenses":{".foo":3, "foo[":13}
+}
+
+{
+  "id":6,
+  "expenses":{"[]":3, "values()":13}
+}

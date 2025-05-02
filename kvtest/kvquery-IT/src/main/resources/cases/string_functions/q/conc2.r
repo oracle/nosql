@@ -1,0 +1,12 @@
+ordered-result
+{"id":0,"str2":"bcd","Column_3":"00-bcd"}
+{"id":1,"str2":"bcd","Column_3":"10-bcd"}
+{"id":2,"str2":null,"Column_3":"20-"}
+{"id":3,"str2":null,"Column_3":"30-"}
+{"id":4,"str2":"","Column_3":"40-"}
+{"id":5,"str2":"DEF","Column_3":"50-DEF"}
+{"id":6,"str2":"--ABC--","Column_3":"60---ABC--"}
+{"id":7,"str2":"--ABC","Column_3":"70---ABC"}
+{"id":8,"str2":"ABC--","Column_3":"80-ABC--"}
+{"id":9,"str2":"---","Column_3":"90----"}
+{"id":10,"str2":"😋","Column_3":"100-😋"}

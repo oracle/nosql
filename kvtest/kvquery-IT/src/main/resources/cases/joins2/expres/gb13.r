@@ -1,0 +1,9 @@
+unordered-result
+{"ida":40,"idb":0,"cnt":5,"sum":230,"max":48}
+{"ida":40,"idb":2,"cnt":2,"sum":88,"max":44}
+{"ida":40,"idb":3,"cnt":1,"sum":-4,"max":-4}
+{"ida":40,"idb":4,"cnt":3,"sum":-3,"max":5}
+{"ida":40,"idb":5,"cnt":3,"sum":57,"max":32}
+{"ida":40,"idb":6,"cnt":3,"sum":165,"max":138}
+{"ida":40,"idb":8,"cnt":2,"sum":151,"max":138}
+{"ida":40,"idb":9,"cnt":3,"sum":5,"max":5}

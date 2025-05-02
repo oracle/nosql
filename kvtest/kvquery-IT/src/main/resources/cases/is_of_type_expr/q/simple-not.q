@@ -1,0 +1,1 @@
+SELECT id IS NOT OF TYPE ( integer ) from Foo

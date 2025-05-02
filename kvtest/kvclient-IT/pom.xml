@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>com.oracle.nosql</groupId>
+    <artifactId>kvtest</artifactId>
+    <version>25.2.0-SNAPSHOT</version>
+  </parent>
+
+  <artifactId>kvclient-IT</artifactId>
+
+  <name>Oracle NoSQL Database Client Test</name>
+  <url>https://www.oracle.com/database/nosql/</url>
+
+  <properties>
+    <!-- Prevent ocibuild from publishing this module -->
+    <skipPublish>true</skipPublish>
+  </properties>
+
+  <profiles>
+    <profile>
+      <id>skip-kvclient-test</id>
+      <activation>
+        <activeByDefault>true</activeByDefault>
+      </activation>
+      <build>
+        <plugins>
+          <plugin>
+            <artifactId>maven-antrun-plugin</artifactId>
+            <configuration>
+              <skip>true</skip>
+            </configuration>
+          </plugin>
+          <plugin>
+            <artifactId>maven-failsafe-plugin</artifactId>
+            <configuration>
+              <skipITs>true</skipITs>
+            </configuration>
+          </plugin>
+          <plugin>
+            <groupId>org.jacoco</groupId>
+            <artifactId>jacoco-maven-plugin</artifactId>
+            <configuration>
+              <skip>true</skip>
+            </configuration>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+
+    <profile>
+      <id>IT</id>
+    </profile>
+
+    <profile>
+      <id>it.kvclient</id>
+    </profile>
+  </profiles>
+
+  <dependencies>
+    <!-- For Test -->
+    <dependency> <groupId>junit</groupId> <artifactId>junit</artifactId> </dependency>
+
+    <dependency> <groupId>com.oracle.nosql</groupId> <artifactId>kvclient</artifactId> <version>${project.version}</version> <scope>test</scope> </dependency>
+    <dependency> <groupId>com.oracle.nosql</groupId> <artifactId>kvstore-IT</artifactId> <version>${project.version}</version> </dependency>
+
+    <!-- checker lib during compile, but will be excluded from tar ball, due to provided scope -->
+    <dependency> <groupId>org.checkerframework</groupId> <artifactId>checker-qual</artifactId> <scope>provided</scope> </dependency>
+    <!-- easymock -->
+    <dependency> <groupId>org.easymock</groupId> <artifactId>easymock</artifactId> </dependency>
+    <!-- hadoop -->
+    <dependency> <groupId>org.apache.hadoop</groupId> <artifactId>hadoop-common</artifactId> </dependency>
+    <dependency> <groupId>org.apache.hadoop</groupId> <artifactId>hadoop-mapreduce-client-core</artifactId> </dependency>
+    <dependency> <groupId>org.apache.hadoop</groupId> <artifactId>hadoop-annotations</artifactId> </dependency>
+  </dependencies>
+
+  <build>
+    <plugins>
+      <plugin>
+        <artifactId>maven-clean-plugin</artifactId>
+      </plugin>
+      <plugin>
+        <artifactId>maven-resources-plugin</artifactId>
+      </plugin>
+      <plugin>
+        <artifactId>maven-compiler-plugin</artifactId>
+      </plugin>
+      <plugin>
+        <artifactId>maven-jar-plugin</artifactId>
+      </plugin>
+      <plugin>
+        <artifactId>maven-antrun-plugin</artifactId>
+      </plugin>
+      <plugin>
+        <artifactId>maven-failsafe-plugin</artifactId>
+        <configuration>
+          <classpathDependencyExcludes>
+            <classpathDependencyExclude>com.oracle.nosql:kvstore</classpathDependencyExclude>
+          </classpathDependencyExcludes>
+        </configuration>
+      </plugin>
+      <plugin>
+        <groupId>org.jacoco</groupId>
+        <artifactId>jacoco-maven-plugin</artifactId>
+      </plugin>
+      <plugin>
+        <artifactId>maven-install-plugin</artifactId>
+      </plugin>
+      <plugin>
+        <artifactId>maven-deploy-plugin</artifactId>
+      </plugin>
+    </plugins>
+  </build>
+</project>

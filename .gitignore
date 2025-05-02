@@ -1,0 +1,43 @@
+syntax: glob
+.hgignore
+.factorypath
+
+.project
+.classpath
+# ignore everything under root .settings,
+# but keep the folder for further filtering
+/.settings/*
+# don't ignore this file, it is used in ECJ warnings task
+!/.settings/org.eclipse.jdt.core.prefs
+# ignore all subfolder's .settings
+**/.settings/
+
+.idea/dictionaries/
+.idea/shelf/
+.idea/vcs.xml
+.idea/tasks.xml
+.idea/workspace.xml
+.idea/uiDesigner.xml
+.idea/jarRepositories.xml
+
+target/
+target-ide/
+dependency-reduced-pom.xml
+.flattened-pom.xml
+*.orig
+\.orig\..*$
+\.chg\..*$
+*.rej
+\.conflict\~$
+*.pyc
+
+input_ocibuild
+output_ocibuild*
+
+kvmain/src/main/java/oracle/kv/util/ErrorMessage.java
+
+syntax: regexp
+
+\.jpage$
+^bin/
+^kvstore/junitvmwatcher[0-9]+\.properties$

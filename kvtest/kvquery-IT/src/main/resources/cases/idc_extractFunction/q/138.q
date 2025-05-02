@@ -1,0 +1,2 @@
+#expression returns microsecond using microsecond()function for non json array 
+SELECT id,microsecond(t.ats9[0])as ats0,microsecond(t.ats9[1])as ats1,microsecond(t.ats9[2])as ats2,microsecond(t.ats9[3])as ats3,microsecond(t.ats9[4])as ats4,microsecond(t.ats9[5])as ats5,microsecond(t.ats9[6])as ats6,microsecond(t.ats9[7])as ats7 ,microsecond(t.ats9[8])as ats8 ,microsecond(t.ats9[9])as ats9 FROM Extract t

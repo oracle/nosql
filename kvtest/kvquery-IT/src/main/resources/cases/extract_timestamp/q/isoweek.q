@@ -1,0 +1,1 @@
+SELECT isoweek(t.ts0), isoweek(t.rec.ts3), isoweek(t.mts6.values($key="k1")), isoweek(t.ats9[0]) FROM Foo t ORDER BY id

@@ -1,0 +1,3 @@
+SELECT id
+FROM bar2 b
+WHERE "2021-02-03T10:45:00.998999" <any b.tmarr[]

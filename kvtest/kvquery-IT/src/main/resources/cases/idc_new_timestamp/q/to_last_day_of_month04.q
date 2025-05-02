@@ -1,0 +1,40 @@
+#Edge test cases
+
+select
+t0,
+to_last_day_of_month(t0),
+t3,
+to_last_day_of_month(t3),
+s9,
+to_last_day_of_month(s9),
+s3,
+to_last_day_of_month(s3),
+t.doc.t1 as t1,
+to_last_day_of_month(t.doc.t1),
+t.doc.t2 as t2,
+to_last_day_of_month(t.doc.t2),
+t.doc.t3 as t3,
+to_last_day_of_month(t.doc.t3),
+t.doc.t4 as t4,
+to_last_day_of_month(t.doc.t4),
+t.doc.t5 as t5,
+to_last_day_of_month(t.doc.t5),
+t.doc.t6 as t6,
+to_last_day_of_month(t.doc.t6),
+t.doc.t7 as t7,
+to_last_day_of_month(t.doc.t7),
+t.doc.t8 as t8,
+to_last_day_of_month(t.doc.t8),
+t.doc.t9 as t9,
+to_last_day_of_month(t.doc.t9),
+t.doc.t10 as t10,
+to_last_day_of_month(t.doc.t10),
+t.doc.t11 as t11,
+to_last_day_of_month(t.doc.t11),
+t.doc.t12 as t12,
+to_last_day_of_month(t.doc.t12),
+t.doc.t13 as t13,
+to_last_day_of_month(t.doc.t13)
+from roundFunc t
+where id =3
+

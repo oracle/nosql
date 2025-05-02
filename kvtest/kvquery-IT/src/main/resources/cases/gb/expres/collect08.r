@@ -1,0 +1,9 @@
+unordered-result
+{"state":"CA","collect":[{"acctno":345,"items":[{"price":5,"prod":"milk","qty":3},{"price":50,"prod":"cheese","qty":3},{"price":20,"prod":"yogurt","qty":3}]},{"acctno":345,"items":[{"price":10,"prod":"kale","qty":3}]},{"acctno":346,"items":{"price":20,"prod":"cheese","qty":4}},{"acctno":349,"items":{"price":10,"prod":"berries","qty":1}},{"items":{"price":10,"prod":"carrots","qty":3}},{"items":{"price":20,"prod":"milk","qty":1}}]}
+{"state":"MA","collect":[{"acctno":345,"items":{"price":10.0,"prod":"oranges","qty":5}},{"acctno":346,"items":{"price":15,"prod":"tomatoes","qty":2}},{"acctno":346,"items":[{"price":10,"prod":"apples","qty":3},{"price":40,"prod":"berries","qty":1}]},{"acctno":348,"items":{"price":10,"prod":"apples","qty":3}}]}
+{"state":"NM","collect":[{"acctno":347,"items":[{"price":10,"prod":5,"qty":2},{"price":30,"prod":6,"qty":3}]}]}
+{"state":"NY","collect":[{"acctno":349,"items":[{"price":10.0,"prod":"grapes","qty":2},{"price":15.0,"prod":"peaches","qty":2},{"price":5.0,"prod":"figs","qty":4}]}]}
+{"state":"OR","collect":[{"acctno":347,"items":[{"price":1,"prod":"onions","qty":3},{"price":20,"prod":"pepers","qty":1},{"price":10,"prod":"zuchinis","qty":1}]},{"acctno":348,"items":{"price":10,"prod":"peaches","qty":3}},{"acctno":348,"items":[{"price":15,"prod":"peaches","qty":3},{"price":5,"prod":"oranges","qty":6},{"price":5,"prod":"cheries","qty":6}]},{"acctno":349,"items":[{"price":10.0,"prod":"tomatoes","qty":3},{"price":5.0,"prod":"carrots","qty":1},{"price":15.0,"prod":"pepers","qty":1}]}]}
+{"state":"VT","collect":[{"acctno":345,"items":{"price":10,"prod":"eggplant","qty":3}},{"acctno":347,"items":{"price":15,"prod":"milk","qty":4}}]}
+{"state":"WA","collect":[{"acctno":345,"items":{"price":20,"prod":"figs","qty":3}},{"acctno":345,"items":[{"price":20.0,"prod":"grapes","qty":3},{"price":10.0,"prod":"apples","qty":6}]},{"acctno":349,"items":{"price":1,"prod":"cheese","qty":10}}]}
+{"state":null,"collect":[{}]}

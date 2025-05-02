@@ -1,0 +1,86 @@
+
+Table: users
+
+{ "uid" : 10, "name" : "John", "email" : "john@foo.com", "salary" : 70 }
+
+{ "uid" : 20, "name" : "Jane", "email" : "jane@bar.com", "salary" : 170 }
+
+{ "uid" : 30, "name" : "Jim", "email" : "jim@bar.com", "salary" : 90 }
+
+
+
+Table: users.folders
+
+{ 
+  "uid": 10, "fid" : 1, "name" : "work",
+  "ancestors" : null,
+  "children" : [ {"fid" : 2, "name" : "proj1"} ]
+}
+
+
+{ 
+  "uid": 10, "fid" : 2, "name" : "proj1",
+  "ancestors" : [ {"fid" : 1, "name" : "work"} ],
+  "children" : null
+}
+
+
+
+Table: users.folders.messages
+
+{ 
+  "uid": 10, "fid" : 1, "mid" : 1, 
+  "sender" : "jim@bar.com", "receiver" : "john@foo.com",
+  "time" : "2017-12-12T10:05:30.0",
+  "size" : 50,
+  "content" : "Hello"
+}
+
+
+{ 
+  "uid": 10, "fid" : 1, "mid" : 2, 
+  "sender" : "tim@bar.com", "receiver" : "john@foo.com",
+  "time" : "2017-12-12T11:05:30.0",
+  "size" : 500,
+  "content" : "Thanks"
+}
+
+
+{ 
+  "uid": 10, "fid" : 1, "mid" : 3, 
+  "sender" : "tim@bar.com", "receiver" : "john@foo.com",
+  "time" : "2017-12-10T11:05:30.0",
+  "size" : 50,
+  "content" : "Good news!"
+}
+
+{ 
+  "uid": 10, "fid" : 1, "mid" : 4, 
+  "sender" : "jane@bar.com", "receiver" : "john@foo.com",
+  "time" : "2017-12-10T11:05:30.0",
+  "size" : 150,
+  "content" : "Bad news!"
+}
+
+
+{ 
+  "uid": 30, "fid" : 1, "mid" : 1, 
+  "sender" : "jim@bar.com", "receiver" : "jim@foo.com",
+  "time" : "2017-12-12T10:05:30.0",
+  "size" : 5000,
+  "content" : "No folders???"
+}
+
+
+Table: users.photos
+
+{ "uid" : 10, "pid" : 5, "size" : 10, "content" : null }
+
+{ "uid" : 10, "pid" : 6, "size" : 12, "content" : null }
+
+{ "uid" : 10, "pid" : 7, "size" : 11, "content" : null }
+
+
+{ "uid" : 30, "pid" : 4, "size" : 14, "content" : null }
+
+{ "uid" : 30, "pid" : 7, "size" : 21, "content" : null }

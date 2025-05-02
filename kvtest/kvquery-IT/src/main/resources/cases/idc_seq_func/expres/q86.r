@@ -1,0 +1,11 @@
+unordered-result
+{"id1":1,"stats_max":null}
+{"id1":2,"stats_max":null}
+{"id1":3,"stats_max":null}
+{"id1":4,"stats_max":null}
+{"id1":5,"stats_max":null}
+{"id1":6,"stats_max":"matches"}
+{"id1":7,"stats_max":"matches"}
+{"id1":8,"stats_max":"runs"}
+{"id1":9,"stats_max":"runs"}
+{"id1":10,"stats_max":"runs"}

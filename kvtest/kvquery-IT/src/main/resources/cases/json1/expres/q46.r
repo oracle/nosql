@@ -1,0 +1,10 @@
+ordered-result
+{"id":0,"bool":true,"Column_3":null}
+{"id":1,"bool":true,"Column_3":null}
+{"id":2,"bool":false,"Column_3":null}
+{"id":3,"bool":true,"Column_3":null}
+{"id":4,"bool":false,"Column_3":null}
+{"id":5,"bool":true,"Column_3":null}
+{"id":6,"bool":true,"Column_3":null}
+{"id":7,"bool":true,"Column_3":null}
+{"id":8,"bool":true,"Column_3":null}

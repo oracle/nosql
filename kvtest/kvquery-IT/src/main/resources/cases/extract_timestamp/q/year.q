@@ -1,0 +1,1 @@
+SELECT year(t.ts0), year(t.rec.ts3), year(t.mts6.values($key="k1")), year(t.ats9[0]) FROM Foo t ORDER BY id

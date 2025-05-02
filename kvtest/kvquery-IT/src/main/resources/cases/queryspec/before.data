@@ -1,0 +1,355 @@
+Table: users
+
+{
+  "id" : 0,
+  "firstName" : "John",
+  "lastName" : "Kennedy",
+  "otherNames" : [ { "first" : "POTUS" } ],
+  "age" : 45,
+  "income" : 1000,
+  "address": {
+      "email" : "potus@usa.gov",
+      "street" : "somewhere",
+      "city": "Boston",
+      "state"  : "MA",
+      "startDate" : "1970-04-05T10:00:00",
+      "phones" : [ { "area":408,  "number":50, "kind":"work" },
+                   { "area":"415",  "number":60, "kind":"work" },
+                   { "area":null, "number":52, "kind":"home" }
+                 ]
+  },
+  "expenses" : { "housing" : 1000, "clothes" : 230, "books" : 20 },
+  "connections" : [ 1, 110, 120, 3, 3 ]
+}
+
+{
+  "id":1,
+  "firstName" : "Yannis",
+  "lastName" : "Antetokounmpo",
+  "otherNames" : [ { "first" : "Greek", "last" : "Freek" } ],
+  "age" : 25,
+  "income" : 1000000,
+  "address":{
+    "email" : "yannis@bucks.com",
+    "street" : "everywhere",
+    "city": "Milwaukee",
+    "state"  : "WI",
+    "startDate" : "2020-04-05T10:00:00",
+    "phones" : [ { "area":608,  "number":50, "kind":"work" },
+                 { "area":608,  "number":60, "kind":"home" },
+                 "608-345-1232"
+               ]
+  },
+  "expenses" : { "housing" : 1000, "travel" : 300 },
+  "connections" : [ ]
+}
+
+{
+  "id":2,
+  "firstName" : "Tom",
+  "lastName" : "Waits",
+  "otherNames" : [ { "first" : "Rain", "last" : "Dog" } ],
+  "age" : 75,
+  "income" : null,
+  "address": {
+    "email" : "tom@ballads.org",
+    "street" : "nowhere",
+    "city": "Los Angeles",
+    "state"  : "CA",
+    "startDate" : "2021-05-05T10:00:00",
+    "phones" : [ ]
+  },
+  "expenses" : null,
+  "connections" : null
+}
+
+{
+  "id":3,
+  "firstName" : null,
+  "lastName" : null,
+  "otherNames" : null,
+  "age" : null,
+  "income" : null,
+  "address" : null,
+  "expenses" : null,
+  "connections" : null
+}
+
+{
+  "id":4,
+  "firstName" : "Jonathan",
+  "lastName" : "Frazen",
+  "otherNames" : null,
+  "age" : 45,
+  "income" : 200000,
+  "address": {
+    "email" : "jonathan@books.com",
+    "street" : "top of the hill",
+    "city": "Santa Cruz",
+    "state"  : "CA",
+    "startDate" : "2021-06-05T10:00:00",
+    "phones" : { "area":408,  "number":50, "kind":"work" }
+  },
+  "expenses" : { "housing" : 1000, "travel" : 300 },
+  "connections" : [ 50, 130, 1 ]
+}
+
+{
+  "id":5,
+  "firstName" : "John",
+  "lastName" : "Doe",
+  "otherNames" : null,
+  "age" : 35,
+  "income" : 2000,
+  "address": {
+     "email" : null,
+     "street" : "end of the road",
+     "city" : "Portland"
+   },
+  "expenses" : null,
+  "connections" : null
+}
+
+
+Table: Viewers
+
+{
+  "acct_id" : 1,
+  "user_id" : 2,
+  "info" : {
+    "firstName": "Emmanuel",
+    "lastName": "Macron",
+    "country" : "France",
+    "shows": [
+      {
+        "showName": "Call My Agent",
+        "showId": 15,
+        "type": "tvseries",
+        "genres" : ["comedy", "french"], 
+        "numSeasons" : 2,
+        "seasons": [
+          {
+            "seasonNum" : 1,
+            "numEpisodes" : 2,
+            "episodes": [
+              {
+                "episodeID": 20,
+                "lengthMin": 45,
+                "minWatched": 45,
+                "date": "2020-06-01"
+              },
+              {
+                "episodeID": 30,
+                "lengthMin": 42,
+                "minWatched": 42,
+                "date": "2020-07-01"
+              }
+            ]
+          },
+          {
+            "seasonNum": 2,
+            "numEpisodes" : 3,
+            "episodes": [
+              {
+                "episodeID": 40,
+                "lengthMin": 50,
+                "minWatched": 50,
+                "date": "2021-06-01"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}
+
+{
+  "acct_id" : 2,
+  "user_id" : 1,
+  "info" : {
+    "firstName": "Joe",
+    "lastName": "Biden",
+    "country" : "USA",
+    "shows": [
+      {
+        "showName": "Call My Agent",
+        "showId": 15,
+        "type": "tvseries",
+        "genres" : ["comedy", "french"], 
+        "numSeasons" : 2,
+        "seasons": [
+          {
+            "seasonNum" : 1,
+            "numEpisodes" : 2,
+            "episodes": [
+              {
+                "episodeID": 20,
+                "lengthMin": 45,
+                "minWatched": 44,
+                "date": "2021-05-19"
+              },
+              {
+                "episodeID": 30,
+                "lengthMin": 42,
+                "minWatched": 42,
+                "date": "2021-05-19"
+              }
+            ]
+          },
+          {
+            "seasonNum": 2,
+            "numEpisodes" : 3,
+            "episodes": [
+              {
+                "episodeID": 40,
+                "lengthMin": 50,
+                "minWatched": 50,
+                "date": "2021-05-20"
+              },
+              {
+                "episodeID": 50,
+                "lengthMin": 45,
+                "minWatched": 45,
+                "date": "2021-05-21"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "showName": "Rita",
+        "showId": 16,
+        "type": "tvseries",
+        "genres" : ["comedy", "drama", "danish"],
+        "numSeasons" : 2,
+        "seasons": [
+          {
+            "seasonNum" : 1,
+            "numEpisodes" : 2,
+            "episodes": [
+              {
+                "episodeID": 20,
+                "lengthMin": 65,
+                "minWatched": 65,
+                "date": "2021-03-18"
+              },
+              {
+                "episodeID": 30,
+                "lengthMin": 60,
+                "minWatched": 60,
+                "date": "2021-03-19"
+              }
+            ]
+          },
+          {
+            "seasonNum": 2,
+            "numEpisodes" : 2,
+            "episodes": [
+              {
+                "episodeID": 40,
+                "lengthMin": 50,
+                "minWatched": 50,
+                "date": "2021-05-05"
+              },
+              {
+                "episodeID": 50,
+                "lengthMin": 45,
+                "minWatched": 45,
+                "date": "2021-05-06"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}
+
+
+Table: users2
+
+{ 
+  "id":0,
+  "income" : 1000,
+  "address":
+  {
+    "street" : "somewhere",
+    "city": "Boston",
+    "state"  : "MA",
+    "phones" : [ { "area":408,  "number":50, "kind":"work" },
+                 { "area":415,  "number":60, "kind":"work" },
+                 { "area":null, "number":52, "kind":"home" }
+               ]
+  },
+  "matrixes" : [
+      { "mid" : 345,
+        "mdate" : "2020-12-01T00:00:00",
+        "matrix": [
+            { "key1" : [ {"foo":1, "bar":2}, {"foo":5, "bar":6} ],
+              "key2" : [ {"foo":8, "bar":4}, {"foo":3, "bar":9} ] },
+            { "key3" : [ {"foo":6, "bar":1}, {"foo":6, "bar":0} ],
+              "key1" : [ {"foo":2, "bar":2} ]}
+        ]
+      },
+      { "mid" : 346,
+        "mdate": "2020-12-02T00:00:00",
+        "matrix": [
+            { "key1" : [ {"foo":3, "bar":5} ],
+              "key6" : [ {"foo":5, "bar":7}, {"foo":9, "bar":7} ] },
+            { "key4" : [ {"foo":6, "bar":1}, {"foo":10, "bar":1} ],
+              "key5" : [ ]}
+        ]
+      }
+  ],
+  "expenses" : { "housing" : 1000, "clothes" : 230, "books" : 20 },
+  "connections" : [ 100, 20, 20, 10, 20]
+}
+
+{ 
+  "id":1,
+  "income" : null,
+  "address":
+  {
+    "street" : "everywhere",
+    "city": "San Fransisco",
+    "state"  : "CA",
+    "phones" : [ { "area":408,  "number":50, "kind":"work" },
+                 { "area":408,  "number":60, "kind":"home" }
+               ]
+  },
+  "matrixes" : [
+      { "mid" : 349,
+        "mdate" : "2020-12-01T00:00:00",
+        "matrix" : [
+            { "key1" : [ { "foo":10, "bar":20} ],
+              "key2" : [ {"foo":50, "bar":30} ] },
+            { "key3" : [ {"foo":4, "bar":10}, {"foo":1, "bar":15} ],
+              "key4" : [ {"foo":20, "bar":40} ] }
+        ]
+      },
+      { "mid" : 344,
+        "mdate" : "2020-11-30T00:00:00",
+        "matrix": []
+      }
+  ],
+  "expenses" : { "housing" : 1000, "travel" : 300 },
+  "connections" : [ ]
+}
+
+{ 
+  "id":2,
+  "income" : 2000,
+  "address":
+  {
+    "street" : "nowhere",
+    "city": "San Jose",
+    "state"  : "CA",
+    "phones" : [ ]
+  },
+  "matrixes" : [ ],
+  "expenses" : null,
+  "connections" : null
+}
+
+

@@ -1,0 +1,2 @@
+#Expression has arithmetic operators,logical operation and  parenthesized Expressionession with is null,is not null in predicate
+select id, age+id from sn where age is null and (float+double) is not null

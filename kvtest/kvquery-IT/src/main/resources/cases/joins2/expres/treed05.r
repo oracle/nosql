@@ -1,0 +1,9 @@
+unordered-result
+{"a_ida":5,"b_ida":null,"b_idb":null,"c_ida":null,"c_idb":null,"c_idc":null,"k_ida":null,"k_idg":null,"k_idj":null,"k_idk":null}
+{"a_ida":10,"b_ida":10,"b_idb":4,"c_ida":null,"c_idb":null,"c_idc":null,"k_ida":null,"k_idg":null,"k_idj":null,"k_idk":null}
+{"a_ida":10,"b_ida":null,"b_idb":null,"c_ida":null,"c_idb":null,"c_idc":null,"k_ida":10,"k_idg":15,"k_idj":35,"k_idk":10}
+{"a_ida":15,"b_ida":null,"b_idb":null,"c_ida":null,"c_idb":null,"c_idc":null,"k_ida":null,"k_idg":null,"k_idj":null,"k_idk":null}
+{"a_ida":20,"b_ida":null,"b_idb":null,"c_ida":null,"c_idb":null,"c_idc":null,"k_ida":null,"k_idg":null,"k_idj":null,"k_idk":null}
+{"a_ida":25,"b_ida":null,"b_idb":null,"c_ida":null,"c_idb":null,"c_idc":null,"k_ida":null,"k_idg":null,"k_idj":null,"k_idk":null}
+{"a_ida":30,"b_ida":null,"b_idb":null,"c_ida":null,"c_idb":null,"c_idc":null,"k_ida":null,"k_idg":null,"k_idj":null,"k_idk":null}
+{"a_ida":35,"b_ida":null,"b_idb":null,"c_ida":null,"c_idb":null,"c_idc":null,"k_ida":null,"k_idg":null,"k_idj":null,"k_idk":null}

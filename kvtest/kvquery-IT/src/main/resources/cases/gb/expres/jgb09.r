@@ -1,0 +1,10 @@
+unordered-result
+{"min":30}
+{"min":30}
+{"min":30}
+{"min":30}
+{"min":80}
+{"min":10}
+{"min":15}
+{"min":10}
+{"min":10}

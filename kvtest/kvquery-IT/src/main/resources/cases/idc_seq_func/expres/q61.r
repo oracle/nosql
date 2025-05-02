@@ -1,0 +1,11 @@
+unordered-result
+{"id1":1,"min":null}
+{"id1":2,"min":null}
+{"id1":3,"min":null}
+{"id1":4,"min":-1}
+{"id1":5,"min":null}
+{"id1":6,"min":null}
+{"id1":7,"min":null}
+{"id1":8,"min":null}
+{"id1":9,"min":null}
+{"id1":10,"min":null}

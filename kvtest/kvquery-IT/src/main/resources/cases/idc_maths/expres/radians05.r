@@ -1,0 +1,2 @@
+unordered-result
+{"iv":-2.147483648E9,"Column_2":-3.74806602903389E7,"lv":-9.223372036854776E18,"Column_4":-1.6097821017E17,"fv":-3.4028234663852886E38,"Column_6":-5.939047335254988E36,"dv":-Infinity,"Column_8":-Infinity,"nv":0.0,"Column_10":0.0,"jsoniv":-2.147483648E9,"radiansjsoniv":-3.74806602903389E7,"jsonlv":-9.223372036854776E18,"radiansjsonlv":-1.6097821017E17,"jsonfv":-3.4028235E38,"radiansjsonfv":-5.939047393923727E36,"jsondv":0.0,"radiansjsondv":0.0,"jsonnv":0.0,"radiansjsonnv":0.0}

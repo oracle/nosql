@@ -1,0 +1,15 @@
+unordered-result
+{"acctno":345,"year":2000,"prodcat":"dairy","sum":0.1}
+{"acctno":345,"year":2000,"prodcat":"fruits","sum":0.30000000000000004}
+{"acctno":345,"year":2000,"prodcat":"vegies","sum":null}
+{"acctno":345,"year":2001,"prodcat":"fruits","sum":0.05}
+{"acctno":346,"year":2000,"prodcat":"fruits","sum":0.05}
+{"acctno":346,"year":2001,"prodcat":"vegies","sum":0.2}
+{"acctno":346,"year":null,"prodcat":"dairy","sum":null}
+{"acctno":347,"year":2001,"prodcat":"dairy","sum":0.1}
+{"acctno":347,"year":2001,"prodcat":"fruits","sum":null}
+{"acctno":347,"year":2001,"prodcat":"vegies","sum":null}
+{"acctno":348,"year":2000,"prodcat":"fruits","sum":0.2}
+{"acctno":349,"year":2000,"prodcat":"dairy","sum":0.2}
+{"acctno":349,"year":2000,"prodcat":"vegies","sum":0.1}
+{"acctno":349,"year":2001,"prodcat":"fruits","sum":0.2}

@@ -1,0 +1,1 @@
+ALTER TABLE test6 (ADD uid7  STRING AS UUID)

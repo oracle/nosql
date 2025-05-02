@@ -1,0 +1,2 @@
+unordered-result
+{"ic":-2147483648,"flooric":-2147483648,"lc":-9223372036854775808,"floorlc":-9223372036854775808,"fc":0.0,"floorfc":0.0,"dc":4.9E-324,"floordc":0.0,"nc":4.9334E-325,"floornc":0,"jsonic":-2147483648,"flooricjson":-2147483648,"jsonlc":-9223372036854775808,"floorlcjson":-9223372036854775808,"jsonfc":1.401298464324817E-45,"floorfcjson":0.0,"jsondc":4.9334E-325,"floordcjson":0.0,"jsonnc":1.401298464324817E-45,"floorncjson":0}

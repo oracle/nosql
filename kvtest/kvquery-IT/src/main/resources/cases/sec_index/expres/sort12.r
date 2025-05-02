@@ -1,0 +1,10 @@
+ordered-result
+{"id":6,"name":"EMPTY"}
+{"id":8,"name":"EMPTY"}
+{"id":4,"name":null}
+{"id":5,"name":null}
+{"id":3,"name":"NULL"}
+{"id":7,"name":"NULL"}
+{"id":0,"name":"alex"}
+{"id":2,"name":"dave"}
+{"id":1,"name":"john"}

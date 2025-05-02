@@ -1,0 +1,2 @@
+unordered-result
+{"id":29,"record":{"long":0,"int":20,"string":"abc","bool":true,"float":3.0,"map1":{"foo":{"f1":{"f1f1":1},"f2":{"f2f1":4,"f2f2":{"age":10,"name":"jonh"}}}},"map2":null},"info":{"address":{"city":"San Fransisco","phones":[{"areacode":408,"kind":"work","number":50},{"areacode":650,"kind":"work","number":51},{"areacode":null,"kind":"home","number":52}],"state":"CA"},"age":12,"firstName":"first0","lastName":"last0"}}

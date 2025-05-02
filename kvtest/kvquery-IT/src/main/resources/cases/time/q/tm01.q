@@ -1,0 +1,3 @@
+SELECT *
+FROM bar
+WHERE tm > "2021-02-03T10:46:00"

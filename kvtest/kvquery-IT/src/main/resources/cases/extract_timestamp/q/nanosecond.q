@@ -1,0 +1,16 @@
+SELECT nanosecond(t.mts6.values($key="k1")) as ns_mts6_k1, 
+	   nanosecond(t.mts6.values($key="k2")) as ns_mts6_k2, 
+	   nanosecond(t.mts6.values($key="k3")) as ns_mts6_k3,
+	   nanosecond(t.mts6.values($key="k4")) as ns_mts6_k4, 
+	   nanosecond(t.mts6.values($key="k5")) as ns_mts6_k5, 
+	   nanosecond(t.mts6.values($key="k6")) as ns_mts6_k6,
+	   nanosecond(t.ats9[0]) as ns_ats6_0, 
+	   nanosecond(t.ats9[1]) as ns_ats6_1, 
+	   nanosecond(t.ats9[2]) as ns_ats6_2, 
+	   nanosecond(t.ats9[3]) as ns_ats6_3, 
+	   nanosecond(t.ats9[4]) as ns_ats6_4, 
+	   nanosecond(t.ats9[5]) as ns_ats6_5, 
+	   nanosecond(t.ats9[6]) as ns_ats6_6, 
+	   nanosecond(t.ats9[7]) as ns_ats6_7, 
+	   nanosecond(t.ats9[8]) as ns_ats6_8
+FROM Foo t WHERE id = 3

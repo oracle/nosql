@@ -1,0 +1,37 @@
+################
+q01.q
+################
+
+select *
+from nested tables (
+     users u
+     descendants(users.folders f, users.folders.messages m, users.photos p))
+where u.uid = 10
+
+
+
+################
+q02.q
+################
+select name, sender
+from nested tables (
+     users u
+     descendants(users.folders.messages m ON
+                 m.receiver = u.email and
+                 time >= cast("2017-12-12T00:00:00.0" as timestamp(3))))
+where u.uid = 10
+
+
+
+################
+q03.q
+################
+select count($m)
+from nested tables (
+     users u
+     descendants(users.folders.messages $m ON
+                 time >= cast("2017-12-12T00:00:00.0" as timestamp(3))))
+where salary > 100
+
+
+

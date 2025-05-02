@@ -1,0 +1,10 @@
+unordered-result
+{"min":30,"acctno":345,"year":2000}
+{"min":30,"acctno":345,"year":2001}
+{"min":30,"acctno":346,"year":2000}
+{"min":30,"acctno":346,"year":2001}
+{"min":80,"acctno":346,"year":null}
+{"min":10,"acctno":347,"year":2001}
+{"min":15,"acctno":348,"year":2000}
+{"min":10,"acctno":349,"year":2000}
+{"min":10,"acctno":349,"year":2001}

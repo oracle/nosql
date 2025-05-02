@@ -1,0 +1,1 @@
+select lastName, C.address.city from Complex C

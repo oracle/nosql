@@ -1,0 +1,11 @@
+unordered-result
+{"b":1.0,"sum":true,"cnt":2}
+{"b":2.0,"sum":false,"cnt":1}
+{"b":3.0,"sum":true,"cnt":3}
+{"b":4.0,"sum":true,"cnt":3}
+{"b":5.0,"sum":false,"cnt":1}
+{"b":6.0,"sum":false,"cnt":1}
+{"b":7.0,"sum":true,"cnt":7}
+{"b":8.0,"sum":true,"cnt":3}
+{"b":9.0,"sum":false,"cnt":2}
+{"b":null,"sum":false,"cnt":1}

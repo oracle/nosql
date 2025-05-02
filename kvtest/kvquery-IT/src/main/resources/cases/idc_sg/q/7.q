@@ -1,0 +1,1 @@
+SELECT * FROM empdefault ORDER BY ID

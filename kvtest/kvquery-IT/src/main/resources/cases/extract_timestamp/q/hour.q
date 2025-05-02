@@ -1,0 +1,1 @@
+SELECT hour(t.ts0), hour(t.rec.ts3), hour(t.mts6.values($key="k1")), hour(t.ats9[0]) FROM Foo t ORDER BY id

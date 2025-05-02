@@ -1,0 +1,5 @@
+# Test Description: Variable table alias with invalid characters (alias starts with $).
+
+select * 
+from Users AS $col$
+order by id

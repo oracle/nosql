@@ -1,0 +1,263 @@
+################
+a01.q
+################
+# select all columns
+select * from A.B b left outer join A a on b.ida1 = a.ida1
+
+
+
+################
+a02.q
+################
+# order by
+select a.ida1, a2, a3, b.idb1, b.idb2, b3, b4
+  from A.B b left outer join A a on b.ida1 = a.ida1
+  order by b.ida1, b.idb1, b.idb2
+
+
+
+################
+a03.q
+################
+# order by desc
+select c.ida1, c.idb1, c.idb2, c.idc1, c.idc2, c3, a2, a3
+  from A.B.C c left outer join A a on c.ida1 = a.ida1
+  order by c.ida1 desc, c.idb1 desc, c.idb2 desc, c.idc1 desc
+
+
+
+################
+a04.q
+################
+# on clause + value comparison operators + where clause + is not null
+select *
+from A.B.D d left outer join A a on d.ida1 = a.ida1 and a.a2 >= 0
+             left outer join A.B b on d.ida1 = b.ida1 and d.idb1 = b.idb1 and
+                                      d.idb2 = b.idb2
+where a.a3 is not null
+
+
+
+################
+a05.q
+################
+# on clause + value comparison operator + logical operator + is null + timestamp functions
+select a.ida1, a2, a3, g.idg1, g.g2, g.g3, g.g4, h.idh1, h.idh2, h.h3, h.h4
+from A.G.H h left outer join A a on h.ida1 = a.ida1 and a.a2 is not null
+             left outer join A.G g on h.ida1 = g.ida1 and h.idg1 = g.idg1 and
+                                      (month(g.g4) <= 3 or g.g4 is null)
+
+
+
+################
+a06.q
+################
+# on clause + exists operator + limit + offset
+select c.ida1, c.idb1, c.idb2, b3, b4, idc1, idc2, c3
+from A.B.C c left outer join A.B b on c.ida1 = b.ida1 and c.idb1 = b.idb1 and
+                                      c.idb2 = b.idb2 and not exists b.b4.extra
+order by c.ida1, c.idb1, c.idb2, c.idc1
+limit 4 offset 3
+
+
+
+################
+a07.q
+################
+# map-filter step expressions
+select c.ida1, c.idb1, c.idb2, b3, b4, idc1, idc2,
+       c3.keys($value > 9000) as ckeys
+from A.B.C c left outer join A.B b on c.ida1 = b.ida1 and c.idb1 = b.idb1 and
+                                      c.idb2 = b.idb2
+where c.idb2 = 2147483647 or c.idb1 = -2147483648
+
+
+
+################
+a08.q
+################
+# ON clause + multi-key index idx_c_c3 on A.B.C(c3.keys(), c3.values())
+select c.ida1, c.idb1, c.idb2, c.idc1, c.idc2,
+       c.c3.keys() as keys, c.c3.values() as values
+from A.B.C c left outer join A.B b on c.ida1 = b.ida1 and c.idb1 = b.idb1 and
+                                      c.idb2 = b.idb2 and b.idb2 > 0
+where c.c3.ckey1 > 9002
+
+
+
+################
+a09.q
+################
+# secondary index idx_d_d23 on A.B.D(d2, d3)
+select d.ida1, d.idd1, d2, d3, d2+d3 as sum, a2, a3
+from A.B.D d left outer join A a on d.ida1 = a.ida1
+where d2 > 0 and d3 > 5000
+
+
+
+################
+ad01.q
+################
+# select all
+select *
+from A.B b left outer join A a on b.ida1 = a.ida1
+           left outer join A.B.C c on b.ida1 = c.ida1 and b.idb1 = c.idb1 and
+                                      b.idb2 = c.idb2
+
+
+
+################
+ad02.q
+################
+# select all
+select a.ida1, b.idb1, b.idb2, c.idc1, c.idc2, c3
+from A.B.C c left outer join A a on c.ida1 = a.ida1
+             left outer join A.B b on c.ida1 = b.ida1 and c.idb1 = b.idb1 and
+                                      c.idb2 = b.idb2
+             left outer join A.B.C.E e on c.ida1 = e.ida1 and
+                      c.idb1 = e.idb1 and c.idb2 = e.idb2 and
+                      c.idc1 = e.idc1 and c.idc2 = e.idc2
+
+
+
+################
+ad03.q
+################
+# aggregate function + group by
+select b.ida1, min(a2) as min_of_a2, max(a2) as max_of_a2,
+       sum(c.idc2) as sum_of_idc2
+from A.B b left outer join A a on b.ida1 = a.ida1
+           left outer join A.B.C c on b.ida1 = c.ida1 and b.idb1 = c.idb1 and
+                                      b.idb2 = c.idb2
+group by b.ida1
+
+
+
+################
+ad04.q
+################
+# aggregate function + JSON path expression + map field step expression
+select b.ida1, min(b.b4.comment) as min_of_b4,
+       max(b.b4.comment) as max_of_b4, sum(c.c3.ckey1) as sum_of_c3
+from A.B b left outer join A a on b.ida1 = a.ida1
+           left outer join A.B.C c on b.ida1 = c.ida1 and b.idb1 = c.idb1 and
+                                      b.idb2 = c.idb2
+group by b.ida1
+
+
+
+################
+ad05.q
+################
+# order by + where + timestamp function
+select g.ida1, g.idg1, g4, h.idh1, h.idh2, h3, h4
+from A.G g left outer join A a on g.ida1 = a.ida1
+           left outer join A.G.H h on g.ida1 = h.ida1 and g.idg1 = h.idg1
+where g.g4 < cast('2018-04-01' as timestamp)
+order by g.ida1, g.idg1
+
+
+
+################
+ad06.q
+################
+# ON clause + large string comparison
+select a.ida1, a2, a3, b.idb1, b.idb2, d.idd1, d2, d3, d4
+from A.B b left outer join A a on b.ida1 = a.ida1 and a3 < 'ZkrWV1rVFTIkwQyE9kyrU0hxogduOezDt53VjlktHToDgd6sINEzlXVg1kuDvuy21ERQHkVD15UNNGwOQmvjgALp7fjoUxPVbictbnGdrF4CPlUSw9hTB8iTI8CRnqBjx84QVn5zkl9QjniDV2M3nm3DwSx9sPR03FqPdqH1MMMkx612VywJ2W01ztPfEV8VHpRRu87fDqiNLPsUh8nSwrdLheZCJN5Mup3vZCHo3y8v7nKGK3Bb8wBxTCA2SYMm4qqPx8MesFEnCdBTdD8VPVbl9ZpUpGwfNNA2t7IaF52BLLsF4KLBOisOM4ZAeD4KPmUlBcJOqBAqc4c'
+           left outer join A.B.D d on b.ida1 = d.ida1 and b.idb1 = d.idb1 and
+                                      b.idb2 = d.idb2
+
+
+
+################
+ad07.q
+################
+# SR#26844 - https://sleepycat-tools.us.oracle.com/trac/ticket/26844
+select *
+from A.G g left outer join A a on g.ida1 = a.ida1
+           left outer join A.G.H h on g.ida1 = h.ida1 and g.idg1 = h.idg1 and
+                                 (h.idh1 = -2.34E7777N or h.idh2 = 7.55E+9999N)
+
+
+
+################
+d01.q
+################
+# select all
+select * from A.B b left outer join A.B.C c on b.ida1 = c.ida1 and
+                        b.idb1 = c.idb1 and b.idb2 = c.idb2
+
+
+
+################
+d02.q
+################
+# field step + or opeartor + is of type operator
+select *
+from A a left outer join A.B b on a.ida1 = b.ida1 and
+            (b.b4.comment='positive integer' or b.b4.extra is of type (String))
+
+
+
+################
+d03.q
+################
+# array filter + array slice step expression + sequence comparison
+select a.ida1, d.idd1, d.d4[0:2] as d4
+from A a left outer join A.B.D d on a.ida1 = d.ida1
+where d.d4[] =any 'abc'
+
+
+
+################
+d04.q
+################
+# size() + cast()
+select a.ida1, g.idg1, g.g3
+from A a left outer join A.G g on a.ida1 = g.ida1 and size(g.g3) > 1
+where g.idg1 > cast('2018-02-01' as timestamp)
+
+
+
+################
+d05.q
+################
+# arithmetic expressions + secondary index A(a3)
+select a.ida1, a3, d.idd1, d2, d3, d2 + d3 as sum
+from A a left outer join A.B.D d on a.ida1 = d.ida1 and d2 > 0 and d3 > 4005
+where a3 = 'A33qcyUB24Iy2Vgy0YJ'
+
+
+
+################
+d06.q
+################
+# order by + limit + offset
+select a.ida1, c.idc1, e.ide1
+from A a left outer join A.B.C c on a.ida1 = c.ida1
+         left outer join A.B.C.E e on c.ida1 = e.ida1 and
+                         c.idb1 = e.idb1 and c.idb2 = e.idb2 and
+                         c.idc1 = e.idc1 and c.idc2 = e.idc2 and
+                         (ide1 = 'tok3' or ide1='tok4')
+order by a.ida1 limit 5 offset 11
+
+
+
+################
+d07.q
+################
+# count(*) + group by + not operator + is null
+select a.ida1, count(*) as count
+from A a left outer join A.B b on a.ida1 = b.ida1 and not b3 is null
+group by a.ida1
+
+
+
+################
+d08.q
+################
+# ON clause + arithmetic expressions + json index A.B(b4.comment as string)
+select b.ida1, b.idb1, b.idb2, b.b4, d.idd1, d2, d3
+from A.B b left outer join A.B.D d on b.ida1 = d.ida1 and b.idb1 = d.idb1 and
+                                      b.idb2 = d.idb2 and d2 + b.idb2 > 100
+where b.b4.comment='****'

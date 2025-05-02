@@ -1,0 +1,51 @@
+###
+# Table and records can be on multiple lines but they must be delimited by an
+# empty line.
+#
+# Line  "Table: table-name" defines the table name to be used and it must
+# precede the records. Multiple tables can be populated in the same file.
+###
+
+Table: bar1
+
+{ "uid1" : "18acbcb9-137b-4fc8-99f7-812f20240356", "id" : 1, "firstName" : "Tom", "lastName" : "Riddle", "uid2" : "28acbcb9-137b-4fc8-99f7-812f20240356",  "uid3" : "38acbcb9-137b-4fc8-99f7-812f20240356"}
+
+{ "uid1" : "18acbcb9-137b-4fc8-99f7-812f20240357", "id" : 6, "firstName" : "Tom", "lastName" : "Roy", "uid2" : "28acbcb9-137b-4fc8-99f7-812f20240357",  "uid3" : "38acbcb9-137b-4fc8-99f7-812f20240357"}
+
+{ "uid1" : "18acbcb9-137b-4fc8-99f7-812f20240358", "id" : 5, "firstName" : "Tom", "lastName" : "Roy", "uid2" : "28acbcb9-137b-4fc8-99f7-812f20240358",  "uid3" : "38acbcb9-137b-4fc8-99f7-812f20240358"}
+
+{ "uid1" : "18acbcb9-137b-4fc8-99f7-812f20240359", "id" : 1, "firstName" : "Tom", "lastName" : "Roy", "uid2" : "28acbcb9-137b-4fc8-99f7-812f20240359",  "uid3" : "38acbcb9-137b-4fc8-99f7-812f20240359"}
+
+{ "uid1" : "ffacbcb9-137b-4fc8-99f7-812f20240359", "id" : 3, "firstName" : "John", "lastName" : "Shina", "uid2" : "18acbcb9-137b-4fc8-99f7-812f20240359",  "uid3" : "58acbcb9-137b-4fc8-99f7-812f20240359"}
+
+{ "uid1" : "ffacbcb9-137b-4fc8-99f7-812f20240359", "id" : 4, "firstName" : "John", "lastName" : "Riddle", "uid2" : "28acbcb9-137b-4fc8-99f7-812f30000000",  "uid3" : "18acbcb9-137b-4fc8-99f7-812f20240359"}
+
+
+Table: bar2
+
+{ "uid1" : "18acbcb9-137b-4fc8-99f7-812f20240356", "id" : 1}
+
+{ "uid1" : "18acbcb9-137b-4fc8-99f7-812f20240357", "id" : 10}
+
+{ "uid1" : "18acbcb9-137b-4fc8-99f7-812f20240358", "id" : 5}
+
+{ "uid1" : "18acbcb9-137b-4fc8-99f7-812f20240359", "id" : 1}
+
+{ "uid1" : "ffacbcb9-137b-4fc8-99f7-812f20240359", "id" : 3}
+
+{ "uid1" : "ffacbcb9-137b-4fc8-99f7-812f20240359", "id" : 4}
+
+
+Table: test4
+
+{ "uid1" : "fb703151-bfec-4dc9-ae63-651f5bde91b2", "uid2" : "18acbcb9-137b-4fc8-99f7-812f20240358"}
+
+{ "uid1" : "fb703151-bfec-4dc9-ae63-651f5bde91b3", "uid2" : "18acbcb9-137b-4fc8-99f7-812f20240359"}
+
+
+Table: test5
+
+{ "uid1" : "fc703151-bfec-4dc9-ae63-651f5bde91b2", "uid2" : "19acbcb9-137b-4fc8-99f7-812f20240358"}
+
+{ "uid1" : "fc703151-bfec-4dc9-ae63-651f5bde91b3", "uid2" : "19acbcb9-137b-4fc8-99f7-812f20240359"}
+

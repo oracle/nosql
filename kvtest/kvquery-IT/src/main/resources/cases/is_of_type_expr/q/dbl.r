@@ -1,0 +1,11 @@
+unordered-result
+{"id":0,"dbl":10.5,"num":null}
+{"id":1,"dbl":1.0,"num":null}
+{"id":2,"dbl":3.5,"num":null}
+{"id":3,"dbl":-2.5,"num":null}
+{"id":4,"dbl":-2.5,"num":null}
+{"id":5,"dbl":10.5,"num":null}
+{"id":6,"dbl":1.0,"num":null}
+{"id":7,"dbl":3.5,"num":null}
+{"id":8,"dbl":0.0,"num":1.2345E-100000000}
+{"id":9,"dbl":Infinity,"num":1.2345E+55}

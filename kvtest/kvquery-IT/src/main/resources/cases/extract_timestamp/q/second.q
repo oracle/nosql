@@ -1,0 +1,1 @@
+SELECT second(t.ts0), second(t.rec.ts3), second(t.mts6.values($key="k1")), second(t.ats9[0]) FROM Foo t ORDER BY id

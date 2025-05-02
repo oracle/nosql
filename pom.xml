@@ -1,0 +1,491 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <organization>
+    <name>Oracle</name>
+    <url>http://www.oracle.com/</url>
+  </organization>
+
+  <groupId>com.oracle.nosql</groupId>
+  <artifactId>kv</artifactId>
+  <version>25.2.0-SNAPSHOT</version>
+  <packaging>pom</packaging>
+
+  <name>Oracle NoSQL Database</name>
+  <url>https://www.oracle.com/database/nosql/</url>
+
+  <scm>
+    <connection>scm:git:ssh://oci.private.devops.scmservice.us-phoenix-1.oci.oracleiaas.com/namespaces/axuxirvibvvo/projects/NOSQL/repositories/kv-ce-github</connection>
+  </scm>
+
+  <profiles>
+    <!-- The profile to run eclipse compiler check -->
+    <!--
+      It sets the compiler output directory to target/ecj-target, making sure that
+      we don't accidentally use ecj compiled classes in release package.
+      It also triggers `clean` phase automatically.
+    -->
+    <profile>
+      <id>warnings</id>
+      <build>
+        <directory>${project.basedir}/target/ecj-target</directory>
+        <pluginManagement>
+          <plugins>
+            <plugin>
+              <artifactId>maven-compiler-plugin</artifactId>
+              <version>3.11.0</version>
+              <configuration>
+                <compilerId>eclipse</compilerId>
+                <fork>true</fork>
+                <debug>false</debug>
+                <failOnWarning>false</failOnWarning>
+                <compilerArgs>
+                  <arg>-properties</arg>
+                  <arg>${maven.multiModuleProjectDirectory}/.settings/org.eclipse.jdt.core.prefs</arg>
+                  <arg>-enableJavadoc</arg>
+                  <arg>-Xemacs</arg>
+                </compilerArgs>
+              </configuration>
+
+              <dependencies>
+                <dependency>
+                  <groupId>org.codehaus.plexus</groupId>
+                  <artifactId>plexus-compiler-eclipse</artifactId>
+                  <version>2.13.0</version>
+                </dependency>
+
+                <dependency>
+                  <groupId>org.eclipse.jdt</groupId>
+                  <artifactId>ecj</artifactId>
+                  <version>3.34.0</version>
+                </dependency>
+              </dependencies>
+            </plugin>
+          </plugins>
+        </pluginManagement>
+        <plugins>
+          <plugin>
+            <artifactId>maven-clean-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>auto-clean</id>
+                <phase>initialize</phase>
+                <goals>
+                  <goal>clean</goal>
+                </goals>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+
+    <!--
+      This is a fix for importing project in Eclipse or jdt.ls language server.
+
+      Eclipse ( and jdt.ls ) runs m2e plugin implicitly to config a mvn project.
+      m2e plugin is configured to map dependency:unpack in the lifecycle after
+      package phase. KV runs dependency:unpack in prepare-package phase which
+      violates m2e lifecycle definition causing project import failure.
+
+      This is a workaround that disable dependency:unpack in the Eclipse
+      context, this would not affect the development, as we only use unpack
+      to generate release jars.
+
+      Another issue with jdt.ls autobuild feature is that it affects
+      CLI mvn clean command, when mvn clean trying to remove the target
+      folder, jdt.ls always rebuild the classes in place when autobuild is on.
+      This workaround also sets <directory> to target-ide, this fixs
+      IDEs such as vs-code and vim that use jdtls as the language server.
+    -->
+    <profile>
+      <id>only-eclipse</id>
+      <activation>
+        <property>
+          <name>m2e.version</name>
+        </property>
+      </activation>
+      <build>
+        <directory>target-ide</directory>
+        <pluginManagement>
+          <plugins>
+            <plugin>
+              <groupId>org.eclipse.m2e</groupId>
+              <artifactId>lifecycle-mapping</artifactId>
+              <version>1.0.0</version>
+              <configuration>
+                <lifecycleMappingMetadata>
+                  <pluginExecutions>
+                    <pluginExecution>
+                      <pluginExecutionFilter>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-dependency-plugin</artifactId>
+                        <versionRange>[3.4,)</versionRange>
+                        <goals>
+                          <goal>unpack</goal>
+                        </goals>
+                      </pluginExecutionFilter>
+                      <action>
+                        <ignore />
+                      </action>
+                    </pluginExecution>
+                  </pluginExecutions>
+                </lifecycleMappingMetadata>
+              </configuration>
+            </plugin>
+          </plugins>
+        </pluginManagement>
+      </build>
+    </profile>
+  </profiles>
+
+  <modules>
+    <module>kvmain</module>
+    <module>kvtest</module>
+    <module>kvclient</module>
+    <module>kvstore</module>
+    <module>sql</module>
+    <module>recovery</module>
+    <module>httpproxy</module>
+    <module>packaging</module>
+  </modules>
+
+  <properties>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <maven.compiler.release>11</maven.compiler.release>
+    <release.edition>Community</release.edition>
+    <release.edition.short>ce</release.edition.short>
+    <release.version.full>${project.version} ${release.edition} Edition</release.version.full>
+    <copyright>Copyright (c) 2011, 2025 Oracle and/or its affiliates.   All rights reserved.</copyright>
+
+    <!-- public dependencies version -->
+    <netty.version>4.1.118.Final</netty.version>
+    <gson.version>2.11.0</gson.version>
+    <reactivestreams.version>1.0.4</reactivestreams.version>
+    <jackson.version>2.18.0</jackson.version>
+    <antlr4.version>4.13.1</antlr4.version>
+    <jline.version>3.25.1</jline.version>
+    <junit.version>4.13.2</junit.version>
+    <sshd.version>2.14.0</sshd.version>
+    <slf4j.version>2.0.16</slf4j.version>
+    <hadoop.version>3.3.4</hadoop.version>
+    <elasticsearch.version>8.8.1</elasticsearch.version>
+    <wallet.version>23.4.0.24.05</wallet.version>
+    <commons.logging.version>1.3.0</commons.logging.version>
+
+    <!-- nosql test dependencies version -->
+    <nosqldriver.version>5.4.9</nosqldriver.version>
+    <qtf.version>1.0.0</qtf.version>
+    <oci.sdk.version>2.49.1</oci.sdk.version>
+    <jetestutil.version>19.2.1</jetestutil.version>
+    <kerby.version>2.0.0</kerby.version>
+    <ycsb.version>0.1X.20181216</ycsb.version>
+
+    <!-- Make it easier to run single test from project root folder -->
+    <failIfNoTests>false</failIfNoTests>
+    <failsafe.failIfNoSpecifiedTests>false</failsafe.failIfNoSpecifiedTests>
+  </properties>
+
+  <!-- dependencyManagement in the parent pom defines the common configuration for all dependencies -->
+  <!-- sub-modules inherit these settings, but still need to list subset of dependencies in their own pom -->
+  <!-- if we plan to change the artifact's name, we need to modify both parent pom and sub-module pom -->
+  <dependencyManagement>
+    <dependencies>
+      <dependency> <groupId>org.antlr</groupId> <artifactId>antlr4-runtime</artifactId> <version>${antlr4.version}</version> </dependency>
+      <!-- gson is used by sklogger and kvclient -->
+      <!-- listed here to make sure the version is managed -->
+      <dependency> <groupId>com.google.code.gson</groupId> <artifactId>gson</artifactId> <version>${gson.version}</version> </dependency>
+      <!-- current Jackson release -->
+      <!-- listed here to make sure the right version is included -->
+      <dependency> <groupId>com.fasterxml.jackson.core</groupId> <artifactId>jackson-core</artifactId> <version>${jackson.version}</version> </dependency>
+      <!-- reactive streams interface -->
+      <dependency> <groupId>org.reactivestreams</groupId> <artifactId>reactive-streams</artifactId> <version>${reactivestreams.version}</version> </dependency>
+      <!-- jline used by CLI and query shell, and other tools -->
+      <dependency> <groupId>org.jline</groupId> <artifactId>jline-native</artifactId> <version>${jline.version}</version> </dependency>
+      <dependency> <groupId>org.jline</groupId> <artifactId>jline-reader</artifactId> <version>${jline.version}</version> </dependency>
+      <dependency> <groupId>org.jline</groupId> <artifactId>jline-terminal</artifactId> <version>${jline.version}</version> </dependency>
+      <!-- Mina sshd used by diagnostics utility -->
+      <dependency> <groupId>org.apache.sshd</groupId> <artifactId>sshd-core</artifactId> <version>${sshd.version}</version> </dependency>
+      <dependency> <groupId>org.apache.sshd</groupId> <artifactId>sshd-common</artifactId> <version>${sshd.version}</version> </dependency>
+      <dependency> <groupId>org.apache.sshd</groupId> <artifactId>sshd-sftp</artifactId> <version>${sshd.version}</version> </dependency>
+      <!-- slf4j-api used by Mina sshd, and also used for Hadoop table integration tests -->
+      <dependency> <groupId>org.slf4j</groupId> <artifactId>slf4j-api</artifactId> <version>${slf4j.version}</version> </dependency>
+      <dependency> <groupId>commons-logging</groupId> <artifactId>commons-logging</artifactId> <version>${commons.logging.version}</version> </dependency>
+      <!-- ojdbc6 for external tables -->
+      <!-- <dependency> <groupId>com.oracle</groupId> <artifactId>ojdbc6</artifactId> <version>060812</version> </dependency> -->
+      <!-- coherence -->
+      <!-- <dependency> <groupId>com.tangosol</groupId> <artifactId>coherence</artifactId> <version>12.1.2</version> </dependency> -->
+
+      <!-- Netty jars for admin web service. They are also used by not-enabled async project code -->
+      <dependency> <groupId>io.netty</groupId> <artifactId>netty-buffer</artifactId> <version>${netty.version}</version> </dependency>
+      <dependency> <groupId>io.netty</groupId> <artifactId>netty-codec</artifactId> <version>${netty.version}</version> </dependency>
+      <dependency> <groupId>io.netty</groupId> <artifactId>netty-codec-http</artifactId> <version>${netty.version}</version> </dependency>
+      <dependency> <groupId>io.netty</groupId> <artifactId>netty-codec-socks</artifactId> <version>${netty.version}</version> </dependency>
+      <dependency> <groupId>io.netty</groupId> <artifactId>netty-common</artifactId> <version>${netty.version}</version> </dependency>
+      <dependency> <groupId>io.netty</groupId> <artifactId>netty-handler</artifactId> <version>${netty.version}</version> </dependency>
+      <dependency> <groupId>io.netty</groupId> <artifactId>netty-handler-proxy</artifactId> <version>${netty.version}</version> </dependency>
+      <dependency> <groupId>io.netty</groupId> <artifactId>netty-resolver</artifactId> <version>${netty.version}</version> </dependency>
+      <dependency> <groupId>io.netty</groupId> <artifactId>netty-transport</artifactId> <version>${netty.version}</version> </dependency>
+      <dependency> <groupId>io.netty</groupId> <artifactId>netty-transport-native-unix-common</artifactId> <version>${netty.version}</version> </dependency>
+
+      <!-- hadoop -->
+      <dependency> <groupId>org.apache.hadoop</groupId> <artifactId>hadoop-common</artifactId> <version>${hadoop.version}</version> </dependency>
+      <dependency> <groupId>org.apache.hadoop</groupId> <artifactId>hadoop-mapreduce-client-core</artifactId> <version>${hadoop.version}</version> </dependency>
+      <dependency> <groupId>org.apache.hadoop</groupId> <artifactId>hadoop-annotations</artifactId> <version>${hadoop.version}</version> </dependency>
+      <dependency> <groupId>org.apache.hadoop</groupId> <artifactId>hadoop-yarn-api</artifactId> <version>${hadoop.version}</version> </dependency>
+      <dependency> <groupId>org.apache.hadoop</groupId> <artifactId>hadoop-auth</artifactId> <version>${hadoop.version}</version> </dependency>
+      <dependency> <groupId>org.apache.hadoop</groupId> <artifactId>hadoop-mapreduce-client-common</artifactId> <version>${hadoop.version}</version> </dependency>
+
+      <!-- Dependencies for Oracle wallet -->
+      <dependency> <groupId>com.oracle.database.security</groupId> <artifactId>oraclepki</artifactId> <version>${wallet.version}</version> </dependency>
+      <!-- For packaging -->
+      <dependency> <groupId>com.oracle.nosql.common</groupId> <artifactId>qtf</artifactId> <version>${qtf.version}</version> </dependency>
+      <dependency> <groupId>com.oracle.nosql.sdk</groupId> <artifactId>nosqldriver</artifactId> <version>${nosqldriver.version}</version> </dependency>
+      <!-- build/test only and not shipped or used at runtime for kvstore -->
+      <!-- kvtest sub-models will overwrite the scope of these dependencies to compile for transitive dependency -->
+
+      <!-- test runner -->
+      <dependency> <groupId>junit</groupId> <artifactId>junit</artifactId> <version>${junit.version}</version> </dependency>
+      <!-- easymock -->
+      <dependency> <groupId>org.easymock</groupId> <artifactId>easymock</artifactId> <version>5.5.0</version> </dependency>
+
+      <!-- checker lib during compile -->
+      <dependency> <groupId>org.checkerframework</groupId> <artifactId>checker-qual</artifactId> <version>2.1.12</version> </dependency>
+
+      <!-- jetestutil -->
+      <dependency> <groupId>com.sleepycat</groupId> <artifactId>jetestutil</artifactId> <version>${jetestutil.version}</version> </dependency>
+
+      <dependency> <groupId>org.apache.kerby</groupId> <artifactId>kerb-client</artifactId> <version>${kerby.version}</version> </dependency>
+      <dependency> <groupId>org.apache.kerby</groupId> <artifactId>kerb-common</artifactId> <version>${kerby.version}</version> </dependency>
+      <dependency> <groupId>org.apache.kerby</groupId> <artifactId>kerb-core</artifactId> <version>${kerby.version}</version> </dependency>
+      <dependency> <groupId>org.apache.kerby</groupId> <artifactId>kerb-crypto</artifactId> <version>${kerby.version}</version> </dependency>
+      <dependency> <groupId>org.apache.kerby</groupId> <artifactId>kerb-identity</artifactId> <version>${kerby.version}</version> </dependency>
+      <dependency> <groupId>org.apache.kerby</groupId> <artifactId>kerb-server</artifactId> <version>${kerby.version}</version> </dependency>
+      <dependency> <groupId>org.apache.kerby</groupId> <artifactId>kerb-simplekdc</artifactId> <version>${kerby.version}</version> </dependency>
+      <dependency> <groupId>org.apache.kerby</groupId> <artifactId>kerb-util</artifactId> <version>${kerby.version}</version> </dependency>
+      <dependency> <groupId>org.apache.kerby</groupId> <artifactId>kerby-asn1</artifactId> <version>${kerby.version}</version> </dependency>
+      <dependency> <groupId>org.apache.kerby</groupId> <artifactId>kerby-config</artifactId> <version>${kerby.version}</version> </dependency>
+      <dependency> <groupId>org.apache.kerby</groupId> <artifactId>kerby-pkix</artifactId> <version>${kerby.version}</version> </dependency>
+      <dependency> <groupId>org.apache.kerby</groupId> <artifactId>kerby-util</artifactId> <version>${kerby.version}</version> </dependency>
+
+      <dependency> <groupId>com.yahoo</groupId> <artifactId>ycsb</artifactId> <version>${ycsb.version}</version> </dependency>
+    </dependencies>
+  </dependencyManagement>
+
+  <build>
+    <!-- pluginManagement defines the common settings for the Maven plugins -->
+    <!-- sub-modules inherit and overwrite these settings if needed -->
+    <pluginManagement>
+      <plugins>
+        <plugin>
+          <artifactId>maven-clean-plugin</artifactId>
+          <version>3.2.0</version>
+        </plugin>
+        <plugin>
+          <artifactId>maven-checkstyle-plugin</artifactId>
+          <version>3.2.1</version>
+          <executions>
+            <execution>
+              <phase>process-sources</phase>
+              <goals>
+                <goal>check</goal>
+              </goals>
+            </execution>
+          </executions>
+          <configuration>
+            <logViolationsToConsole>true</logViolationsToConsole>
+            <checkstyleRules>
+              <module name="Checker">
+                <module name="RegexpMultiline">
+                  <property name="format" value="(?s:(\r\n|\r).*)"/>
+                  <property name="message" value="CRLF and CR line endings are prohibited, but this file uses them."/>
+                </module>
+                <module name="RegexpSingleline">
+                  <property name="format" value="[^\p{ASCII}]"/>
+                  <property name="message" value="Non-ASCII are prohibited, but this file uses them."/>
+                </module>
+              </module>
+            </checkstyleRules>
+          </configuration>
+        </plugin>
+        <plugin>
+          <artifactId>maven-resources-plugin</artifactId>
+          <version>3.3.0</version>
+        </plugin>
+        <plugin>
+          <artifactId>maven-antrun-plugin</artifactId>
+          <version>3.1.0</version>
+        </plugin>
+        <plugin>
+          <groupId>org.codehaus.mojo</groupId>
+          <artifactId>exec-maven-plugin</artifactId>
+          <version>3.1.0</version>
+        </plugin>
+        <plugin>
+          <artifactId>maven-dependency-plugin</artifactId>
+          <version>3.5.0</version>
+          <configuration>
+            <skipDuringIncrementalBuild>true</skipDuringIncrementalBuild>
+            <silent>true</silent>
+          </configuration>
+        </plugin>
+        <plugin>
+          <artifactId>maven-compiler-plugin</artifactId>
+          <version>3.11.0</version>
+        </plugin>
+        <plugin>
+          <artifactId>maven-surefire-plugin</artifactId>
+          <version>3.1.0</version>
+        </plugin>
+        <plugin>
+          <artifactId>maven-surefire-report-plugin</artifactId>
+          <version>3.1.0</version>
+        </plugin>
+        <plugin>
+          <groupId>org.codehaus.mojo</groupId>
+          <artifactId>buildnumber-maven-plugin</artifactId>
+          <version>3.0.0</version>
+          <executions>
+            <execution>
+              <phase>validate</phase>
+              <goals>
+                <goal>create</goal>
+              </goals>
+            </execution>
+          </executions>
+          <configuration>
+            <doCheck>false</doCheck>
+            <doUpdate>false</doUpdate>
+            <timestampFormat>yyyy-MM-dd HH:mm:ss z</timestampFormat>
+            <getRevisionOnlyOnce>true</getRevisionOnlyOnce>
+            <shortRevisionLength>12</shortRevisionLength>
+            <timezone>UTC</timezone>
+          </configuration>
+        </plugin>
+        <plugin>
+          <artifactId>maven-enforcer-plugin</artifactId>
+          <version>3.2.1</version>
+        </plugin>
+        <plugin>
+          <artifactId>maven-jar-plugin</artifactId>
+          <version>3.3.0</version>
+          <configuration>
+            <archive>
+              <manifest>
+                <addDefaultImplementationEntries>true</addDefaultImplementationEntries>
+                <addClasspath>true</addClasspath>
+              </manifest>
+              <manifestEntries>
+                <Copyright>${copyright}</Copyright>
+                <Build-Date>${timestamp}</Build-Date>
+                <Build-Id>${buildNumber}</Build-Id>
+                <Build-Edition>${release.edition}</Build-Edition>
+              </manifestEntries>
+            </archive>
+          </configuration>
+        </plugin>
+        <plugin>
+          <artifactId>maven-failsafe-plugin</artifactId>
+          <version>3.1.0</version>
+        </plugin>
+        <plugin>
+          <groupId>org.jacoco</groupId>
+          <artifactId>jacoco-maven-plugin</artifactId>
+          <version>0.8.11</version>
+        </plugin>
+        <plugin>
+          <artifactId>maven-install-plugin</artifactId>
+          <version>3.0.1</version>
+        </plugin>
+        <plugin>
+          <artifactId>maven-deploy-plugin</artifactId>
+          <version>3.0.0</version>
+          <configuration>
+            <skip>true</skip>
+          </configuration>
+        </plugin>
+        <plugin>
+          <artifactId>maven-assembly-plugin</artifactId>
+          <version>3.6.0</version>
+        </plugin>
+        <plugin>
+          <artifactId>maven-shade-plugin</artifactId>
+          <version>3.6.0</version>
+        </plugin>
+        <plugin>
+          <artifactId>maven-javadoc-plugin</artifactId>
+          <version>3.5.0</version>
+        </plugin>
+        <plugin>
+          <artifactId>maven-project-info-reports-plugin</artifactId>
+          <version>3.4.2</version>
+        </plugin>
+        <plugin>
+          <artifactId>maven-site-plugin</artifactId>
+          <version>3.12.1</version>
+        </plugin>
+        <plugin>
+          <groupId>com.github.alexcojocaru</groupId>
+          <artifactId>elasticsearch-maven-plugin</artifactId>
+          <version>6.27-nosql.1</version>
+        </plugin>
+        <plugin>
+          <groupId>org.antlr</groupId>
+          <artifactId>antlr4-maven-plugin</artifactId>
+          <version>${antlr4.version}</version>
+        </plugin>
+      </plugins>
+    </pluginManagement>
+    <plugins>
+      <plugin>
+        <artifactId>maven-enforcer-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>enforce-java</id>
+            <goals>
+              <goal>enforce</goal>
+            </goals>
+            <configuration>
+              <rules>
+                <requireMavenVersion>
+                  <version>[3.5.0,)</version>
+                </requireMavenVersion>
+                <requireJavaVersion>
+                  <version>[11,)</version>
+                </requireJavaVersion>
+              </rules>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>flatten-maven-plugin</artifactId>
+        <version>1.6.0</version>
+        <configuration>
+          <flattenMode>clean</flattenMode>
+        </configuration>
+        <executions>
+          <execution>
+            <id>flatten</id>
+            <phase>process-resources</phase>
+            <goals>
+              <goal>flatten</goal>
+            </goals>
+          </execution>
+          <!-- ensure proper cleanup -->
+          <execution>
+            <id>flatten.clean</id>
+            <phase>clean</phase>
+            <goals>
+              <goal>clean</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
+</project>

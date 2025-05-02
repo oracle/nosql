@@ -1,0 +1,2 @@
+unordered-result
+{"ic":0,"asinic":0.0,"lc":1,"asinlc":1.5707963267948966,"fc":0.34,"asinfc":0.34,"dc":-1.00000000001,"asindc":NaN,"nc":-1,"asinnc":-1.5707963267948966,"jsonfc":3.14,"asinjsonfc":NaN,"jsondc":NaN,"asinjsondc":NaN,"jsonnc":1.00000000000001,"asinjsonnc":NaN}

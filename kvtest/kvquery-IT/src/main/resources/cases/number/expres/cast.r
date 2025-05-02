@@ -1,0 +1,12 @@
+unordered-result
+{"id":3,"num":-1.677722E+7,"Column_3":-16777220,"Column_4":-16777220,"Column_5":-1677722.0,"Column_6":-1677722.0,"Column_7":-1.677722E+7,"Column_8":0,"Column_9":1.2}
+{"id":9,"num":1142355653432433554,"Column_3":301980562,"Column_4":1142355653432433554,"Column_5":1.14235564E17,"Column_6":1.1423556534324336E17,"Column_7":1142355653432433554,"Column_8":0,"Column_9":1.2}
+{"id":4,"num":9.99E+20,"Column_3":926679040,"Column_4":2875820019684212736,"Column_5":9.99E19,"Column_6":9.99E19,"Column_7":9.99E+20,"Column_8":0,"Column_9":1.2}
+{"id":1E+1,"num":null,"Column_3":null,"Column_4":null,"Column_5":null,"Column_6":null,"Column_7":null,"Column_8":0,"Column_9":1.2}
+{"id":5,"num":-9.99E+20,"Column_3":-926679040,"Column_4":-2875820019684212736,"Column_5":-9.99E19,"Column_6":-9.99E19,"Column_7":-9.99E+20,"Column_8":0,"Column_9":1.2}
+{"id":0,"num":0,"Column_3":0,"Column_4":0,"Column_5":0.0,"Column_6":0.0,"Column_7":0,"Column_8":0,"Column_9":1.2}
+{"id":7,"num":4.9E-324,"Column_3":0,"Column_4":0,"Column_5":0.0,"Column_6":0.0,"Column_7":4.9E-324,"Column_8":0,"Column_9":1.2}
+{"id":1,"num":1,"Column_3":1,"Column_4":1,"Column_5":0.1,"Column_6":0.1,"Column_7":1,"Column_8":0,"Column_9":1.2}
+{"id":2,"num":1.677722E+7,"Column_3":16777220,"Column_4":16777220,"Column_5":1677722.0,"Column_6":1677722.0,"Column_7":1.677722E+7,"Column_8":0,"Column_9":1.2}
+{"id":6,"num":1.7976931348623157E+308,"Column_3":0,"Column_4":0,"Column_5":Infinity,"Column_6":1.7976931348623158E307,"Column_7":1.7976931348623157E+308,"Column_8":0,"Column_9":1.2}
+{"id":8,"num":null,"Column_3":null,"Column_4":null,"Column_5":null,"Column_6":null,"Column_7":null,"Column_8":0,"Column_9":1.2}

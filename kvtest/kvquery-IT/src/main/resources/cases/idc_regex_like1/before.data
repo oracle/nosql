@@ -1,0 +1,306 @@
+Table: playerinfo
+{
+	"id": 100,
+	"id1": 1,
+	"name": "Virat Kohli",
+	"age": 31,
+	"ballsbowled": 5266,
+	"ballsplayed": 50432,
+	"strikerate": 83.5,
+	"tier1rated": true,
+	"avg": 48,
+	"fbin": "SGVsbG8gSG93IGFyZSBZb3U/",
+	"bin": "Tm9TcWw=",
+	"century": 100,
+	"country": "India",
+	"type": "international",
+	"time": "1987-04-30T07:45:00",
+	"stats1": [11, 222, 33],
+	"stats2": {
+		"odi": [12, 22, 33],
+		"test": [41, 53],
+		"t20": [1, 3]
+	},
+	"stats3": {
+		"avg": {
+			"test": [53.76, 0.0],
+			"odi": [59.58, 166.25],
+			"t20": [50.29, 49.5]
+		}
+	},
+	"stats4": [{
+		"sr": {
+			"test": [57.26, 0.0],
+			"odi": [92.96, 160.25],
+			"t20": [137.4, 36.5]
+		}
+	}],
+	"profile":"A spunky, chubby teenager with gelled hair shot to fame after leading India to glory in the Under-19 World Cup at Kuala Lumpur in early 2008.",
+	"info": {
+		"id": {
+			"name": "Virat Kohli",
+			"age": 30,
+			"ballsbowled": 5266232323232323,
+			"ballsplayed": 5043223232323232323332,
+			"strikerate": 83.5,
+			"tier1rated": true,
+			"avg": 56.87,
+			"fbin": "SGVsbG8gSG93IGFyZSBZb3U/",
+			"bin": "Tm9TcWw=",
+			"century": 100,
+			"country": "India",
+			"type": "international",
+			"dob": "1988-11-05T10:45:00",
+			"stats1": [11, 222, 33],
+			"stats2": {
+				"odi": [12, 22, 33],
+				"test": [41, 53],
+				"t20": [1, 3]
+			},
+			"stats3": {
+				"avg": {
+					"test": [53.76, 0.0],
+					"odi": [59.58, 166.25],
+					"t20": [50.29, 49.5]
+				}
+			},
+			"stats4": [{
+				"sr": {
+					"test": [57.26, 0.0],
+					"odi": [92.96, 160.25],
+					"t20": [137.4, 36.5]
+				}
+			}],
+			"profile":"A spunky, chubby teenager with gelled hair shot to fame after leading India to glory in the Under-19 World Cup at Kuala Lumpur in early 2008. In an Indian team filled with saint-like icons worthy of their own hagiographies, Virat Kohli, with his most un-Indian, 'bad-boy' intensity, would clearly be an outcast."
+		}
+	}
+}
+
+{
+	"id": 100,
+	"id1": 2,
+	"age": 35,
+	"ballsbowled": 5266,
+	"ballsplayed": 50432,
+	"strikerate": 83.5,
+	"tier1rated": true,
+	"avg": 48,
+	"fbin": "SGVsbG8gSG93IGFyZSBZb3U/",
+	"bin": "Tm9TcWw=",
+	"century": 100,	
+	"country": "Australia",
+	"type": "international",
+	"time": "1987-04-30T07:45:00",
+	"info": {
+		"id": {
+			"name": null,
+			"age": 30,
+                        "profile":"\u0007"
+		       }
+          	}
+}
+
+{
+	"id": 100,
+	"id1": 3,
+        "country": "NewZealand",
+	"name": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa!",
+        "profile": "Test quoting literals. To match two stars use \\Q**\\E",
+	"info": {
+		"id": {
+			"name":"Parag",
+			"age": 77,
+                        "profile":"\f"
+		       }
+        	}
+}
+
+{
+        "id": 100,
+	"id1": 4,
+	"name": "Rory burns",
+        "country": "England",
+	"profile": "onszgjnljuciohykubezpakgikaihirfxitsnrglxbyxfphdmwhswdguehawmouryeryjhjkhnadygvjuoedzgzbxuzqwcnwbwnjmzibnjzeujcqwuliibaobrkovnjbxuzaxlfscderdsdbetayyevjwzjqelcxkeajbziqkidipzfmkgvikvnouhbjdvlpztpzbqgyssnwwhcuqcouywqldsghatyskabxsxpfmaimtvlkebjgglzaurhyciczlwhwexxgkqpblxlepjxkpgqypymgzlhrdjmzxamgkaghcemtvktuirixhueqdqgdvxthtodzrsnhmxzmezgsggakiabmxnrjjgqnjequobciipaqyjsybvoyfwpmfddwbnquhjcpsaxnkpjymjftunzseotrhysghzcziwgnmnebjahxhwryxgjwjkmkfoqrsruonguoqtnnnsomhslflttupgtqyqpngvczmfcakssxymzqaniaafydzwrfshzo",
+	"info": {
+		"id": {
+			"name":"Jigga",
+			"age": 44,
+                        "profile":"\r"
+		       }
+           	}
+
+}
+
+{
+	"id": 100,
+	"id1": 5,
+	"name": "Sam",
+        "country": "Srilanka",
+        "profile": "Escape char test A*B",
+	"info": {
+		"id": {
+			"name":"Keith",
+			"age": 24,
+                        "profile":"\n",
+                        "expenses":{"books":2300, "food":1700, "travel":2100}
+		       }
+              	}
+
+}
+
+{
+	"id": 100,
+	"id1": 6,
+	"name": "Roy",
+        "country": "England",
+        "profile": "seek columns that contain a percent sign A%B",
+	"info": {
+		"id": {
+			"name":"suzan",
+			"age": 14,
+                        "profile":"\t",
+                        "phones":[{"type":"work", "areacode":305,"number":1234079},
+                                  {"type":"home", "areacode":305,"number":2066401}]
+                       }
+                 }
+}
+
+{
+	"id": 100,
+	"id1": 7,
+	"name": "Dana",
+        "country": "Australia",
+        "profile": "Anderson Prefix condition",
+	"info": {
+		"id": {
+			"name":"Shahsa",
+			"age": 38,
+                        "profile":"O",
+                        "phones":[{"type":"work", "areacode":339, "number":4120211},
+                                  {"type":"work", "areacode":339,"number":8694021},
+                                  {"type":"home", "areacode":339,"number":1205678},
+                                  {"type":"home", "areacode":305,"number":8064321}],
+                        "connections":[2, 3],
+                        "expenses":{"food":1000, "gas":180}
+         	      }
+         	}
+}
+
+{
+	"id": 100,
+	"id1": 8,
+	"name": "Richard",
+        "country": "Pakistan",
+        "profile": "Postfix condition Seema",
+	"info": {
+		"id": {
+			"name":"Geoge",
+			"age": 63,
+                        "profile":"ABC",
+                        "phones":[{"type":"work", "areacode":201,"number":3213267},
+                                  {"type":"work", "areacode":201,"number":8765421},
+                                  {"type":"home", "areacode":339,"number":3414578}],
+                        "connections":[1, 3],
+                        "expenses":{"books":100, "food":1700, "travel":2100}
+                      }
+		}
+}
+
+{
+	"id": 100,
+	"id1": 9,
+       	"name": "Sarah",
+        "country": "South Africa",
+        "profile": "M",
+	"info": {
+		"id": {
+			"name":"Mariya",
+			"age": 30,
+                        "profile":"\u0041\u0303",
+                        "score": [10,20,30,40],
+                        "phones":[{"type":"home", "areacode":339,"number":1684972}],
+                        "connections":[1, 3],
+                        "expenses":{"books":100, "food":1700, "travel":2100}
+		       }
+	         }
+}
+
+{
+	"id": 100,
+	"id1": 10,
+        "country": "West Indies",
+        "profile":"This \n one sentence" 
+}
+
+
+{
+	"id": 100,
+	"id1": 11,
+        "profile":"test.**literal",
+        "country": "India",
+	"info": {
+		"id": {
+			"name": "Ajay Jadeja",
+			"age": 30,
+                        "profile":"\u001B",
+                        "address":{"street":"1 Main St",
+                                   "city": "Montreal",
+                                   "zip": "560069"
+                                  },
+                        "connections":[3, 5, 1, 2],
+                        "expenses":{"food":6000, "books":240, "clothes":2000, "shoes":1200}
+		      }
+	         }
+
+}
+
+{
+        "id": 100,
+        "id1": 12,
+        "profile":"Test",
+        "country": "England",
+	"info": {
+		"id": {
+			"name": "Shravan Bella",
+			"age": 39,
+                        "profile":"",
+                        "address": "Test address",
+                        "phones":[{"type":"home", "areacode":423,"number":8634379}],
+                        "connections":[2, 4, 1, 3],
+                        "expenses":{"food":900, "shoes":1000, "clothes":1500}
+		       }
+	        }
+
+}
+
+{
+        "id": 100,
+        "id1": 100,
+        "country": "South Africa",
+        "name":"m",
+        "profile":"delete test"
+}
+
+
+Table: playerinfo.desc
+
+{
+"id":1,
+"id1":2,
+"id3":1,
+"desc":"neo is the one"
+}
+
+{
+"id":2,
+"id1":3,
+"id3":2,
+"desc":"this will get updated using the update clause."
+}
+
+{
+"id":3,
+"id1":4,
+"id3":3,
+"desc":"this will get deleted using the delete clause."
+}

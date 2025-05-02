@@ -1,0 +1,11 @@
+unordered-result
+{"id":4,"Column_2":11}
+{"id":2,"Column_2":null}
+{"id":8,"Column_2":null}
+{"id":6,"Column_2":23}
+{"id":10,"Column_2":11}
+{"id":1,"Column_2":0}
+{"id":7,"Column_2":0}
+{"id":3,"Column_2":null}
+{"id":9,"Column_2":11}
+{"id":5,"Column_2":0}

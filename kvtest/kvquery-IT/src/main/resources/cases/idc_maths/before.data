@@ -1,0 +1,385 @@
+Table : functional_test
+{
+    "id": 1,
+    "iv": 5,
+    "lv": 12345678901234,
+    "fv": 3.14,
+    "dv": 2.718281828459045,
+    "nv": 123.456,
+    "numArr": [1, 2, 3, 4, 5],
+    "num2DArr": [[1, 2], [3, 4], [5, 6]],
+    "num3DArr": [[[1, 2], [3, 4]], [[5, 6], [7, 8]]],
+    "douArr": [1.1, 2.2],
+    "dou2DArr": [[1.1, 2.2], [3.3, 4.4]],
+    "dou3DArr": [[[1.1, 2.2], [3.3, 4.4]], [[5.5, 6.6], [7.7, 8.8]]],
+    "numMap": {"a": 1, "b": 2, "c": 3},
+    "numNestedMap": {"x": {"a": 1}, "y": {"b": 2}},
+    "douMap": {"d": 1.1, "e": 2.2},
+    "douNestedMap": {"z": {"f": 3.3}},
+    "nestedNumMapInArray": [{"a": 1}, {"b": 2}],
+    "nestedDouMapInArray": [{"c": 3.3}],
+    "nestedNumArrayInMap": {"x": [1, 2], "y": [3, 4]},
+    "nestedDouArrayInMap": {"z": [5.5, 6.6]},
+    "doc": {
+        "iv": 5,
+        "lv": 12345678901234,
+        "fv": 3.14,
+        "dv": 2.718281828459045,
+        "nv": 123.456,
+        "numArr": [1, 2, 3, 4, 5],
+        "num2DArr": [[1, 2], [3, 4], [5, 6]],
+        "num3DArr": [[[1, 2], [3, 4]], [[5, 6], [7, 8]]],
+        "douArr": [1.1, 2.2],
+        "dou2DArr": [[1.1, 2.2], [3.3, 4.4]],
+        "dou3DArr": [[[1.1, 2.2], [3.3, 4.4]], [[5.5, 6.6], [7.7, 8.8]]],
+        "numMap": {"a": 1, "b": 2, "c": 3},
+        "numNestedMap": {"x": {"a": 1}, "y": {"b": 2}},
+        "douMap": {"d": 1.1, "e": 2.2},
+        "douNestedMap": {"z": {"f": 3.3}},
+        "nestedNumMapInArray": [{"a": 1}, {"b": 2}],
+        "nestedDouMapInArray": [{"c": 3.3}],
+        "nestedNumArrayInMap": {"x": [1, 2], "y": [3, 4]},
+        "nestedDouArrayInMap": {"z": [5.5, 6.6]}
+    }
+}
+{
+    "id": 2,
+    "iv": -5,
+    "lv": -12345678901234,
+    "fv": -3.14,
+    "dv": -2.718281828459045,
+    "nv": -123.456,
+    "numArr": [-1, -2, -3, -4, -5],
+    "num2DArr": [[-1, -2], [-3, -4], [-5, -6]],
+    "num3DArr": [[[-1, -2], [-3, -4]], [[-5, -6], [-7, -8]]],
+    "douArr": [-1.1, -2.2],
+    "dou2DArr": [[-1.1, -2.2], [-3.3, -4.4]],
+    "dou3DArr": [[[-1.1, -2.2], [-3.3, -4.4]], [[-5.5, -6.6], [-7.7, -8.8]]],
+    "numMap": {"a": -1, "b": -2, "c": -3},
+    "numNestedMap": {"x": {"a": -1}, "y": {"b": -2}},
+    "douMap": {"d": -1.1, "e": -2.2},
+    "douNestedMap": {"z": {"f": -3.3}},
+    "nestedNumMapInArray": [{"a": -1}, {"b": -2}],
+    "nestedDouMapInArray": [{"c": -3.3}],
+    "nestedNumArrayInMap": {"x": [-1, -2], "y": [-3, -4]},
+    "nestedDouArrayInMap": {"z": [-5.5, -6.6]},
+    "doc": {
+        "iv": -5,
+        "lv": -12345678901234,
+        "fv": -3.14,
+        "dv": -2.718281828459045,
+        "nv": -123.456,
+        "numArr": [-1, -2, -3, -4, -5],
+        "num2DArr": [[-1, -2], [-3, -4], [-5, -6]],
+        "num3DArr": [[[-1, -2], [-3, -4]], [[-5, -6], [-7, -8]]],
+        "douArr": [-1.1, -2.2],
+        "dou2DArr": [[-1.1, -2.2], [-3.3, -4.4]],
+        "dou3DArr": [[[-1.1, -2.2], [-3.3, -4.4]], [[-5.5, -6.6], [-7.7, -8.8]]],
+        "numMap": {"a": -1, "b": -2, "c": -3},
+        "numNestedMap": {"x": {"a": -1}, "y": {"b": -2}},
+        "douMap": {"d": -1.1, "e": -2.2},
+        "douNestedMap": {"z": {"f": -3.3}},
+        "nestedNumMapInArray": [{"a": -1}, {"b": -2}],
+        "nestedDouMapInArray": [{"c": -3.3}],
+        "nestedNumArrayInMap": {"x": [-1, -2], "y": [-3, -4]},
+        "nestedDouArrayInMap": {"z": [-5.5, -6.6]}
+    }
+}
+{
+    "id": 3,
+    "iv": -0,
+    "lv": 0,
+    "fv": -0.0,
+    "dv": 2.7976931348623157e+308,
+    "nv": -5.7976931348623157e+308,
+    "numArr": [-0],
+    "num2DArr": [[0]],
+    "num3DArr": [[[-0]]],
+    "douArr": [-5.7976931348623157e+308],
+    "dou2DArr": [[0.0]],
+    "dou3DArr": [[[2.7976931348623157e+308]]],
+    "numMap": {"zero": 0},
+    "numNestedMap": {"x": {"zero": -0}},
+    "douMap": {"infinity": 2.7976931348623157e+308},
+    "douNestedMap": {"z": {"infinity": -5.7976931348623157e+308}},
+    "nestedNumMapInArray": [{"zero": 0}],
+    "nestedDouMapInArray": [{"zero": -0.0}],
+    "nestedNumArrayInMap": {"zero": [0]},
+    "nestedDouArrayInMap": {"infinity": [-5.7976931348623157e+308]},
+    "doc": {
+        "iv": -0,
+            "lv": 0,
+            "fv": -0.0,
+            "dv": 2.7976931348623157e+308,
+            "nv": -5.7976931348623157e+308,
+            "numArr": [-0],
+            "num2DArr": [[0]],
+            "num3DArr": [[[-0]]],
+            "douArr": [-5.7976931348623157e+308],
+            "dou2DArr": [[0.0]],
+            "dou3DArr": [[[2.7976931348623157e+308]]],
+            "numMap": {"zero": 0},
+            "numNestedMap": {"x": {"zero": -0}},
+            "douMap": {"infinity": 2.7976931348623157e+308},
+            "douNestedMap": {"z": {"infinity": -5.7976931348623157e+308}},
+            "nestedNumMapInArray": [{"zero": -0}],
+            "nestedDouMapInArray": [{"zero": 0.0}],
+            "nestedNumArrayInMap": {"zero": [-0]},
+            "nestedDouArrayInMap": {"infinity": [2.7976931348623157e+308]}
+    }
+}
+{
+     "id": 4,
+     "iv": null,
+     "lv": null,
+     "fv": NaN,
+     "dv": NaN,
+     "nv": null,
+     "numArr": null,
+     "num2DArr": null,
+     "num3DArr": null,
+     "douArr": [NaN],
+     "dou2DArr": [[NaN],[NaN]],
+     "dou3DArr": [[[NaN]]],
+     "numMap": null,
+     "numNestedMap": null,
+     "douMap": null,
+     "douNestedMap": null,
+     "nestedNumMapInArray": null,
+     "nestedDouMapInArray": null,
+     "nestedNumArrayInMap": null,
+     "nestedDouArrayInMap": null,
+     "doc": {
+                 "iv": null,
+                 "lv": null,
+                 "fv": NaN,
+                 "dv": NaN,
+                 "nv": null,
+                 "numArr": null,
+                 "num2DArr": null,
+                 "num3DArr": null,
+                 "douArr": [NaN],
+                 "dou2DArr": [[NaN],[NaN]],
+                 "dou3DArr": [[[NaN]]],
+                 "numMap": {"a": null, "b": null, "c": -3},
+                 "numNestedMap": {"z": {"f": null}},
+                 "douMap": {"a": NaN, "b": null, "c": -3},
+                 "douNestedMap": {"z": {"f": NaN}},
+                 "nestedNumMapInArray": [{"a": null}, {"b": -2}],
+                 "nestedDouMapInArray": [{"c": NaN}],
+                 "nestedNumArrayInMap": {"x": [null, -2], "y": [null]},
+                 "nestedDouArrayInMap": {"z": [NaN, -6.6]}
+     }
+}
+{
+    "id": 5,
+    "iv": -2147483648,
+    "lv": -9223372036854775808,
+    "fv": -3.4028235e+38,
+    "dv": -1.7976931348623157e+308,
+    "nv": -1.7976931348623157e+308,
+    "numArr": null,
+    "num2DArr": null,
+    "num3DArr": null,
+    "douArr": null,
+    "dou2DArr": null,
+    "dou3DArr": null,
+    "numMap": null,
+    "numNestedMap": null,
+    "douMap": null,
+    "douNestedMap": null,
+    "nestedNumMapInArray": null,
+    "nestedDouMapInArray": null,
+    "nestedNumArrayInMap": null,
+    "nestedDouArrayInMap": null,
+    "doc": {
+        "iv": -2147483648,
+        "lv": -9223372036854775808,
+        "fv": -3.4028235e+38,
+        "dv": -1.7976931348623157e+308,
+        "nv": -1.7976931348623157e+308,
+        "numArr": null,
+        "num2DArr": null,
+        "num3DArr": null,
+        "douArr": null,
+        "dou2DArr": null,
+        "dou3DArr": null,
+        "numMap": null,
+        "numNestedMap": null,
+        "douMap": null,
+        "douNestedMap": null,
+        "nestedNumMapInArray": null,
+        "nestedDouMapInArray": null,
+        "nestedNumArrayInMap": null,
+        "nestedDouArrayInMap": null
+    }
+}
+{
+    "id": 6,
+    "iv": 2147483647,
+    "lv": 9223372036854775807,
+    "fv": 3.4028235e+38,
+    "dv": 1.7976931348623157e+308,
+    "nv": 1.7976931348623157e+308,
+    "numArr": null,
+    "num2DArr": null,
+    "num3DArr": null,
+    "douArr": null,
+    "dou2DArr": null,
+    "dou3DArr": null,
+    "numMap": null,
+    "numNestedMap": null,
+    "douMap": null,
+    "douNestedMap": null,
+    "nestedNumMapInArray": null,
+    "nestedDouMapInArray": null,
+    "nestedNumArrayInMap": null,
+    "nestedDouArrayInMap": null,
+    "doc": {
+        "iv": 2147483647,
+        "lv": 9223372036854775807,
+        "fv": 3.4028235e+38,
+        "dv": 1.7976931348623157e+308,
+        "nv": 1.7976931348623157e+308,
+        "numArr": null,
+        "num2DArr": null,
+        "num3DArr": null,
+        "douArr": null,
+        "dou2DArr": null,
+        "dou3DArr": null,
+        "numMap": null,
+        "numNestedMap": null,
+        "douMap": null,
+        "douNestedMap": null,
+        "nestedNumMapInArray": null,
+        "nestedDouMapInArray": null,
+        "nestedNumArrayInMap": null,
+        "nestedDouArrayInMap": null
+    }
+}
+{
+    "id": 7,
+    "iv": 2147483647,
+    "doc": {
+        "iv": 2147483647,
+        "lv": 9223372036854775807,
+        "fv": 3.4028235e+38,
+        "str" : "test",
+        "array" : [1,2.0,"oracle","nosql",null],
+         "obj" : {"key" : "value"},
+         "bool" : true,
+         "numArr" : [100, 0.1, 20.345, "2"]
+    }
+}
+{
+    "id": 8,
+    "iv": -2147483648,
+    "lv": -9223372036854775808,
+    "fv": -3.4028235e+38,
+    "dv": -1.7976931348623157e+308,
+    "nv": -1.7976931348623157e-308,
+    "doc": {
+        "iv": -2147483648,
+        "lv": -9223372036854775808,
+        "fv": -3.4028235e+38,
+        "dv": -1.7976931348623157e-308,
+        "nv": -1.7976931348623157e-308,
+        "pi1": 1.57079532679,
+        "pi2": 3.14159165359,
+        "pi3": 6.28318430718,
+        "pi4": -1.57079532679
+    }
+}
+{
+    "id": 9,
+    "iv": -2,
+    "lv": -2,
+    "fv": -1.000001,
+    "dv": -2.000001,
+    "nv": -0.000001,
+    "doc": {
+        "iv": -2,
+        "lv": -2,
+        "fv": 1.000001,
+        "dv": 2.000001,
+        "nv": 0.000001,
+        "p1": 0.99999999,
+        "p2": 1.999999999,
+        "p3": -1.999999999,
+        "p4": -0.99999999
+    }
+}
+{
+    "id": 10,
+    "iv": 1,
+    "lv": 1,
+    "fv": 0.9999999,
+    "dv": -0.9999999,
+    "nv": -0.0000001,
+    "doc": {
+        "iv": -1,
+        "lv": -1,
+        "fv": 0.0000001,
+        "dv": 0.87897907,
+        "nv": -0.87897907
+    }
+}
+
+Table : jsonCollection_test
+{
+    "id" : 1,
+    "age" : 5,
+    "city" : null,
+    "address" : {
+        "pincode" : 208021,
+        "landmark" : null,
+        "phone" : 98765,
+        "otherPhone" : null,
+        "latitude" : -28.90,
+        "longitude" : 36.57
+    },
+    "numbers" : {
+        "num1" : 0.99999,
+        "num2" : 1.00001,
+        "num3" : -0.99999,
+        "num4" : -1.00001,
+        "num5" : null,
+        "pi1": 1.57079532679,
+        "pi2": 3.14159165359,
+        "pi3": 6.28318430718,
+        "pi4": -1.57079532679
+    },
+    "complex" : {
+        "arr" : [1,2,-1,-2,3,-3],
+        "map" : {
+            "a" :1,
+            "b" :2
+        }
+    }
+}
+Table  : aggregate_test
+{
+    "id" : 1,
+    "value1" : 3.7,
+    "value2" : -5.2,
+    "value3" : 9.8
+}
+{
+    "id" : 2,
+    "value1" : 4.7,
+    "value2" : -6.2,
+    "value3" : 10.8
+}
+{
+    "id" : 3,
+    "value1" : 5.7,
+    "value2" : -7.2,
+    "value3" : 11.8
+}
+{
+    "id" : 4,
+    "value1" : 6.7,
+    "value2" : -8.2,
+    "value3" : 12.8
+}
+

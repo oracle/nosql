@@ -1,0 +1,11 @@
+unordered-result
+{"id1":1,"stats1_Tests_avg":10793.92}
+{"id1":2,"stats1_Tests_avg":6223.502}
+{"id1":3,"stats1_Tests_avg":1648.002}
+{"id1":4,"stats1_Tests_avg":null}
+{"id1":5,"stats1_Tests_avg":null}
+{"id1":6,"stats1_Tests_avg":null}
+{"id1":7,"stats1_Tests_avg":null}
+{"id1":8,"stats1_Tests_avg":null}
+{"id1":9,"stats1_Tests_avg":null}
+{"id1":10,"stats1_Tests_avg":null}

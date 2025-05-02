@@ -1,0 +1,343 @@
+################
+funcidx01.q
+################
+select /* FORCE_INDEX(users idx_year_month) */ id
+from users u
+where substring(u.address.startDate, 0, 4) = "2021" 
+
+
+
+################
+funcidx02.q
+################
+select /* FORCE_INDEX(users idx_year_month) */ id
+from users u
+where substring(u.address.startDate, 5, 2) = "04"
+
+
+
+################
+funcidx03.q
+################
+select id, u.otherNames.first
+from users u
+where substring(u.otherNames.first, 1, 2) = "re"
+
+
+
+################
+funcidx04.q
+################
+select id, u.otherNames.first
+from users u
+where exists u.otherNames[substring($element.first, 1, 2) in ("re", "ir", "ai") and
+                          length($element.last) > 3]
+
+
+
+################
+funcidx05.q
+################
+select id
+from users $u
+where expiration_time($u) > timestamp_add(current_time(), "2 hours")
+
+
+
+################
+funcidx06.q
+################
+select /* FORCE_INDEX(users idx_year_month) */ id
+from users $u
+where expiration_time($u) > timestamp_add(current_time(), "4 hours")
+
+
+
+################
+funcidx07.q
+################
+select 
+/*+ force_index(viewers idx_country_showid_date) */
+acct_id, user_id
+from Viewers v
+where substring(v.info.shows.seasons.episodes.date, 0, 4) =any "2021"
+
+
+
+################
+funcidx08.q
+################
+select acct_id, user_id
+from Viewers v
+where exists v.info.shows.seasons.episodes[substring($element.date, 0, 4) = "2021"]
+
+
+
+################
+funcidx09.q
+################
+select acct_id, user_id,
+       seq_transform(v.info.shows.seasons.episodes.date, substring($, 5, 2)) as months
+from Viewers v
+where exists v.info.shows.seasons.episodes[substring($element.date, 0, 4) = "2020" and
+                                           substring($element.date, 5, 2) >= "07"]
+
+
+
+################
+funcidx10.q
+################
+select acct_id, user_id,
+       seq_transform(v.info.shows.seasons.episodes.date, substring($, 5, 2)) as months
+from Viewers v
+where exists v.info.shows.seasons.episodes[substring($element.date, 5, 2) = "03"]
+
+
+
+################
+funcidx11.q
+################
+select  count(*)
+from viewers v
+where exists v.info.shows[$element.showId = 16].
+             seasons.episodes[substring($element.date, 0, 4) = "2021"]
+
+
+
+################
+ifuncidx01.q
+################
+insert into users values (10, "Tom", "Waits", null, 66, 1000, null, null, null)
+set ttl 6 hours
+
+select id
+from users $u
+where expiration_time($u) > timestamp_add(current_time(), "5 hours")
+
+
+
+################
+q01.q
+################
+select id, income
+from Users2 u
+where u.address.state = "CA" and
+      u.address.city >= "S" and
+      10 < income and income < 20
+
+
+
+################
+q02.q
+################
+select id, income
+from Users2 u
+where u.address.state = "CA" and
+      u.address.city >= "S" and
+      10 < income and income < 20
+order by seq_sum(u.expenses.values())
+
+
+
+################
+q03.q
+################
+select id, income
+from Users2 u
+where u.address.state = "CA" and
+      u.address.city >= "S" and
+      10 < income and income < 20
+order by u.address.state
+
+
+
+################
+q04.q
+################
+select id
+from Users2 u
+where u.matrixes[].matrix[].values().bar =any 2
+
+
+
+################
+q05.q
+################
+select id, connections[$element > 10]
+from Users2
+where id = 0
+
+
+
+################
+ufuncidx01.q
+################
+update users set ttl 1 hours where id = 1
+
+select id
+from users $u
+where expiration_time($u) > timestamp_add(current_time(), "2 hours")
+
+
+
+################
+unnest_opt01_1.q
+################
+select /*+ FORCE_INDEX(viewers idx_country)*/ 
+    $show.showId, count(*) as cnt
+from viewers v, UNNEST(v.info.shows[] as $show)
+where v.info.country = "USA"
+group by $show.showId
+order by count(*) desc
+
+
+
+################
+unnest_opt01_2.q
+################
+select /*+ FORCE_INDEX(viewers idx_showid)*/ 
+    $show.showId, count(*) as cnt
+from viewers v, UNNEST(v.info.shows[] as $show)
+where v.info.country = "USA"
+group by $show.showId
+order by count(*) desc
+
+
+
+################
+unnest_opt01_3.q
+################
+select $show.showId, count(*) as cnt
+from viewers v, UNNEST(v.info.shows[] as $show)
+where v.info.country = "USA"
+group by $show.showId
+order by count(*) desc
+
+
+
+################
+unnest_opt01_4.q
+################
+select /*+ FORCE_INDEX(viewers idx_country_showid_seasonnum_minWatched) */ 
+    $show.showId, count(*) as cnt
+from viewers v, UNNEST(v.info.shows[] as $show)
+where v.info.country = "USA"
+group by $show.showId
+order by count(*) desc
+
+
+
+################
+unnest_opt01_5.q
+################
+select /*+ FORCE_INDEX(viewers idx2_country_showid_date) */ 
+    $show.showId, count(*) as cnt
+from viewers v, UNNEST(v.info.shows[] as $show)
+where v.info.country = "USA"
+group by $show.showId
+order by count(*) desc
+
+
+
+################
+unnest_opt02_1.q
+################
+select /*+ FORCE_INDEX(viewers idx_country) */ 
+    $show.showId, sum($show.seasons[].episodes[].minWatched) as time
+from viewers v, UNNEST(v.info.shows[] as $show)
+where v.info.country = "USA"
+group by $show.showId
+order by sum($show.seasons[].episodes[].minWatched) desc
+
+
+
+################
+unnest_opt02_2.q
+################
+select /*+ FORCE_INDEX(viewers idx_showid) */ 
+    $show.showId, sum($show.seasons[].episodes[].minWatched) as time
+from viewers v, UNNEST(v.info.shows[] as $show)
+where v.info.country = "USA"
+group by $show.showId
+order by sum($show.seasons[].episodes[].minWatched) desc
+
+
+
+################
+unnest_opt02_3.q
+################
+select /*+ FORCE_INDEX(viewers idx_country_showid) */ 
+    $show.showId, sum($show.seasons[].episodes[].minWatched) as time
+from viewers v, UNNEST(v.info.shows[] as $show)
+where v.info.country = "USA"
+group by $show.showId
+order by sum($show.seasons[].episodes[].minWatched) desc
+ 
+
+
+
+################
+unnest_opt02_4.q
+################
+select /* FORCE_INDEX(viewers idx_country_showid_seasonnum_minWatched) */ 
+    $show.showId, sum($show.seasons[].episodes[].minWatched) as time
+from viewers v, UNNEST(v.info.shows[] as $show)
+where v.info.country = "USA"
+group by $show.showId
+order by sum($show.seasons[].episodes[].minWatched) desc
+
+
+
+################
+unnest_opt02_5.q
+################
+select /*+ FORCE_INDEX(viewers idx2_country_showid_date) */ 
+    $show.showId, sum($show.seasons[].episodes[].minWatched) as time
+from viewers v, UNNEST(v.info.shows[] as $show)
+where v.info.country = "USA"
+group by $show.showId
+order by sum($show.seasons[].episodes[].minWatched) desc
+
+
+
+################
+unnest_opt03.q
+################
+select /* FORCE_INDEX(viewers idx_country_showid) */
+       $show.showId,
+       sum(v.info.shows[$element.showId = $show.showId].
+           seasons.episodes.minWatched) as total_time
+from viewers v, unnest(v.info.shows[] as $show)
+where v.info.country = "USA"
+group by $show.showId
+order by sum(v.info.shows[$element.showId = $show.showId].
+             seasons.episodes.minWatched)
+
+
+
+################
+unnest_opt04_4.q
+################
+select $show.showId,
+       $season.seasonNum,
+       sum($season.episodes.minWatched) as totalTime
+from viewers v, UNNEST(v.info.shows[] as $show,
+                       $show.seasons[] as $season)
+where v.info.country = "USA"
+group by $show.showId, $season.seasonNum
+order by sum($season.episodes.minWatched) desc
+
+
+
+################
+xfuncidx01.q
+################
+delete from users
+where id = 4
+
+select id
+from users $u
+where expiration_time($u) > timestamp_add(current_time(), "2 hours")
+
+
+

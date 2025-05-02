@@ -1,0 +1,5 @@
+# Test Description: Integer column operand compared with long numeric literal using > operator.
+
+select id1, int , int > 92233720368547758
+from Foo
+order by id1

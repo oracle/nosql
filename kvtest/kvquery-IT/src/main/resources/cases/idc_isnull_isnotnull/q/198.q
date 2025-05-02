@@ -1,0 +1,2 @@
+#Expression has logical and arithmetic operator with is null,is not null in projection and is not null in predicate
+select id, s.children.values().Relative is not null,s.map.IDP is null from sn s where age !=30 is not null or s.map.IDP[].DL<="P" is not null

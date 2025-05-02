@@ -1,0 +1,2 @@
+SELECT * FROM employee1 WHERE ID>5
+

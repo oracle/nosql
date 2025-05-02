@@ -1,0 +1,1 @@
+select id1, regex_like("AAAAAAAAAA", "AAAAAAAAAA") from playerinfo p

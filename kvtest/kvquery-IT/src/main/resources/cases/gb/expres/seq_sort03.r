@@ -1,0 +1,9 @@
+unordered-result
+{"state":"CA","amounts":[10,15,20,30,30,60,80,150],"cnt":6}
+{"state":"MA","amounts":[30,30,30,40,50.0],"cnt":4}
+{"state":"NM","amounts":[20,90],"cnt":1}
+{"state":"NY","amounts":[20.0,20.0,30.0],"cnt":1}
+{"state":"OR","amounts":[3,5.0,10,15.0,20,30,30,30,30.0,45],"cnt":4}
+{"state":"VT","amounts":[30,60],"cnt":2}
+{"state":"WA","amounts":[10,60,60.0,60.0],"cnt":3}
+{"state":null,"amounts":null,"cnt":1}

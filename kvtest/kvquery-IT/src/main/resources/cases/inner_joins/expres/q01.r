@@ -1,0 +1,11 @@
+unordered-result
+{"msgid":10,"content":{"date":"2024-07-01","receivers":["rubin","john","george"],"sender":"markos","sender2":{"name":"markos","uid":2},"size":20,"thread_id":1,"views":["2024-07-01","2024-07-02","2024-07-05"]}}
+{"msgid":20,"content":{"date":"2024-07-01","receivers":["rubin","jin","yev"],"sender":"markos","sender2":{"name":"markos","uid":2},"size":20,"thread_id":2,"views":["2024-07-03","2024-07-05","2024-07-08"]}}
+{"msgid":30,"content":{"date":"2024-07-03","receivers":["john","rubin","keith"],"sender":"george","sender2":{"name":"george","uid":5},"size":18,"thread_id":3}}
+{"msgid":40,"content":{"date":"2024-07-02","receivers":["markos","jin","john","rubin"],"sender":"yev","sender2":{"name":"jev","uid":8},"size":30,"thread_id":6,"views":["2024-07-03","2024-07-05","2024-07-07"]}}
+{"msgid":50,"content":{"date":"2024-07-01","receivers":["rubin","sam","tim","keith"],"sender":"markos","sender2":{"name":"markos","uid":2},"size":35,"thread_id":1,"views":["2024-07-01","2024-07-02","2024-07-05"]}}
+{"msgid":60,"content":{"date":"2024-07-01","receivers":["linda","markos","rubin"],"sender":"john","sender2":{"name":"john","uid":3},"size":25,"thread_id":4,"views":["2024-07-04","2024-07-06","2024-07-08"]}}
+{"msgid":70,"content":{"date":"2024-07-08","receivers":["markos","rubin","jin","john"],"sender":"george","sender2":{"name":"george","uid":5},"size":30,"thread_id":5,"views":["2024-07-08","2024-07-10","2024-07-12"]}}
+{"msgid":80,"content":{"date":"2024-07-02","sender":"tim","sender2":{"name":"tim","uid":9},"size":31,"thread_id":1,"views":["2024-07-03","2024-07-04","2024-07-05"]}}
+{"msgid":90,"content":{"date":"2022-07-01","receivers":[],"sender":"sam","sender2":{"name":"sam","uid":10},"size":10,"thread_id":1}}
+{"msgid":100,"content":{"date":"2022-07-01","sender":"linda","sender2":{"name":"linda","uid":13},"size":27,"thread_id":7,"views":["2024-07-01","2024-07-02","2024-07-05"]}}

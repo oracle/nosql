@@ -1,0 +1,2 @@
+unordered-result
+{"iv":2.147483647E9,"Column_2":2.147483647E9,"lv":9.223372036854776E18,"Column_4":9.223372036854776E18,"fv":3.4028234663852886E38,"Column_6":3.4028234663852886E38,"dv":Infinity,"Column_8":Infinity,"nv":Infinity,"Column_10":Infinity,"jsoniv":2.147483647E9,"ceiljsoniv":2.147483647E9,"jsonlv":9.223372036854776E18,"ceiljsonlv":9.223372036854776E18,"jsonfv":3.4028235E38,"ceiljsonfv":3.4028235E38,"jsondv":Infinity,"ceiljsondv":Infinity,"jsonnv":Infinity,"ceiljsonnv":Infinity}

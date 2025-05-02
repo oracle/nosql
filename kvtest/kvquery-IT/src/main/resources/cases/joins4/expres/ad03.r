@@ -1,0 +1,9 @@
+unordered-result
+{"ida1":"A11_Dgp2YJJdeO","min_of_a2":1,"max_of_a2":1,"sum_of_idc2":6003}
+{"ida1":"A12_nqlyEhzQef0EGbu","min_of_a2":0,"max_of_a2":0,"sum_of_idc2":6007}
+{"ida1":"A13_NFe2lZXfxsmrFpn","min_of_a2":-3,"max_of_a2":-3,"sum_of_idc2":null}
+{"ida1":"A14_Mb5TF9MryV3vsvI","min_of_a2":-2147483648,"max_of_a2":-2147483648,"sum_of_idc2":null}
+{"ida1":"A15_fEnon7iANZ","min_of_a2":2147483647,"max_of_a2":2147483647,"sum_of_idc2":null}
+{"ida1":"AB01_jQH4PBj8Mf","min_of_a2":null,"max_of_a2":null,"sum_of_idc2":4294967294}
+{"ida1":"AB02_Syv64zowJuJg","min_of_a2":null,"max_of_a2":null,"sum_of_idc2":null}
+{"ida1":"AB03_7jATym4nUgFs","min_of_a2":null,"max_of_a2":null,"sum_of_idc2":null}

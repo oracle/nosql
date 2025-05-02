@@ -1,0 +1,2 @@
+unordered-result
+{"acct_id":100,"user_id":2,"country":"France","firstName":"Manolo","lastName":"Macron","shows":[{"genres":["comedy","french"],"numSeasons":2,"seasons":[{"episodes":[{"date":"2020-06-01","episodeID":20,"lengthMin":45,"minWatched":45},{"date":"2020-07-01","episodeID":30,"lengthMin":42,"minWatched":42}],"numEpisodes":2,"seasonNum":1},{"episodes":[{"date":"2021-06-01","episodeID":40,"lengthMin":50,"minWatched":50}],"numEpisodes":3,"seasonNum":2}],"showId":15,"showName":"Call My Agent","type":"tvseries"}]}

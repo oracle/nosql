@@ -1,0 +1,1 @@
+select p.flt,sum(p.children.values().age) as childAge,avg(seq_transform(p.address.phones[], $.home * $.work))from ComplexType p where p.age>=0 group by p.flt order by avg(seq_transform(p.address.phones[] , $.home * $.work)) desc

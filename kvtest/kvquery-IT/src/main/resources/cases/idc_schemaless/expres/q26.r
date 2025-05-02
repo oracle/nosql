@@ -1,0 +1,9 @@
+unordered-result
+{"minorKey":"min1"}
+{"minorKey":"oor"}
+{"minorKey":"hiii"}
+{"minorKey":"min2"}
+{"minorKey":"hellooo"}
+{"minorKey":"min4"}
+{"minorKey":"min3"}
+{"minorKey":"zzz"}

@@ -1,0 +1,107 @@
+################
+del01.q
+################
+delete from foo
+where id > 20
+
+select id from foo order by id
+
+
+
+################
+del02.q
+################
+delete from foo
+where id > 20
+
+
+
+################
+del03.q
+################
+delete from foo f
+where f.info.lastName > "last5" and f.info.lastName <= "last9"
+
+
+
+################
+del04.q
+################
+delete from foo f
+where f.info.lastName > "last5" and f.info.lastName <= "last10"
+
+
+
+################
+del05.q
+################
+delete from foo f
+where f.info.address.phones.areacode =any 650
+
+
+
+################
+del06.q
+################
+delete from foo f
+where f.info.address.phones.areacode <any 900
+
+
+
+################
+rdel01.q
+################
+delete from foo
+where id > 20
+returning id
+
+
+
+################
+rdel02.q
+################
+delete from foo
+where id > 20
+returning id
+
+select id from foo order by id
+
+
+
+################
+rdel03.q
+################
+delete from foo f
+where f.info.lastName > "last5" and f.info.lastName <= "last9"
+returning id
+
+
+
+################
+rdel04.q
+################
+delete from foo f
+where f.info.lastName > "last5" and f.info.lastName <= "last10"
+returning id
+
+
+
+################
+rdel05.q
+################
+declare $areacode integer; // = 650
+delete from foo f
+where f.info.address.phones.areacode =any $areacode
+returning id, f.info.address.phones
+
+
+
+################
+rdel06.q
+################
+delete from foo f
+where f.info.address.phones.areacode <any 600
+returning id
+
+
+

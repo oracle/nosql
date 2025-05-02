@@ -1,0 +1,497 @@
+###
+# Table and records can be on multiple lines but they must be delimited by an
+# empty line.
+#
+# Line  "Table: table-name" defines the table name to be used and it must
+# precede the records. Multiple tables can be populated in the same file.
+###
+
+Table: Foo
+
+{ 
+  "id":0,
+  "info":
+  {
+    "firstName":"first0", "lastName":"last0","age":10,
+    "address":
+    {
+      "city": "San Fransisco",
+      "state"  : "CA",
+      "phones" : [ { "areacode" : 408,  "number" : 50, "kind" : "work" },
+                   { "areacode" : 650,  "number" : 51, "kind" : "work" },
+                   { "areacode" : null, "number" : 52, "kind" : "home" },
+                   { "areacode" : 510,  "number" : 53, "kind" : "home" },
+                   { "areacode" : 415,  "number" : 54 },
+                   "650-234-4556",
+                   650234455
+                 ]
+    },
+    "children":
+    {
+      "Anna" : { "age" : 10, "school" : "sch_1", "friends" : ["Anna", "John", "Maria"]},
+      "Lisa" : { "age" : 12, "friends" : ["Ada"]},
+      "Mary" : { "age" : 7,  "school" : "sch_3", "friends" : ["Anna", "Mark"]}
+    }
+  }
+}
+
+{ 
+  "id":1,
+  "info":
+  {
+    "firstName":"first1", "lastName":"last1","age":11,
+    "address":
+    {
+      "city"   : "Boston",
+      "state"  : "MA",
+      "phones" : [ { "areacode" : 304,  "number" : 30, "kind" : "work" },
+                   { "areacode" : 318,  "number" : 31, "kind" : "work" },
+                   { "areacode" : 400,  "number" : 41, "kind" : "home" },
+                   { "areacode" : 450,  "number" : 43, "kind" : "home" },
+                   { "areacode" : 480,  "number" : 44, "kind" : "work" },
+                   { "areacode" : 500,  "number" : 51, "kind" : "work" },
+                   { "areacode" : 520,  "number" : 52, "kind" : "home" },
+                   { "areacode" : 550,  "number" : 53, "kind" : "home" },
+                   { "areacode" : 560,  "number" : 55, "kind" : "work" } ]
+    },
+    "children":
+    {
+      "Anna" : { "age" : 9,  "school" : "sch_1", "friends" : ["Bobby", "John", null]},
+      "Mark" : { "age" : 4,  "school" : "sch_1", "friends" : ["George"]},
+      "Dave" : { "age" : 15, "school" : "sch_3", "friends" : ["Bill", "Sam"]}
+    }
+  }
+}
+
+{ 
+  "id":2,
+  "record" : { "long" : 50, "int" : 50, "string" : "abc", "bool" : false, "float" : 33},
+  "info":
+  {
+    "address":
+    {
+      "city"   : "Portland",
+      "state"  : "OR",
+      "phones" : [ { "areacode" : 104,  "number" : 10, "kind" : "home" },
+                   { "areacode" : 118,  "number" : 11, "kind" : "work" } ]
+    },
+    "children":
+    {
+    }
+  }
+}
+
+{ 
+  "id":3,
+  "record" : { "long" : 10, "int"  : 200, "string" : "tr", "bool" : true, "float" : 3},
+  "info":
+  {
+    "address":
+    {
+      "city"   : "Seattle",
+      "state"  : "WA",
+      "phones" : null
+    },
+    "children":
+    {
+      "George" : { "age" : 7,  "school" : "sch_2", "friends" : ["Bill", "Mark"]},
+      "Matt" :   { "age" : 14, "school" : "sch_2", "friends" : ["Bill"]}
+    }
+  }
+}
+
+{ 
+  "id":4,
+  "info":
+  {
+    "firstName":"first4", "lastName":"last4","age":15,
+    "address":
+    {
+      "city"   : "Salem",
+      "state"  : "MA",
+      "phones" : [ { "areacode" : 400,  "number" : 41, "kind" : "home" },
+                   { "areacode" : 460,  "number" : 44, "kind" : "work" },
+                   { "areacode" : 500,  "number" : 50, "kind" : "work" },
+                   { "areacode" : 570,  "number" : 51 },
+                   { "areacode" : 580,  "number" : 51 },
+                   { "areacode" : 600,  "number" : 61, "kind" : "work" },
+                   { "areacode" : 610,  "number" : 62, "kind" : "home" },
+                   { "areacode" : 620,  "number" : 63, "kind" : "work" } ]
+    },
+    "children":
+    {
+      "Anna" : { "age" : 9,  "school" : "sch_2", "friends" : ["George", "John"]},
+      "Mark" : { "age" : 9, "school" : "sch_1", "friends" : ["George"]}
+    }
+  }
+}
+
+{ 
+  "id":5,
+  "info":
+  {
+    "firstName":"first5", "lastName":"last5","age":11,
+    "address":
+    {
+      "city"   : "Salem",
+      "state"  : "MA",
+      "phones" : [ { "areacode" : 605,  "number" : 60, "kind" : "work" },
+                   { "areacode" : 520,  "number" : 62 } ]
+    },
+    "children":
+    {
+      "Anna"  : { "age" : 29, "school" : "sch_1", "friends" : ["Bobby", "Mark"]},
+      "Mark"  : { "age" : 14, "school" : "sch_2", "friends" : ["George"]},
+      "Dave"  : { "age" : 16 },
+      "Tim"   : { "age" : 8,  "school" : "sch_2", "hobbies" : ["football", "tennis"]},
+      "Julie" : { "age" : 12, "school" : "sch_2", "scores" : [1, 3.5, 4.2, 2]}
+    }
+  }
+}
+
+{ 
+  "id":6,
+  "info":
+  {
+    "firstName":"first6", "lastName":"last6","age":11,
+    "address":
+    {
+      "city"   : "Albany",
+      "state"  : "NY",
+      "phones" : [ { "areacode" : 605, "number" : 60, "kind" : "work" },
+                   "650-234-9340",
+                   { "areacode" : 629, "number" : 62, "kind" : "work" } ]
+    }
+  }
+}
+
+{ 
+  "id":7,
+  "info":
+  {
+    "firstName":"first7", "lastName":"last7","age":30,
+    "address":
+    {
+      "city": "San Jose",
+      "state"  : "CA",
+      "phones" : [ { "areacode" : 408,  "number" : 7003456, "kind" : "work" },
+                   { "areacode" : 408,  "number" : 6001200, "kind" : "work" },
+                   { "areacode" : 408,  "number" : 4000983 },
+                   { "areacode" : 510,  "number" : 7303243, "kind" : "home" },
+                   { "areacode" : 408,  "number" : 4000289, "kind" : "home" } ]
+    },
+    "children":
+    {
+      "Kathy" : { "age" : 10, "school" : "sch_3", "friends" : ["Anna", "Mark", "Maria"]},
+      "Will" :  { "age" :  2, "school" : "sch_1", "friends" : ["Ada"]}
+    }
+  }
+}
+
+{ 
+  "id":8,
+  "info":
+  {
+    "firstName":"first8", "lastName":"last8","age":10,
+    "address":
+    {
+      "city": "San Fransisco",
+      "state"  : "CA",
+      "phones" : { "areacode" : 650,  "number" : 80, "kind" : "work" }
+    },
+    "children":
+    {
+      "John" : { "age" : 10, "school" : "sch_1", "friends" : ["Anna", "John", "Maria"]},
+      "Anna" : null,
+      "Mary" : 7
+    }
+  }
+}
+
+{ 
+  "id":9,
+  "info":
+  {
+    "firstName":"first8", "lastName":"last8","age":null,
+    "address":
+    {
+      "city": "San Fransisco",
+      "state"  : null,
+      "phones" : { "areacode" : 408,  "number" : 80, "kind" : "work" }
+    },
+    "children":
+    {
+      "John" : { "age" : 10, "school" : "sch_1", "friends" : ["Anna", "John", "Maria"]},
+      "Lisa" : null,
+      "Anna" : 7
+    },
+    "values" : [ 1, 45, -10, "abc", 100, "xyz", {} ]
+  }
+}
+
+{ 
+  "id":10,
+  "info":
+  {
+    "firstName":"first8", "lastName":"last8","age":null,
+    "address":
+    {
+      "city": "San Fransisco",
+      "phones" : { "areacode" : 408,  "number" : 80, "kind" : "work" }
+    },
+    "children":
+    {
+      "Anna" : { "age" : 10, "school" : "sch_1", "friends" : []},
+      "Lisa" : null,
+      "Mary" : 7
+    }
+  }
+}
+
+
+{ 
+  "id":11,
+  "info":
+  {
+    "firstName":"first0", "lastName":"last0","age":10,
+    "address":
+    {
+      "city": "San Fransisco",
+      "state"  : "CA",
+      "phones" : [ { "areacode" : 408,  "number" : 5000000, "kind" : "work" },
+                   { "areacode" : 415,  "number" : 4100000, "kind" : "work" },
+                   { "areacode" : null, "number" : 5239999, "kind" : "home" },
+                   { "areacode" : 510,  "number" : 5359999, "kind" : "home" },
+                   { "areacode" : 415,  "number" : 5400000 },
+                   "650-234-4556",
+                   650234455
+                 ]
+    }
+  }
+}
+
+{ 
+  "id":12,
+  "info":
+  {
+    "firstName":"first8", "lastName":"last8","age":null,
+    "address":
+    {
+      "city": "Portland",
+      "phones" : { "areacode" : 408,  "number" : 80, "kind" : "work" }
+    },
+    "children":
+    {
+      "Anna" : { "age" : 10, "school" : "sch_1"},
+      "Lisa" : null,
+      "Mary" : 7
+    }
+  }
+}
+
+{ 
+  "id":13,
+  "info":
+  {
+    "firstName":"first8", "lastName":"last8",
+    "address":
+    {
+      "city": "San Fransisco",
+      "state"  : null,
+      "phones" : { "areacode" : 408,  "number" : 80, "kind" : "work" }
+    },
+    "children":
+    {
+      "Anna" : { "age" : 10, "school" : "sch_2", "friends" : null},
+      "Lisa" : null,
+      "Mary" : 7
+    }
+  }
+}
+
+{ 
+  "id":14,
+  "info" :
+  {
+    "maps" : [ { "key1" : 10, "key2" : 20, "key3" : -20 },
+               { "key1" : 10, "key2" : 30, "key3" : -20 },
+               { "key1" : 50, "key2" :  0, "key3" :  10 }
+             ],
+    "children":
+    {
+      "Anna" : { "age" : 10, "school" : "sch_2", "friends" : null},
+      "Lisa" : null,
+      "Mary" : 7
+    }
+  }
+}
+
+{ 
+  "id":15,
+  "info" :
+  {
+    "map" : {}
+  } 
+}
+
+{ 
+  "id":16,
+  "info": null
+}
+
+{ 
+  "id":17,
+  "info": 
+  {
+     "arr1" : [ 2, 6, null, 33, 33, 33, 12, 10 ],
+     "arr2" : { "foo" : 10},
+     "arr3" : [],
+     "arr4" : [ 5, { "foo" : 11}, "abc", 45 ]
+  }
+}
+
+{ 
+  "id":18,
+  "info":
+  {
+    "firstName" : "first8", "lastName" : "last8", "age" : 10,
+    "address" : "somewhere",
+    "children" : "none"
+  }
+}
+
+{ 
+  "id":19,
+  "info" :
+  {
+    "map" : {}
+  } 
+}
+
+{ 
+  "id":20,
+  "info":
+  {
+    "firstName":"first3", "lastName":"last3","age":13,
+    "address":
+    {
+      "city"   : "Seattle",
+      "state"  : "WA",
+      "phones" : null
+    },
+    "children":
+    {
+      "George" : { "age" : 7,  "school" : "sch_2", "friends" : ["Bill", "Mark"]},
+      "Matt" :   { "age" : 14, "school" : "sch_2", "friends" : ["Bill"]}
+    }
+  }
+}
+
+{ 
+  "id":21,
+  "info":
+  {
+  }
+}
+
+
+{ 
+  "id":22,
+  "info":
+  {
+    "firstName":"first0", "lastName":"last0","age":10,
+    "address":
+    {
+    },
+    "children":
+    {
+      "Lisa" : { "age" : 12, "friends" : ["Ada"]},
+      "Mary" : { "age" : 7,  "school" : "sch_3", "friends" : ["Anna", "Mark"]}
+    }
+  }
+}
+
+
+{ 
+  "id":23,
+  "info":
+  {
+    "phones" : [ { "areacode" : 408,  "number" : 5000000, "kind" : "work" },
+                 { "areacode" : 415,  "number" : 4100000, "kind" : "work" },
+                 { "areacode" : null, "number" : 5239999, "kind" : "home" }
+               ]
+  }
+}
+
+
+{ 
+  "id":24,
+  "info":
+  {
+    "phones" : [ { "areacode" : 408,  "number" : 5000000, "kind" : "work" },
+                 { "areacode" : 415,  "number" : 4100000, "kind" : "work" },
+                 { "areacode" : null, "number" : 5239999, "kind" : "home" }
+               ]
+  }
+}
+
+{ 
+  "id":25,
+  "info":
+  {
+    "phones" : [ { "areacode" : 408,  "number" : 5000000, "kind" : "work" },
+                 { "areacode" : 415,  "number" : 4100000, "kind" : "work" },
+                 { "areacode" : null, "number" : 5239999, "kind" : "home" }
+               ]
+  }
+}
+
+
+{ 
+  "id":26,
+  "info":
+  {
+    "children":
+    {
+      "George" : { "age" : 7,  "school" : "sch_2", "friends" : ["Bill", "Mark"]},
+      "Matt" :   { "age" : 14, "school" : "sch_2", "friends" : ["Bill"]}
+    }
+  }
+}
+
+
+{ 
+  "id":27,
+  "info":
+  {
+    "phones" : [ { "areacode" : 408,  "number" : 5000000, "kind" : "work" },
+                 { "areacode" : 415,  "number" : 4100000, "kind" : "work" },
+                 { "areacode" : null, "number" : 5239999, "kind" : "home" }
+               ]
+  }
+}
+
+
+{ 
+  "id":28,
+  "info":
+  {
+    "firstName":"first0", "lastName":"last0","age":12,
+    "address":
+    {
+      "city": "San Fransisco",
+      "state"  : "CA",
+      "phones" : [ { "areacode" : 408,  "number" : 50, "kind" : "work" },
+                   { "areacode" : 650,  "number" : 51, "kind" : "work" },
+                   { "areacode" : null, "number" : 52, "kind" : "home" },
+                   "650-234-4556",
+                   650234455
+                 ]
+    },
+    "children":
+    {
+      "Mary" : { "age" : 7,  "school" : "sch_3", "friends" : ["Anna", "Mark"]}
+    }
+  }
+}
+

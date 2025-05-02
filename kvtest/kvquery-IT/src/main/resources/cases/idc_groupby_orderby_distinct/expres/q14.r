@@ -1,0 +1,9 @@
+unordered-result
+{"Column_1":false,"bar2":3.0}
+{"Column_1":false,"bar2":3.1}
+{"Column_1":false,"bar2":3.4}
+{"Column_1":false,"bar2":3.5}
+{"Column_1":false,"bar2":3.6}
+{"Column_1":false,"bar2":3.7}
+{"Column_1":false,"bar2":3.8}
+{"Column_1":false,"bar2":3.9}

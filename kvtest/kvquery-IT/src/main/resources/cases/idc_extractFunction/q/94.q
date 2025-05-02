@@ -1,0 +1,2 @@
+#expression returns hour,minute,second using Extract Function with OR opertor.Operation on json Array and non json Array
+SELECT id,extract(hour from cast(t.ats9[1] as timestamp)) as ats9, extract(minute from cast(t.json.at[2] as timestamp)) as ajson,extract(second from cast(t.ats9[2] as timestamp)) as ats9_3 FROM Extract t WHERE extract(minute from cast(t.ats9[2] as timestamp))<any 59 AND extract(second from cast(t.json.at[2] as timestamp))>05 AND id=10

@@ -1,0 +1,2 @@
+unordered-result
+{"iv":5.0,"Column_2":0.69897,"lv":1.2345678901234E13,"Column_4":13.0915149,"fv":3.1400001,"Column_6":0.4969296,"dv":2.7182818,"Column_8":0.4342944,"nv":123.456,"Column_10":2.0915122,"jsoniv":5.0,"log10jsoniv":0.69897,"jsonlv":1.2345678901234E13,"log10jsonlv":13.0915149,"jsonfv":3.14,"log10jsonfv":0.4969296,"jsondv":2.7182818,"log10jsondv":0.4342944,"jsonnv":123.456,"log10jsonnv":2.0915122}

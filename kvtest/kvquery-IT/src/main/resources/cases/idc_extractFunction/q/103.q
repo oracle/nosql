@@ -1,0 +1,2 @@
+#expression returns year using Extract Function with IsOfType and IsNotOfType Operator on Atomic.
+select id,extract(year from t.ts1) IS OF TYPE (timestamp) from Extract t WHERE extract(year from t.ts1) IS NOT OF TYPE (timestamp)

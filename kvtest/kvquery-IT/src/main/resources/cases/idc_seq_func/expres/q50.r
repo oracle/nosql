@@ -1,0 +1,11 @@
+unordered-result
+{"id1":1,"avg":31.0}
+{"id1":2,"avg":35.0}
+{"id1":3,"avg":null}
+{"id1":4,"avg":null}
+{"id1":5,"avg":null}
+{"id1":6,"avg":null}
+{"id1":7,"avg":null}
+{"id1":8,"avg":null}
+{"id1":9,"avg":null}
+{"id1":10,"avg":null}

@@ -1,0 +1,9 @@
+unordered-result
+{"state":"CA","cnt":14}
+{"state":"CO","cnt":2}
+{"state":"MA","cnt":27}
+{"state":"NY","cnt":2}
+{"state":"OR","cnt":15}
+{"state":"WA","cnt":0}
+{"state":"WI","cnt":5}
+

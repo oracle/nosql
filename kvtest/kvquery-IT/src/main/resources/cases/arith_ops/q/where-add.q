@@ -1,0 +1,1 @@
+select id1, int from Foo where (int + 9 + 1) > 14

@@ -1,0 +1,16 @@
+unordered-result
+{"c_ida":0,"c_idb":0,"c_idc":0,"a_ida":0,"a2":5}
+{"c_ida":0,"c_idb":0,"c_idc":5,"a_ida":0,"a2":5}
+{"c_ida":0,"c_idb":3,"c_idc":10,"a_ida":0,"a2":5}
+{"c_ida":0,"c_idb":5,"c_idc":10,"a_ida":0,"a2":5}
+{"c_ida":0,"c_idb":5,"c_idc":15,"a_ida":0,"a2":5}
+{"c_ida":0,"c_idb":5,"c_idc":20,"a_ida":0,"a2":5}
+{"c_ida":0,"c_idb":5,"c_idc":25,"a_ida":0,"a2":5}
+{"c_ida":0,"c_idb":15,"c_idc":25,"a_ida":0,"a2":5}
+{"c_ida":10,"c_idb":8,"c_idc":10,"a_ida":10,"a2":42}
+{"c_ida":40,"c_idb":0,"c_idc":0,"a_ida":40,"a2":35}
+{"c_ida":40,"c_idb":2,"c_idc":5,"a_ida":40,"a2":35}
+{"c_ida":40,"c_idb":4,"c_idc":7,"a_ida":40,"a2":35}
+{"c_ida":40,"c_idb":4,"c_idc":10,"a_ida":40,"a2":35}
+{"c_ida":40,"c_idb":9,"c_idc":5,"a_ida":40,"a2":35}
+{"c_ida":40,"c_idb":9,"c_idc":6,"a_ida":40,"a2":35}

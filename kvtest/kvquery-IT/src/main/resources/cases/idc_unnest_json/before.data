@@ -1,0 +1,196 @@
+###
+# Table and records can be on multiple lines but they must be delimited by an
+# empty line.
+#
+# Line  "Table: table-name" defines the table name to be used and it must
+# precede the records. Multiple tables can be populated in the same file.
+###
+
+Table: User_json
+
+{
+  "id": 0,
+  "info" : {
+      "firstName" : "first0",
+      "lastName" : "last0",
+      "age" : 17,
+      "addresses" : [
+                       {
+                           "city":" San Fransisco",
+                           "state":"CA",
+                           "phones":[
+                                      [{"areacode":408, "number":50, "kind":"home"},
+                                       {"areacode":418, "number":51, "kind":"work"},
+                                       {"areacode":515, "number":52, "kind":"home"},
+                                       {"areacode":640, "number":54}],
+                                      [{"areacode":480, "number":44},
+                                       {"areacode":419, "number":52, "kind":"home"}],
+                                      [{"areacode":567, "number":36, "kind":"work"},
+                                       {"areacode":356, "number":63, "kind":"work"}],
+                                      []
+                                    ]
+                        },
+                        {
+                            "city":"San Fransisco",
+                            "state":"CA",
+                            "phones":[
+                                       [{"areacode":104, "number":60, "kind":"home"},
+                                        {"areacode":118, "number":61, "kind":"work"}]
+                                     ]
+                        },
+                        {
+                            "city":"San Jose",
+                            "state":"CA",
+                            "phones":[
+                                       [{"areacode":367, "number":560, "kind":"home"}],
+                                       [{"areacode":null, "number":71, "kind":"home"}]
+                                     ]
+                        }
+        ],
+        "children" : {
+                "John" : { "age" : 10, "school" : "sch_1", "friends" : ["Anna", "John", "Maria"]},
+                "Lisa" : { "age" : 12, "friends" : ["Ada"]},
+                "Mary" : { "age" : 7,  "school" : "sch_3", "friends" : ["Anna", "Mark"]}
+        }
+     }
+
+}
+
+{
+   "id": 1,
+   "info" : {
+      "firstName" : "first1",
+      "lastName" : "last1",
+      "age" : 10,
+      "addresses" : [
+                    {
+                        "city":"Boston",
+                        "state":"MA",
+                        "phones":[
+                                [{"areacode":304, "number":30, "kind":"work"},
+                                 {"areacode":318, "number":31, "kind":"home"}],
+                                [{"areacode":480, "number":44, "kind":"null"},
+                                 {"areacode":null, "number":52, "kind":"home"}]
+                        ]
+                   },
+                   {
+                        "city":"Portland",
+                        "state":"OR",
+                        "phones":[
+                                [{"areacode":104, "number":60, "kind":"home"},
+                                 {"areacode":118, "number":61, "kind":"work"}]
+                        ]
+                  }
+
+      ],
+      "children" : {
+                "Anna" : { "age" : 9,  "school" : "sch_2", "friends" : ["Bobby", "John"]},
+                "Mark" : { "age" : 11,  "school" : "sch_1", "friends" : ["George"]},
+                "Dave" : { "age" : 15, "school" : "sch_3", "friends" : ["Bill", "Sam"]}
+     }
+   }
+
+}
+
+{  
+   "id": 2, 
+   "info" : { 
+       "firstName" : "first2",
+       "lastName" : "last2",
+       "age" : 20, 
+       "addresses" : [  
+                        {   
+                            "city":"Santa Cruz",
+                            "state":"CA",
+                            "phones":[ 
+                                       [{"areacode":480, "number":44, "kind":"null"},
+                                        {"areacode":null, "number":52, "kind":"home"}]
+                            ]
+                        },
+                       {    
+                            "city":"Portland",
+                            "state":"OR",
+                            "phones":[ 
+                                       [{"areacode":104, "number":60, "kind":"home"},
+                                        {"areacode":118, "number":61, "kind":"work"}]
+                            ]
+                       }
+        
+      ],
+      "children" : {
+                "George" : { "age" : 7,  "school" : "sch_2", "friends" : ["Bill", "Mark"]},
+                "Matt" :   { "age" : 14, "school" : "sch_2", "friends" : ["Bill"]}
+    }
+  }
+}
+
+{  
+   "id": 3, 
+   "info" : { 
+       "firstName" : "first3",
+       "lastName" : "last3",
+       "age" : 15,
+      "addresses" : [
+                    {
+                "city":"Santa Cruz",
+                "state":"CA",
+                "phones":[
+                        [{"areacode":480, "number":44, "kind":"null"},
+                         {"areacode":null, "number":52, "kind":"home"}]
+                ]
+         }
+      ]
+   }
+}
+
+{
+   "id": 4,
+   "info" : {
+       "firstName" : "first4",
+       "lastName" : "last4",
+       "age" : 11,
+       "addresses" : [
+                    {
+           "city"   : "Salem",
+           "state"  : "MA",
+           "phones" : [
+                    [{ "areacode" : 400,  "number" : 41, "kind" : "home" },
+                     { "areacode" : 460,  "number" : 44, "kind" : "work" },
+                     { "areacode" : 500,  "number" : 50, "kind" : "work" },
+                     { "areacode" : 570,  "number" : 51 },
+                     { "areacode" : 580,  "number" : 51 }],
+                    [{ "areacode" : 600,  "number" : 61, "kind" : "work" },
+                     { "areacode" : 610,  "number" : 62, "kind" : "home" },
+                     { "areacode" : 620,  "number" : 63, "kind" : "work" } ]
+          ]
+      }
+      ],
+      "children" : {
+                "Anna" : { "age" : 11,  "school" : "sch_2", "friends" : ["Bobby", "John"]},
+                "Mark" : { "age" : 11, "school" : "sch_1", "friends" : ["George"]}
+      }
+   }
+}
+
+{
+   "id": 5,
+   "info" : {
+       "firstName" : "first5",
+       "lastName" : "last5",
+       "age" : 13,
+       "addresses" : [
+                    {
+                "city":"Portland",
+                "state":"OR",
+                "phones":[
+                        [{"areacode":104, "number":60, "kind":"home"}]
+                ]
+         }
+
+      ],
+      "children" : {
+                "George" : { "age" : 7,  "school" : "sch_2", "friends" : ["Bill", "Mark"]}   }
+      }
+
+}
+

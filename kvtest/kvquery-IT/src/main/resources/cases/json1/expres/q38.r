@@ -1,0 +1,10 @@
+ordered-result
+{"id":0,"num_phones":7}
+{"id":1,"num_phones":9}
+{"id":2,"num_phones":2}
+{"id":3,"num_phones":0}
+{"id":4,"num_phones":8}
+{"id":5,"num_phones":2}
+{"id":6,"num_phones":2}
+{"id":7,"num_phones":5}
+{"id":8,"num_phones":1}

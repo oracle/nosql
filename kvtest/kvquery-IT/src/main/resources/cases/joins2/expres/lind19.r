@@ -1,0 +1,10 @@
+unordered-result
+{"b_ida":0,"b_idb":0,"c_ida":0,"c_idb":0,"c_idc":0,"d_ida":0,"d_idb":0,"d_idc":0,"d_idd":0}
+{"b_ida":0,"b_idb":0,"c_ida":0,"c_idb":0,"c_idc":5,"d_ida":0,"d_idb":0,"d_idc":5,"d_idd":5}
+{"b_ida":0,"b_idb":0,"c_ida":0,"c_idb":0,"c_idc":5,"d_ida":0,"d_idb":0,"d_idc":5,"d_idd":10}
+{"b_ida":0,"b_idb":5,"c_ida":0,"c_idb":5,"c_idc":10,"d_ida":0,"d_idb":5,"d_idc":10,"d_idd":15}
+{"b_ida":0,"b_idb":5,"c_ida":0,"c_idb":5,"c_idc":10,"d_ida":0,"d_idb":5,"d_idc":10,"d_idd":20}
+{"b_ida":0,"b_idb":5,"c_ida":0,"c_idb":5,"c_idc":15,"d_ida":null,"d_idb":null,"d_idc":null,"d_idd":null}
+{"b_ida":0,"b_idb":5,"c_ida":0,"c_idb":5,"c_idc":20,"d_ida":0,"d_idb":5,"d_idc":20,"d_idd":25}
+{"b_ida":40,"b_idb":9,"c_ida":40,"c_idb":9,"c_idc":6,"d_ida":40,"d_idb":9,"d_idc":6,"d_idd":35}
+{"b_ida":40,"b_idb":9,"c_ida":40,"c_idb":9,"c_idc":6,"d_ida":40,"d_idb":9,"d_idc":6,"d_idd":45}

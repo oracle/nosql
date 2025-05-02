@@ -1,0 +1,4 @@
+UPDATE NoTTL $j
+SET TTL USING TABLE DEFAULT
+WHERE id = 40
+RETURNING remaining_days($j) as Expires

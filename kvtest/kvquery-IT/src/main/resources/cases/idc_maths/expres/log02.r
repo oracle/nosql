@@ -1,0 +1,2 @@
+unordered-result
+{"log_1000_10":2.9999,"log_64_2":6.0,"log_27_3":3.0,"log_10E100_10":100.0,"log_1_10":0.0,"log_1_2":0.0,"log_1_20":0.0,"log_1_16":0.0,"log_1_1":Infinity,"log_10_1":Infinity,"log_20_1":Infinity,"log_neg1_10":NaN,"log_neg1024_2":NaN,"log_100_0":0.0,"log_2o5_2":1.3219,"log_o5_o75":2.4094,"log_e_pi":0.8735,"log_100_neg10":NaN,"log_256_neg2":NaN,"log_0_2":-Infinity,"log_1Eneg10_2":-11.9999,"log_long_max_2":63.0,"log_long_2_max":0.0158,"log_long_max_max":1.0,"log_inf_2":Infinity,"log_inf_inf":Infinity,"log_2_inf":0.0098}
