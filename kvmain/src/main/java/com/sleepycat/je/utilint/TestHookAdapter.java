@@ -28,11 +28,6 @@ public class TestHookAdapter<T> implements TestHook<T> {
     }
 
     @Override
-    public void doIOHook(T obj) throws IOException {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
     public void doExceptionHook() throws Exception {
         throw new UnsupportedOperationException();
     }

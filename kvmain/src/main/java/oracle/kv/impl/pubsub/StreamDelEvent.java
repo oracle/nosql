@@ -196,11 +196,6 @@ public class StreamDelEvent implements StreamOperation.DeleteEvent {
      */
     @Override
     public String toJsonString() {
-        return "[type="  + getType() + "]" +
-               "[seq=" + sequenceId + "]" +
-               "[shard=" + repGroupId + "]" +
-               "[region id=" + getRegionId() + "]" +
-               "[table=" + getFullTableName() + "]" +
-               key.toJsonString(false);
+        return key.toJsonString(true);
     }
 }

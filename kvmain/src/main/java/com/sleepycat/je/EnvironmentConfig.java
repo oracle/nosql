@@ -4190,12 +4190,6 @@ public class EnvironmentConfig extends EnvironmentMutableConfig {
      * For unit testing, to prevent writing utilization data during checkpoint.
      */
     private transient boolean checkpointUP = true;
-    
-    /**
-     * For unit testing, to prevent use of the Before Image DB.
-     */
-    private transient boolean createBImg = true;
-
 
     private boolean allowCreate = false;
 
@@ -4687,21 +4681,7 @@ public class EnvironmentConfig extends EnvironmentMutableConfig {
     boolean getCheckpointUP() {
         return checkpointUP;
     }
-    
-    /**
-     * For unit testing, to prevent use of the Before Image DB.
-     */
-    void setCreateBImgIdx(boolean createBImg) {
-        this.createBImg = createBImg;
-    }
 
-    /**
-     * For unit testing, to prevent use of the Before Image DB.
-     */
-    boolean getBImgIdx() {
-        return createBImg;
-    }
-    
     /**
      * Returns a copy of this configuration object.
      */

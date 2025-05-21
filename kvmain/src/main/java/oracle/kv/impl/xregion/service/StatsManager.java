@@ -351,12 +351,6 @@ public class StatsManager {
         sm.setDels(all.stream().mapToLong(MRTableMetrics::getDels).sum());
         sm.setWinPuts(all.stream().mapToLong(MRTableMetrics::getWinPuts).sum());
         sm.setWinDels(all.stream().mapToLong(MRTableMetrics::getWinDels).sum());
-        sm.setLoopbackPuts(all.stream()
-                              .mapToLong(MRTableMetrics::getLoopbackPuts)
-                              .sum());
-        sm.setLoopbackDels(all.stream()
-                              .mapToLong(MRTableMetrics::getLoopbackDels)
-                              .sum());
         sm.setStreamBytes(
             all.stream().mapToLong(MRTableMetrics::getStreamBytes)
                .sum());

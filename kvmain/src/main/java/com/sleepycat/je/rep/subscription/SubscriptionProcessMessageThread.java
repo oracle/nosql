@@ -20,16 +20,12 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
 
-import com.sleepycat.je.log.entry.AbortLogEntry;
-import com.sleepycat.je.log.entry.CommitLogEntry;
 import com.sleepycat.je.log.entry.LNLogEntry;
 import com.sleepycat.je.log.entry.LogEntry;
 import com.sleepycat.je.rep.GroupShutdownException;
 import com.sleepycat.je.rep.impl.RepImpl;
 import com.sleepycat.je.rep.stream.InputWireRecord;
 import com.sleepycat.je.rep.stream.Protocol;
-import com.sleepycat.je.txn.TxnAbort;
-import com.sleepycat.je.txn.TxnCommit;
 import com.sleepycat.je.utilint.LoggerUtils;
 import com.sleepycat.je.utilint.StoppableThread;
 import com.sleepycat.je.utilint.TestHook;
@@ -187,22 +183,16 @@ public class SubscriptionProcessMessageThread extends StoppableThread {
 					stats.setHighVLSN(vlsn);
 					stats.getNumOpsProcessed().increment();
 
-					/* call different callbacks depending on entry type */
+					/* call different proc depending on entry type */
 					if (LOG_TXN_COMMIT.equalsType(type)) {
-                        final CommitLogEntry ce = (CommitLogEntry) entry;
-                        final TxnCommit tc = ce.getMainItem();
-                        final long ts = tc.getTime().getTime();
 						stats.getNumTxnCommitted().increment();
-						callBack.processCommit(vlsn, txnId, ts);
+						callBack.processCommit(vlsn, txnId);
 						continue;
 					}
 
 					if (LOG_TXN_ABORT.equalsType(type)) {
-                        final AbortLogEntry ae = (AbortLogEntry) entry;
-                        final TxnAbort ta = ae.getMainItem();
-                        final long ts = ta.getTime().getTime();
-                        stats.getNumTxnAborted().increment();
-						callBack.processAbort(vlsn, txnId, ts);
+						stats.getNumTxnAborted().increment();
+						callBack.processAbort(vlsn, txnId);
 						continue;
 					}
 

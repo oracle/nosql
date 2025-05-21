@@ -278,12 +278,12 @@ public class SubscriptionTest extends TextIndexFeederTestBase {
         }
 
         @Override
-        public void processCommit(long vlsn, long txnId, long ts) {
+        public void processCommit(long vlsn, long txnId) {
 
         }
 
         @Override
-        public void processAbort(long vlsn, long txnId, long ts) {
+        public void processAbort(long vlsn, long txnId) {
 
         }
 

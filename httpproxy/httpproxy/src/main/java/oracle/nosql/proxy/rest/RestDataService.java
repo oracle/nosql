@@ -42,6 +42,7 @@ import static oracle.nosql.proxy.protocol.Protocol.OpCode.DROP_INDEX;
 import static oracle.nosql.proxy.protocol.Protocol.OpCode.DROP_REPLICA;
 import static oracle.nosql.proxy.protocol.Protocol.OpCode.DROP_TABLE;
 import static oracle.nosql.proxy.protocol.Protocol.OpCode.GET;
+import static oracle.nosql.proxy.protocol.Protocol.OpCode.GET_CONFIGURATION;
 import static oracle.nosql.proxy.protocol.Protocol.OpCode.GET_INDEX;
 import static oracle.nosql.proxy.protocol.Protocol.OpCode.GET_INDEXES;
 import static oracle.nosql.proxy.protocol.Protocol.OpCode.GET_TABLE;
@@ -54,7 +55,9 @@ import static oracle.nosql.proxy.protocol.Protocol.OpCode.GET_WORKREQUEST_LOGS;
 import static oracle.nosql.proxy.protocol.Protocol.OpCode.PREPARE;
 import static oracle.nosql.proxy.protocol.Protocol.OpCode.PUT;
 import static oracle.nosql.proxy.protocol.Protocol.OpCode.QUERY;
+import static oracle.nosql.proxy.protocol.Protocol.OpCode.REMOVE_CONFIG_KMS_KEY;
 import static oracle.nosql.proxy.protocol.Protocol.OpCode.SUMMARIZE;
+import static oracle.nosql.proxy.protocol.Protocol.OpCode.UPDATE_CONFIGURATION;
 import static oracle.nosql.proxy.security.AccessContext.EXTERNAL_OCID_PREFIX;
 
 import java.io.IOException;
@@ -73,8 +76,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Supplier;
 import java.util.logging.Level;
-
-import org.checkerframework.checker.nullness.qual.NonNull;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
@@ -132,7 +133,6 @@ import oracle.nosql.proxy.RequestLimits;
 import oracle.nosql.proxy.MonitorStats.OperationType;
 import oracle.nosql.proxy.audit.ProxyAuditManager;
 import oracle.nosql.proxy.filter.FilterHandler;
-import oracle.nosql.proxy.filter.FilterHandler.Action;
 import oracle.nosql.proxy.filter.FilterHandler.Filter;
 import oracle.nosql.proxy.protocol.ByteInputStream;
 import oracle.nosql.proxy.protocol.ByteOutputStream;
@@ -155,13 +155,14 @@ import oracle.nosql.proxy.security.AccessContext;
 import oracle.nosql.proxy.security.AccessContext.Type;
 import oracle.nosql.proxy.util.ErrorManager;
 import oracle.nosql.proxy.util.TableCache.TableEntry;
-import oracle.nosql.util.tmi.DdlHistoryEntry;
+import oracle.nosql.util.filter.Rule;
 import oracle.nosql.util.tmi.IndexInfo;
 import oracle.nosql.util.tmi.TableInfo;
 import oracle.nosql.util.tmi.TableLimits;
+import oracle.nosql.util.tmi.WorkRequest;
 
 /**
- * Rest service that handles below requests:
+ * Rest service that handles the following requests:
  *
  *  GET     /<API_VESRION>/tables
  *  POST    /<API_VESRION>/tables
@@ -192,6 +193,10 @@ import oracle.nosql.util.tmi.TableLimits;
  *  GET     /<API_VESRION>/workRequests/{workRequestId}/errors
  *  GET     /<API_VESRION>/workRequests/{workRequestId}/logs
  *  DELETE  /<API_VESRION>/workRequests/{workRequestId}
+ *
+ *  GET     /<API_VESRION>/configuration/
+ *  PUT     /<API_VESRION>/configuration/
+ *  POST    /<API_VESRION>/configuration/actions/unassignkmskey
  *
  *  OPTIONS /<API_VERSION>/*
  */
@@ -224,12 +229,6 @@ public abstract class RestDataService extends DataServiceHandler
     private final static int DEFAULT_PAGE_SIZE = 1000;
     private final static int DEFAULT_TIMEOUT_MS = 5000;
 
-    /*
-     * Response buffer size, minimum. Consider adjusting this per-request,
-     * or other mechanism to reduce the frequency of resizing the buffer.
-     */
-    private static final int RESPONSE_BUFFER_SIZE = 1024;
-
     /* The UTC zone */
     private final static ZoneId UTCZone = ZoneId.of(ZoneOffset.UTC.getId());
     /* DataTimeFormatter -- use the static ISO_D */
@@ -254,6 +253,7 @@ public abstract class RestDataService extends DataServiceHandler
 
     private final Map<HttpMethod, Map<UrlInfo, OpCode>> methodMap =
                                                         new HashMap<>();
+    private final boolean isCmekEnabled;
 
     private void initMethods() {
         /* Table resource */
@@ -312,6 +312,12 @@ public abstract class RestDataService extends DataServiceHandler
                    GET_WORKREQUEST_LOGS);
         initMethod(HttpMethod.DELETE, "/workRequests/{workRequestId}",
                    CANCEL_WORKREQUEST);
+
+        /* Configuration */
+        initMethod(HttpMethod.GET, "/configuration", GET_CONFIGURATION);
+        initMethod(HttpMethod.PUT, "/configuration", UPDATE_CONFIGURATION);
+        initMethod(HttpMethod.POST, "/configuration/actions/unassignkmskey",
+                   REMOVE_CONFIG_KMS_KEY);
     }
 
     private final Map<OpCode, ProxyOperation> operationMap =
@@ -353,6 +359,11 @@ public abstract class RestDataService extends DataServiceHandler
                       this::handleListWorkRequestErrors);
         initOperation(GET_WORKREQUEST_LOGS, this::handleListWorkRequestLogs);
         initOperation(CANCEL_WORKREQUEST, this::handleCancelWorkRequest);
+
+        /* Configuration */
+        initOperation(GET_CONFIGURATION, this::handleGetConfiguration);
+        initOperation(UPDATE_CONFIGURATION, this::handleUpdateConfiguration);
+        initOperation(REMOVE_CONFIG_KMS_KEY, this::handleRemoveKmsKey);
     }
 
     /*
@@ -411,6 +422,7 @@ public abstract class RestDataService extends DataServiceHandler
               config, logControl);
         initMethods();
         initOperations();
+        isCmekEnabled = config.isCmekEnabled();
     }
 
     private void initOperation(OpCode op, ProxyOperation operation) {
@@ -487,10 +499,15 @@ public abstract class RestDataService extends DataServiceHandler
                                           ChannelHandlerContext ctx,
                                           LogContext lc) {
         final RequestContext rc = new RequestContext(request, ctx, lc, null);
+
         /* set up REST specific information */
         rc.readREST();
+
         /* handle request */
         FullHttpResponse resp = handleRequestInternal(rc);
+
+        /* Close the output stream, the response may still be sent later */
+        rc.releaseBuffers();
 
         /* check for excessive errors */
         if (isErrorLimitingResponse(resp, rc.ctx)) {
@@ -531,25 +548,22 @@ public abstract class RestDataService extends DataServiceHandler
 
         logger.fine("Proxy data service request on channel: " + rc.ctx, rc.lc);
 
-        /* Block all requests if there is "big red button" rule */
-        Action action = checkBlockAll(rc.lc);
-        if (action != null) {
-            return action.handleRequest(null, null, rc.lc);
-        }
-
         final HttpMethod method = rc.request.method();
 
         try {
+            /* Block all requests if there is "big red button" rule */
+            Rule rule = getBlockAll(rc.lc);
+            if (rule != null) {
+                return filter.handleRequest(rc, rule);
+            }
+
             /* Handle OPTIONS used for pre-flight request. */
             if (HttpMethod.OPTIONS.equals(method)) {
                 return handleOptions(rc.request, rc.lc);
             }
 
             /* Validate the input */
-            FullHttpResponse violation = validateHttpRequest(rc.request,
-                                                             rc.requestId,
-                                                             rc.ctx,
-                                                             rc.lc);
+            FullHttpResponse violation = validateHttpRequest(rc);
             if (violation != null) {
                 return violation;
             }
@@ -575,10 +589,8 @@ public abstract class RestDataService extends DataServiceHandler
                                 "Request exception" /* subject */,
                                 faultMsg /* message */, e);
             }
-            return createErrorResponse(rc.ctx,
-                                       e.getMessage(),
-                                       ErrorCode.INTERNAL_SERVER_ERROR,
-                                       rc.requestId);
+            return createErrorResponse(rc, e.getMessage(),
+                                       mapExceptionToErrorCode(e));
         }
     }
 
@@ -598,10 +610,7 @@ public abstract class RestDataService extends DataServiceHandler
     /*
      * Validate the request.
      */
-    protected FullHttpResponse validateHttpRequest(FullHttpRequest request,
-                                                   String requestId,
-                                                   ChannelHandlerContext ctx,
-                                                   LogContext lc) {
+    protected FullHttpResponse validateHttpRequest(RequestContext rc) {
         return null;
     }
 
@@ -617,67 +626,36 @@ public abstract class RestDataService extends DataServiceHandler
         boolean doRetry = true;
         final String serialVersion = rc.restParams.getRoot();
 
-        @NonNull
-        /* TODO: use buffer methods in RequestContext */
-        ByteBuf responseBuffer;
-
         rc.opCode = findOpCode(rc.request.method(), rc.restParams);
         rc.opType = getOpType(rc.opCode);
 
         /* TODO: change this to match attmptRetry() logic in DataService */
         while (true) {
-            /*
-             * Allocate the output buffer and stream here to simplify reference
-             * counting and ensure that the stream is closed.
-             */
-            responseBuffer = rc.ctx.alloc().directBuffer(RESPONSE_BUFFER_SIZE);
 
             rc.origTableName = null;
             rc.mappedTableName = null;
             rc.actx = null;
-            String compartmentId = null;
             FullHttpResponse resp = null;
 
             try {
                 try {
                     try {
 
+                    /* Check whether the configuration operation is supported */
+                    checkConfigurationOperation(rc.opCode);
+
                     /* Filters request based on the OpCode */
                     filterRequest(rc.opCode, rc.lc);
 
-                    /*
-                     * Get the operation method and call it
-                     */
+                    /* Get the operation handler */
                     ProxyOperation operation = operationMap.get(rc.opCode);
                     if (operation == null) {
                         throw new RequestException(UNKNOWN_OPERATION,
                                 "Unknown op code: " + rc.opCode);
                     }
 
-                    if (opHasCompartmentIdInUrl(rc.opCode)) {
-                        compartmentId = readCompartmentId(rc.restParams);
-                    }
-                    if (!OpCode.isWorkRequestOp(rc.opCode)) {
-                        if (opHasTableNameOrIdInUrl(rc.opCode)) {
-                            rc.origTableName = readTableNameOrId(rc.restParams);
-                        }
-                        rc.actx = checkAccess(rc.request,
-                                              compartmentId, rc.opCode,
-                                              rc.origTableName,
-                                              this, rc.lc);
-                        rc.mappedTableName = getMapTableName(rc.actx,
-                                               rc.opCode,
-                                               rc.origTableName);
-                    } else {
-                        String workRequestId = null;
-                        if (opHasWorkRequestIdInUrl(rc.opCode)) {
-                            workRequestId = readWorkRequestId(rc.restParams);
-                        }
-                        rc.actx = checkWorkRequestAccess(rc.request,
-                                                         rc.opCode,
-                                                         compartmentId,
-                                                         workRequestId, rc.lc);
-                    }
+                    /* Perform access check */
+                    checkAccess(rc);
 
                     startAudit(rc, rc.origTableName, rc.actx);
 
@@ -689,7 +667,7 @@ public abstract class RestDataService extends DataServiceHandler
                     }
 
                     /* Create response */
-                    resp = createResponse(responseBuffer, rc.requestId);
+                    resp = createResponse(rc.bbos.getByteBuf(), rc.requestId);
 
                     /* Execute operation */
                     operation.handle(resp, rc, rc.actx, serialVersion);
@@ -734,8 +712,8 @@ public abstract class RestDataService extends DataServiceHandler
                 } catch (MetadataNotFoundException mnfe) {
                     if (doRetry) {
 
-                        /* release/reset request-specific resources */
-                        responseBuffer.release();
+                        /* reset response buffer for retry */
+                        rc.resetOutputBuffer();
 
                         if (rc.mappedTableName != null) {
                             /* remove the table from the cache */
@@ -796,12 +774,13 @@ public abstract class RestDataService extends DataServiceHandler
                     if (rc.actx != null) {
                         rc.actx.resetTableNameMapping();
                     }
-                    /* release/reset request-specific resources */
-                    responseBuffer.release();
+
+                    /* rest response buffer for retry */
+                    rc.resetOutputBuffer();
                     doRetry = false;
                     continue;
                 } catch (FilterRequestException bre) {
-                    return handleFilterRequest(bre, rc.requestId, rc.lc);
+                    return handleFilterRequest(bre, rc);
                 } catch (Throwable e) {
                     throw new RequestException(SERVER_ERROR,
                                                "Unknown Exception" + e);
@@ -809,17 +788,16 @@ public abstract class RestDataService extends DataServiceHandler
                 }
             } catch (RequestException re) {
                 logRequestException(re, rc.lc);
-                responseBuffer.clear();
 
                 /* Mark failure */
                 markOpFailed(rc, getRequestExceptionFailure(re));
 
                 /* Build error response */
-                resp = createErrorResponse(
-                    responseBuffer,
-                    mapErrorMessage(rc.actx, rc.origTableName, re.getMessage()),
-                    mapExceptionToErrorCode(re),
-                    rc.requestId);
+                resp = createErrorResponse(rc,
+                                           mapErrorMessage(rc.actx,
+                                                           rc.origTableName,
+                                                           re.getMessage()),
+                                           mapExceptionToErrorCode(re));
                 if (logger.isLoggable(Level.FINE, rc.lc)) {
                     logger.fine("handleRequest, failed op=" +
                                 opCodeToRestString(rc.opCode) +
@@ -830,15 +808,116 @@ public abstract class RestDataService extends DataServiceHandler
         }
     }
 
+    private void checkConfigurationOperation(OpCode opCode) {
+        if (!isCmekEnabled && OpCode.isUpdateConfigurationRequestOp(opCode)) {
+            throw new RequestException(ILLEGAL_ARGUMENT,
+                "The configuration operation is not enabled: " + opCode);
+        }
+    }
+
+    /*
+     * Performs access check for 3 types of operations:
+     *   1. Work request
+     *   2. Configuration
+     *   3. DDL and DML
+     */
+    private void checkAccess(RequestContext rc) {
+        String compartmentId = null;
+
+        if (opHasCompartmentIdInUrl(rc.opCode)) {
+            compartmentId = readCompartmentId(rc.restParams);
+        }
+
+        if (OpCode.isWorkRequestOp(rc.opCode)) {
+            String workRequestId = null;
+            if (opHasWorkRequestIdInUrl(rc.opCode)) {
+                workRequestId = readWorkRequestId(rc.restParams);
+            }
+            OpCode[] authorizeOps = null;
+            boolean shouldAuthorizeAllOps = true;
+            if (rc.opCode == OpCode.LIST_WORKREQUESTS) {
+                /*
+                 * The list-work-requests returns all work requests for
+                 * operations based on the work request mechanism. Currently,
+                 * we have DDL and CMEK operations.
+                 *
+                 * List-work-requests does not require all sub-operations must
+                 * be authorized, it will only return the work requests for
+                 * those operations that are authorized for this request.
+                 *
+                 * e.g. If user only has permission to read DDL work request,
+                 * list-work-requests will only return DDL work requests. If
+                 * user has permissions to read work requests for both DDL and
+                 * CMEK operations, work requests for both operations will be
+                 * returned.
+                 *
+                 * The authorizeOps contains all the operations to be authorized.
+                 * The shouldAuthorizeAllOps flag is set to false, indicating
+                 * that not all operations need to be authorized. After
+                 * permission check, the authorized operations are returned in
+                 * AccessContext.AuthorizedOps.
+                 */
+                authorizeOps = OpCode.getListWorkRequestSubOps(isCmekEnabled);
+                shouldAuthorizeAllOps = false;
+            }
+            rc.actx = checkWorkRequestAccess(rc.request,
+                                             rc.opCode,
+                                             authorizeOps,
+                                             shouldAuthorizeAllOps,
+                                             compartmentId,
+                                             workRequestId,
+                                             rc.lc);
+        } else if (OpCode.isConfigurationRequestOp(rc.opCode)) {
+            OpCode[] authorizeOpCodes = null;
+            if (rc.opCode == OpCode.GET_CONFIGURATION) {
+                /*
+                 * Get-configuration returns the service level configurations,
+                 * we only have kms-key configuration so far, more configuration
+                 * could be added in future.
+                 *
+                 * Get-configuration requires user has the permission to read
+                 * all the sub configurations. If the user does not have
+                 * permission to read any sub configuration, the user does not
+                 * have permission to execute get-configuration.
+                 */
+                authorizeOpCodes = OpCode.getGetConfigurationSubOps();
+            }
+            rc.actx = checkConfigurationAccess(rc.request,
+                                               rc.opCode,
+                                               authorizeOpCodes,
+                                               compartmentId,
+                                               rc.lc);
+        } else {
+            if (opHasTableNameOrIdInUrl(rc.opCode)) {
+                rc.origTableName = readTableNameOrId(rc.restParams);
+            }
+            rc.actx = checkAccess(rc.request, compartmentId, rc.opCode,
+                                  rc.origTableName, this, rc.lc);
+            rc.mappedTableName = getMapTableName(rc.actx, rc.opCode,
+                                                 rc.origTableName);
+        }
+    }
+
     /**
      * Check authorization for WorkRequest operation
      */
     protected abstract AccessContext
         checkWorkRequestAccess(FullHttpRequest request,
                                OpCode opCode,
+                               OpCode[] authorizeOpCodes,
+                               boolean shouldAuthorizeAllOps,
                                String compartmentId,
                                String workRequestId,
                                LogContext lc);
+    /**
+     * Check authorization for Configuration operation
+     */
+    protected abstract AccessContext
+        checkConfigurationAccess(FullHttpRequest request,
+                                 OpCode opCode,
+                                 OpCode[] authorizeOps,
+                                 String compartmentId,
+                                 LogContext lc);
 
     /**
      * Default - nothing to do, return the original error message.
@@ -970,6 +1049,9 @@ public abstract class RestDataService extends DataServiceHandler
         case PREPARE:
         case SUMMARIZE:
         case LIST_WORKREQUESTS:
+        case GET_CONFIGURATION:
+        case UPDATE_CONFIGURATION:
+        case REMOVE_CONFIG_KMS_KEY:
             return true;
         default:
             return false;
@@ -2523,13 +2605,13 @@ public abstract class RestDataService extends DataServiceHandler
         GetWorkRequestResponse res = TableUtils.getWorkRequest(actx,
                                                                workRequestId,
                                                                tm, rc.lc);
-       if (!res.getSuccess()) {
+        if (!res.getSuccess()) {
             throw new RequestException(res.getErrorCode(),
                                        res.getErrorString());
         }
 
         /* Build response */
-        String workRequest = buildWorkRequest(res.getDdlEntry());
+        String workRequest = buildWorkRequest(res.getWorkRequest());
         buildResponse(response, workRequest);
 
         markTMOpSucceeded(rc, 1 /* TM operation count*/);
@@ -2545,11 +2627,10 @@ public abstract class RestDataService extends DataServiceHandler
         /* Query parameter */
         int limit = readLimit(rc.restParams);
         String page = readPage(rc.restParams);
-        int startIndex = (page == null) ? 0 : parseStartIndexPageToken(page);
 
         /* List WorkRequests */
         ListWorkRequestResponse resp = TableUtils.listWorkRequests(actx,
-                                                                   startIndex,
+                                                                   page,
                                                                    limit,
                                                                    tm,
                                                                    rc.lc);
@@ -2559,13 +2640,10 @@ public abstract class RestDataService extends DataServiceHandler
         }
 
         /* build response */
-        DdlHistoryEntry[] ddlEntries = resp.getWorkRequestInfos();
-        String tc = buildWorkRequestCollection(ddlEntries);
-
-        boolean hasMore = (ddlEntries.length == limit);
-        String nextPageToken = hasMore ?
-            generateLastIndexPageToken(resp.getLastIndexReturned()) : null;
-        buildPaginatedResponse(response, tc, nextPageToken);
+        WorkRequest[] requests = resp.getWorkRequests();
+        buildPaginatedResponse(response,
+                               buildWorkRequestCollection(requests),
+                               resp.getNextPageToken());
 
         markTMOpSucceeded(rc, 1 /* TM operation count*/);
     }
@@ -2573,11 +2651,10 @@ public abstract class RestDataService extends DataServiceHandler
     /**
      * List work request errors
      */
-    private void handleListWorkRequestErrors(
-                                         FullHttpResponse response,
-                                         RequestContext rc,
-                                         AccessContext actx,
-                                         String apiVersion) {
+    private void handleListWorkRequestErrors(FullHttpResponse response,
+                                             RequestContext rc,
+                                             AccessContext actx,
+                                             String apiVersion) {
         /* Path parameter */
         String workRequestId = readWorkRequestId(rc.restParams);
         GetWorkRequestResponse res = TableUtils.getWorkRequest(actx,
@@ -2589,7 +2666,7 @@ public abstract class RestDataService extends DataServiceHandler
         }
 
         /* Build response */
-        String info = buildWorkRequestErrors(res.getDdlEntry());
+        String info = buildWorkRequestErrors(res.getWorkRequest());
         buildResponse(response, info);
         markTMOpSucceeded(rc, 1 /* TM operation count*/);
     }
@@ -2597,11 +2674,10 @@ public abstract class RestDataService extends DataServiceHandler
     /**
      * List work request logs
      */
-    private void handleListWorkRequestLogs(
-                                       FullHttpResponse response,
-                                       RequestContext rc,
-                                       AccessContext actx,
-                                       String apiVersion) {
+    private void handleListWorkRequestLogs(FullHttpResponse response,
+                                           RequestContext rc,
+                                           AccessContext actx,
+                                           String apiVersion) {
 
         /* Path parameter */
         String workRequestId = readWorkRequestId(rc.restParams);
@@ -2614,7 +2690,7 @@ public abstract class RestDataService extends DataServiceHandler
         }
 
         /* Build response */
-        String info = buildWorkRequestLogs(res.getDdlEntry());
+        String info = buildWorkRequestLogs(res.getWorkRequest());
         buildResponse(response, info);
 
         markTMOpSucceeded(rc, 1 /* TM operation count*/);
@@ -2661,6 +2737,39 @@ public abstract class RestDataService extends DataServiceHandler
 
         throw new RequestException(OPERATION_NOT_SUPPORTED,
                                    "DropReplica operation is not supported");
+    }
+
+    /**
+     * Get configuration
+     */
+    protected void handleGetConfiguration(FullHttpResponse response,
+                                          RequestContext rc,
+                                          AccessContext actx,
+                                          String apiVersion) {
+        throw new RequestException(OPERATION_NOT_SUPPORTED,
+                                   "GetConfiguration is not supported");
+    }
+
+    /**
+     * UpdateConfigration
+     */
+    protected void handleUpdateConfiguration(FullHttpResponse response,
+                                             RequestContext rc,
+                                             AccessContext actx,
+                                             String apiVersion) {
+        throw new RequestException(OPERATION_NOT_SUPPORTED,
+                                   "UpdateConfiguration is not supported");
+    }
+
+    /**
+     * RemoveCmek
+     */
+    protected void handleRemoveKmsKey(FullHttpResponse response,
+                                      RequestContext rc,
+                                      AccessContext actx,
+                                      String apiVersion) {
+        throw new RequestException(OPERATION_NOT_SUPPORTED,
+                                   "RemoveKmsKey is not supported");
     }
 
     private static byte[] parseQueryPageToken(String pageToken) {
@@ -3026,8 +3135,8 @@ public abstract class RestDataService extends DataServiceHandler
         }
     }
 
-    private static void buildWorkRequestIdResponse(FullHttpResponse resp,
-                                                   String workRequestId) {
+    protected static void buildWorkRequestIdResponse(FullHttpResponse resp,
+                                                     String workRequestId) {
         resp.setStatus(HttpResponseStatus.ACCEPTED);
         resp.headers().set(OPC_WORK_REQUEST_ID, workRequestId);
     }
@@ -3040,9 +3149,9 @@ public abstract class RestDataService extends DataServiceHandler
         resp.headers().setInt(CONTENT_LENGTH, payload.readableBytes());
     }
 
-    private static void buildTaggedResponse(FullHttpResponse resp,
-                                            String info,
-                                            byte[] etag) {
+    protected static void buildTaggedResponse(FullHttpResponse resp,
+                                              String info,
+                                              byte[] etag) {
         buildResponse(resp, info);
         if (etag != null) {
             resp.headers().set(ETAG, encodeBase64(etag));
@@ -3116,7 +3225,7 @@ public abstract class RestDataService extends DataServiceHandler
         if (errorMap.containsKey(errorCode)) {
             return errorMap.get(errorCode);
         }
-        return null;
+        return ErrorCode.UNKNOWN_ERROR;
     }
 
     /*
@@ -3206,63 +3315,54 @@ public abstract class RestDataService extends DataServiceHandler
      * TODO: perhaps do a hard-close on the connection in this path or take
      * other action if an attack is suspected.
      */
-    protected FullHttpResponse invalidRequest(ChannelHandlerContext ctx,
-                                              HttpHeaders headers,
-                                              String msg,
-                                              int errorCode,
-                                              CharSequence requestId,
-                                              LogContext lc) {
+    protected FullHttpResponse invalidRequest(RequestContext rc,
+                                              String message,
+                                              int errorCode) {
 
-        final CharSequence realIp = headers.get(X_REAL_IP_HEADER);
-        final CharSequence forwardedFor = headers.get(X_FORWARDED_FOR_HEADER);
-        final String remoteAddr = ctx.channel().remoteAddress().toString();
+        if (logger.isLoggable(Level.FINE, rc.lc)) {
+            CharSequence realIp = rc.headers.get(X_REAL_IP_HEADER);
+            CharSequence forwardedFor = rc.headers.get(X_FORWARDED_FOR_HEADER);
+            String remoteAddr = rc.ctx.channel().remoteAddress().toString();
 
-        StringBuilder sb = new StringBuilder();
-        sb.append(msg);
-        sb.append(", remote address=").append(remoteAddr);
-        if (realIp != null) {
-            sb.append(", ").append(X_REAL_IP_HEADER).append("=").append(realIp);
+            StringBuilder sb = new StringBuilder();
+            sb.append(message);
+            sb.append(", remote address=").append(remoteAddr);
+            if (realIp != null) {
+                sb.append(", ").append(X_REAL_IP_HEADER).append("=").append(realIp);
+            }
+            if (forwardedFor != null) {
+                sb.append(", ").append(X_FORWARDED_FOR_HEADER).append("=")
+                    .append(forwardedFor);
+            }
+
+            logger.fine(sb.toString(), rc.lc);
         }
-        if (forwardedFor != null) {
-            sb.append(", ").append(X_FORWARDED_FOR_HEADER).append("=")
-                .append(forwardedFor);
-        }
 
-        logger.fine(sb.toString(), lc);
-
-        return createErrorResponse(ctx, msg, getErrorCode(errorCode), requestId);
+        return createErrorResponse(rc, message, getErrorCode(errorCode));
     }
 
-    private static FullHttpResponse createErrorResponse(
-            ChannelHandlerContext ctx,
-            String errorMessage,
-            ErrorCode errorCode,
-            CharSequence requestId) {
+    private static FullHttpResponse createErrorResponse(RequestContext rc,
+                                                        String errorMessage,
+                                                        ErrorCode errorCode) {
 
-        ByteBuf payload = ctx.alloc().directBuffer();
-        return createErrorResponse(payload, errorMessage, errorCode, requestId);
-    }
+        rc.resetOutputBuffer();
 
-    private static FullHttpResponse createErrorResponse(
-            ByteBuf payload,
-            String errorMessage,
-            ErrorCode errorCode,
-            CharSequence requestId) {
-
-        FullHttpResponse resp = new DefaultFullHttpResponse(HTTP_1_1,
-                errorCode.getHttpStatusCode(), payload);
+        FullHttpResponse resp =
+            new DefaultFullHttpResponse(HTTP_1_1,
+                                        errorCode.getHttpStatusCode(),
+                                        rc.bbos.getByteBuf());
 
         String body = JsonBuilder.create()
                         .append("code", errorCode.getErrorCode())
                         .append("message", errorMessage)
                         .toString();
-        payload.writeCharSequence(body, UTF_8);
+        rc.bbos.getByteBuf().writeCharSequence(body, UTF_8);
 
         HttpHeaders headers = resp.headers();
         headers.set(CONTENT_TYPE, APPLICATION_JSON_NOCHARSET)
-            .setInt(CONTENT_LENGTH, payload.readableBytes())
-            .set(ACCESS_CONTROL_ALLOW_ORIGIN, "*")
-            .set(OPC_REQUEST_ID, requestId);
+               .setInt(CONTENT_LENGTH, rc.bbos.getByteBuf().readableBytes())
+               .set(ACCESS_CONTROL_ALLOW_ORIGIN, "*")
+               .set(OPC_REQUEST_ID, rc.requestId);
 
         return resp;
     }
@@ -3283,8 +3383,8 @@ public abstract class RestDataService extends DataServiceHandler
         return readCompartmentId(request, false /* required */);
     }
 
-    private static String readCompartmentId(RequestParams request,
-                                            boolean required) {
+    protected static String readCompartmentId(RequestParams request,
+                                              boolean required) {
         String compartmentId = request.getQueryParamAsString(COMPARTMENT_ID);
         if (required) {
             checkNotNullEmpty(COMPARTMENT_ID, compartmentId);
@@ -3428,6 +3528,10 @@ public abstract class RestDataService extends DataServiceHandler
         String workRequestId = request.getPathParam(WORK_REQUEST_ID);
         checkNotNullEmpty(WORK_REQUEST_ID, workRequestId);
         return workRequestId;
+    }
+
+    protected static boolean readDryRun(RequestParams request) {
+        return Boolean.valueOf(request.getHeaderAsString(IS_OPC_DRY_RUN));
     }
 
     private Consistency getConsistency(RequestParams request) {

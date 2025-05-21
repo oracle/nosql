@@ -270,8 +270,33 @@ public class AccessCheckerFactory {
                 String uri,
                 HttpHeaders headers,
                 OpCode op,
+                @Nullable OpCode[] authorizeOps,
+                boolean shouldAuthorizeAllOps,
                 @Nullable String compartmentId,
                 @Nullable String workRequestId,
+                @Nullable byte[] payload,
+                Filter filter,
+                LogContext lc)
+            throws RequestException {
+
+            checkAccess(httpMethod, uri, headers, op, compartmentId,
+                        null /* tableName */, null /* actx*/, filter, lc);
+
+            InsecureAccessContext actx = new InsecureAccessContext();
+            if (compartmentId != null) {
+                actx.setCompartmentId(compartmentId);
+            }
+            return actx;
+        }
+
+        @Override
+        public AccessContext checkConfigurationAccess(
+                HttpMethod httpMethod,
+                String uri,
+                HttpHeaders headers,
+                OpCode op,
+                @Nullable OpCode[] authorizeOps,
+                @Nullable String compartmentId,
                 @Nullable byte[] payload,
                 Filter filter,
                 LogContext lc)

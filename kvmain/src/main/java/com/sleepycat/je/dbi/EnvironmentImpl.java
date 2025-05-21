@@ -939,10 +939,7 @@ public class EnvironmentImpl implements EnvConfigObserver {
             open();
 
             runOrPauseDaemons(configManager);
-            if (DbInternal.getBImgIdx(envConfig)) {
-                beforeImageIndex = new BeforeImageIndex(this);
-            }
-
+            beforeImageIndex = new BeforeImageIndex(this);
             success = true;
         } finally {
             if (!success) {

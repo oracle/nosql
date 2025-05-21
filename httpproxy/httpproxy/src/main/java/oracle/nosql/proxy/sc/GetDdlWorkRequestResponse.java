@@ -15,35 +15,38 @@ package oracle.nosql.proxy.sc;
 
 import oracle.nosql.common.json.JsonUtils;
 import oracle.nosql.util.fault.ErrorResponse;
-import oracle.nosql.util.tmi.WorkRequest;
+import oracle.nosql.util.tmi.DdlHistoryEntry;
 
 /**
- * Response to a TenantManager getWorkRequest operation.
+ * Response for a TenantManager getWorkRequest operation, when the work request
+ * that has been retrieved is for a DDL request
  */
-public class GetWorkRequestResponse extends CommonResponse {
-    private final WorkRequest workRequest;
+public class GetDdlWorkRequestResponse extends CommonResponse {
+    private final DdlHistoryEntry workRequestInfo;
 
-    public GetWorkRequestResponse(int httpResponse, WorkRequest workRequest) {
+    public GetDdlWorkRequestResponse(int httpResponse,
+                                     DdlHistoryEntry workRequestInfo) {
         super(httpResponse);
-        this.workRequest = workRequest;
+        this.workRequestInfo = workRequestInfo;
     }
 
-    public GetWorkRequestResponse(ErrorResponse err) {
+    public GetDdlWorkRequestResponse(ErrorResponse err) {
         super(err);
-        workRequest = null;
+        workRequestInfo = null;
     }
 
     /**
-     * Returns a WorkRequest object
+     * Returns a DdlHistoryEntry object describing the table on success, null
+     * on failure.
      */
-    public WorkRequest getWorkRequest() {
-        return workRequest;
+    public DdlHistoryEntry getDdlEntry() {
+        return workRequestInfo;
     }
 
     @Override
     public String successPayload() {
         try {
-            return JsonUtils.print(workRequest);
+            return JsonUtils.print(workRequestInfo);
         } catch (IllegalArgumentException iae) {
             return ("Error serializing payload: " + iae.getMessage());
         }
@@ -51,7 +54,7 @@ public class GetWorkRequestResponse extends CommonResponse {
 
     @Override
     public String toString() {
-        return "GetWorkRequestResponse [workRequest=" + workRequest +
+        return "GetDdlWorkRequestResponse [workRequestInfo=" + workRequestInfo +
                 ", toString()=" + super.toString() + "]";
     }
 }

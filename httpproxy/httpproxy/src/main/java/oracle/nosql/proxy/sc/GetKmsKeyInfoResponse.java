@@ -15,35 +15,33 @@ package oracle.nosql.proxy.sc;
 
 import oracle.nosql.common.json.JsonUtils;
 import oracle.nosql.util.fault.ErrorResponse;
-import oracle.nosql.util.tmi.WorkRequest;
+import oracle.nosql.util.tmi.KmsKeyInfo;
 
 /**
- * Response to a TenantManager getWorkRequest operation.
+ * Response to a TenantManager getKmsKey operation.
  */
-public class GetWorkRequestResponse extends CommonResponse {
-    private final WorkRequest workRequest;
+public class GetKmsKeyInfoResponse extends CommonResponse {
 
-    public GetWorkRequestResponse(int httpResponse, WorkRequest workRequest) {
+    private final KmsKeyInfo keyInfo;
+
+    GetKmsKeyInfoResponse(KmsKeyInfo keyInfo, int httpResponse) {
         super(httpResponse);
-        this.workRequest = workRequest;
+        this.keyInfo = keyInfo;
     }
 
-    public GetWorkRequestResponse(ErrorResponse err) {
+    public GetKmsKeyInfoResponse(ErrorResponse err) {
         super(err);
-        workRequest = null;
+        keyInfo = null;
     }
 
-    /**
-     * Returns a WorkRequest object
-     */
-    public WorkRequest getWorkRequest() {
-        return workRequest;
+    public KmsKeyInfo getKeyInfo() {
+        return keyInfo;
     }
 
     @Override
     public String successPayload() {
         try {
-            return JsonUtils.print(workRequest);
+            return JsonUtils.print(keyInfo);
         } catch (IllegalArgumentException iae) {
             return ("Error serializing payload: " + iae.getMessage());
         }
@@ -51,7 +49,7 @@ public class GetWorkRequestResponse extends CommonResponse {
 
     @Override
     public String toString() {
-        return "GetWorkRequestResponse [workRequest=" + workRequest +
-                ", toString()=" + super.toString() + "]";
+        return "ConfigurationResponse [keyinfo=" + keyInfo + ", toString()="
+                + super.toString() + "]";
     }
 }

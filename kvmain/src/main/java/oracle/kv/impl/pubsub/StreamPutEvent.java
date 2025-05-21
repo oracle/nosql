@@ -198,11 +198,6 @@ public class StreamPutEvent implements StreamOperation.PutEvent {
      */
     @Override
     public String toJsonString() {
-        return "[type="  + getType() + "]" +
-               "[seq=" + sequenceId + "]" +
-               "[shard=" + repGroupId + "]" +
-               "[region id=" + getRegionId() + "]" +
-               "[table=" + getFullTableName() + "]" +
-               row.toJsonString(false);
+        return row.toJsonString(true);
     }
 }

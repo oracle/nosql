@@ -23,7 +23,6 @@ import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
 import java.util.logging.Level;
 
-import com.sleepycat.je.DatabaseException;
 import com.sleepycat.je.dbi.EnvironmentFailureReason;
 import com.sleepycat.je.rep.ReplicationConfig;
 import com.sleepycat.je.rep.elections.Proposer.DefaultFormattedProposal;
@@ -530,16 +529,6 @@ public class ElectionStatesContinuation extends ElectionStates {
      */
     private void persist(JsonObject obj) {
         ensureHoldLock();
-        try {
-            /*
-             * This method is invoked to persist the information used to make an election
-             * in order to be accessed it if a crash occurs right after the election.
-             */
-            envImpl.getLogManager().flushSync();
-        } catch (DatabaseException e) {
-            LoggerUtils.info(envImpl.getLogger(), envImpl,
-                    String.format("Cannot be applied f-Sync because of: " + e.getMessage()));
-        }
         try (final FileOutputStream fos = new FileOutputStream(tempFile)) {
             try (final PrintWriter writer = new PrintWriter(fos)) {
                 writer.write(obj.toJson());

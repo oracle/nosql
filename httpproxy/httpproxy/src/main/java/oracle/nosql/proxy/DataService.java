@@ -67,6 +67,7 @@ import static oracle.nosql.proxy.protocol.BinaryProtocol.CURRENT_QUERY_VERSION;
 import static oracle.nosql.proxy.protocol.BinaryProtocol.RECOMPILE_QUERY;
 import static oracle.nosql.proxy.protocol.BinaryProtocol.REPLICA_STATS_LIMIT;
 import static oracle.nosql.proxy.protocol.BinaryProtocol.REQUEST_SIZE_LIMIT_EXCEEDED;
+import static oracle.nosql.proxy.protocol.BinaryProtocol.REQUEST_TIMEOUT;
 import static oracle.nosql.proxy.protocol.BinaryProtocol.SECURITY_INFO_UNAVAILABLE;
 import static oracle.nosql.proxy.protocol.BinaryProtocol.SERVER_ERROR;
 import static oracle.nosql.proxy.protocol.BinaryProtocol.TABLE_NOT_FOUND;
@@ -138,12 +139,15 @@ import java.time.Clock;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.TreeMap;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.RejectedExecutionException;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
@@ -210,7 +214,6 @@ import oracle.nosql.proxy.ProxySerialization.RowReaderImpl;
 import oracle.nosql.proxy.ValueSerializer.RowSerializerImpl;
 import oracle.nosql.proxy.audit.ProxyAuditManager;
 import oracle.nosql.proxy.filter.FilterHandler;
-import oracle.nosql.proxy.filter.FilterHandler.Action;
 import oracle.nosql.proxy.filter.FilterHandler.Filter;
 import oracle.nosql.proxy.protocol.ByteInputStream;
 import oracle.nosql.proxy.protocol.ByteOutputStream;
@@ -232,6 +235,7 @@ import oracle.nosql.proxy.security.AccessContext.Type;
 import oracle.nosql.proxy.util.ErrorManager;
 import oracle.nosql.proxy.util.ProxyThreadPoolExecutor;
 import oracle.nosql.proxy.util.TableCache.TableEntry;
+import oracle.nosql.util.filter.Rule;
 import oracle.nosql.util.tmi.IndexInfo;
 import oracle.nosql.util.tmi.TableInfo;
 import oracle.nosql.util.tmi.TableLimits;
@@ -469,11 +473,6 @@ public abstract class DataService extends DataServiceHandler implements Service 
                                              ChannelHandlerContext ctx,
                                              LogContext lc,
                                              Object callerContext) {
-        /* Block all requests if there is "big red button" rule */
-        Action action = checkBlockAll(lc);
-        if (action != null) {
-            return action.handleRequest(null, null, lc);
-        }
 
         int threads = activeWorkerThreads.incrementAndGet();
         if (stats != null) {
@@ -487,6 +486,12 @@ public abstract class DataService extends DataServiceHandler implements Service 
         /* message, retain() it here */
         request.retain();
         try {
+            /* Block all requests if there is "big red button" rule */
+            Rule rule = getBlockAll(lc);
+            if (rule != null) {
+                return filter.handleRequest(rc, rule);
+            }
+
             /* Handle OPTIONS method for pre-flight request. */
             if (HttpMethod.OPTIONS.equals(rc.request.method())) {
                 return handleOptions(rc.request, rc.lc);
@@ -988,7 +993,7 @@ public abstract class DataService extends DataServiceHandler implements Service 
                 throw re;
             } catch (FilterRequestException fre) {
                 /* this will currently always return null. Hmmm... */
-                return handleFilterRequest(fre, rc.requestId, rc.lc);
+                return handleFilterRequest(fre, rc);
             } catch (Throwable t) {
                 /*
                  * This error may indicate a bug in the proxy. Make sure
@@ -1764,6 +1769,10 @@ public abstract class DataService extends DataServiceHandler implements Service 
 
         if (info.isPrepared == false) {
 
+            if (info.numOperations != 0 || info.operationNumber != 0) {
+                throw new IllegalArgumentException(
+                    "Parallel queries require a prepared query");
+            }
             /* this method also enforces limit on query string length */
             cbInfo = TableUtils.getCallbackInfo(rc.actx, info.statement, tm);
             cbInfo.checkSupportedDml();
@@ -1905,7 +1914,7 @@ public abstract class DataService extends DataServiceHandler implements Service 
         }
 
         /*
-         * Set ExceuteOptions.updateLimit for update query to limit the max
+         * Set ExecuteOptions.updateLimit for update query to limit the max
          * number of records can be updated in a single query:
          *  - In onprem, set it to the limit set by application.
          *  - In cloud, the max number of records that can be updated in a
@@ -1917,6 +1926,13 @@ public abstract class DataService extends DataServiceHandler implements Service 
             if (updateLimit > 0) {
                 execOpts.setUpdateLimit(updateLimit);
             }
+        }
+
+        /* insert/update/upsert not allowed to be parallel */
+        if (isUpdateOp &&
+            (info.numOperations != 0 || info.operationNumber != 0)) {
+            throw new IllegalArgumentException(
+                "Cannot perform parallel query on inserts or updates");
         }
 
         /* FUTURE: use info.durability */
@@ -1966,6 +1982,48 @@ public abstract class DataService extends DataServiceHandler implements Service 
             rc.bbos.writeInt(0);
         }
 
+        /*
+         * this method validates the parameters and will throw if invalid.
+         * It returns the total number of operations. If > 0 this is a parallel
+         * query
+         */
+        int numberOfOperations =
+            getParallelQueryOperations(info, prep, store.getTopology());
+
+        /*
+         * Compute synchronous query results. If this is a parallel query
+         * the appropriate set of shards or partitions needs to be passed
+         */
+        Set<RepGroupId> shards = null;
+        Set<Integer> partitions = null;
+
+        if (info.shardId > 0) {
+            /*
+             * this is where the caller is explicitly handling a shard and
+             * is never parallel
+             */
+            shards = new HashSet<>(1);
+            shards.add(new RepGroupId(info.shardId));
+        } else if (numberOfOperations > 1) {
+            execOpts.setIsSimpleQuery(info.isSimpleQuery);
+            if (prep.getDistributionKind().equals(
+                    PreparedStatementImpl.DistributionKind.ALL_SHARDS)) {
+                /* used shard-based split, even if all partition query */
+                shards = computeParallelShards(info, store, rc);
+            } else {
+                /*
+                 * there is no current async kv call to handle a set of
+                 * partitions, so turn off async for this path.
+                 * FUTURE: leave it async if KV supports it. See
+                 * doAsyncQuery()
+                 */
+                partitions =
+                    computeParallelPartitions(
+                        info, store.getTopology().getNumPartitions());
+                doAsync = false;
+            }
+        }
+
         if (doAsync) {
 
             if (info.traceLevel >= 5) {
@@ -1977,7 +2035,8 @@ public abstract class DataService extends DataServiceHandler implements Service 
             final NsonSerializer nser = ns;
 
             Publisher<RecordValue> qpub =
-                doAsyncQuery(store, prep, variables, execOpts, info.shardId,
+                doAsyncQuery(store, prep, variables, execOpts,
+                             shards, partitions,
                              info.traceLevel, rc.lc);
 
             Subscriber<RecordValue> qsub = new Subscriber<RecordValue>() {
@@ -2094,11 +2153,9 @@ public abstract class DataService extends DataServiceHandler implements Service 
 
         int numResults = 0;
 
-        /*
-         * Compute synchronous query results
-         */
         QueryStatementResultImpl qres =
-            doQuery(store, prep, variables, execOpts, info.shardId,
+            doQuery(store, prep, variables, execOpts,
+                    shards, partitions,
                     info.traceLevel, rc.lc);
 
         if (ns == null && info.queryVersion > QUERY_V1) {
@@ -2136,6 +2193,147 @@ public abstract class DataService extends DataServiceHandler implements Service 
         }
 
         return false; // sync
+    }
+
+    /**
+     * Validate parallel query operation parameters and return total number
+     * of operations
+     */
+    private int getParallelQueryOperations(QueryOpInfo info,
+                                           PreparedStatementImpl prep,
+                                           Topology topo) {
+        if (info.numOperations > 0) {
+            if (info.operationNumber <= 0 || info.operationNumber >
+                info.numOperations) {
+                throw new IllegalArgumentException(
+                    "Invalid parallel query parameters");
+            }
+            /*
+             * cannot trust prep.isSimpleQuery() on an already-prepared
+             * statement, use the info passed from the driver
+             */
+            if (!info.isSimpleQuery || prep.getDistributionKind().equals(
+                    PreparedStatementImpl.DistributionKind.SINGLE_PARTITION)) {
+                /* allow 1 but it's the same as if it were 0, not parallel */
+                if (info.numOperations > 1) {
+                    throw new IllegalArgumentException(
+                        "Invalid number of operations for parallel query");
+                }
+                /* a single partition query is not parallel */
+                return 0;
+            }
+            if (prep.getDistributionKind().equals(
+                    PreparedStatementImpl.DistributionKind.ALL_SHARDS)) {
+                if (info.numOperations > topo.getNumRepGroups()) {
+                    throw new IllegalArgumentException(
+                        "Invalid number of operations for parallel query, " +
+                        "it must be less than or equal to " +
+                        topo.getNumRepGroups());
+                }
+            } else if (info.numOperations > topo.getNumPartitions()) {
+                throw new IllegalArgumentException(
+                    "Invalid number of operations for parallel query, " +
+                    "it must be less than or equal to " +
+                    topo.getNumPartitions());
+            }
+            return info.numOperations;
+        } else if (info.operationNumber != 0) {
+            throw new IllegalArgumentException(
+                "Invalid parallel query parameters");
+        }
+        return 0;
+    }
+
+    /*
+     * These methods use a combination of the store topology, the total
+     * number of parallel operations and the operation number to return sets
+     * of items (shards/partitions) in a deterministic manner. The sets must be
+     * the same/repeatable for any <topology, number of ops, op number>
+     * combination in order to properly partition the data being
+     * queried.
+     *
+     * It has already been verified that the number of operations is <=
+     * number of shards or partitions in the topology. The simplest algorithm
+     * is to walk the items assigning each to an operation number "bucket"
+     * until all of the items have been assigned. If the items aren't evenly
+     * divisible by the number of operations some buckets will have additional
+     * items.
+     *
+     * For example if the number of items is 8 and number of operations is 3
+     * then bucket 1 gets items 1, 4, 7, bucket 2 gets 2, 5, 8, and
+     * bucket 3 gets 3, 6.
+     *
+     * These assignments are logically static for the duration of a query but
+     * rather than round-trip them it's simpler to recalculate, which is not
+     * deemed expensive.
+     *
+     * This calculation does the above. Items are 1-based. Starting at 1 and
+     * going to the last item these items go in the target bucket (B)
+     * B = bucket number
+     * I = item number (start at 1)
+     * N = number of operations
+     * for (int I = 1; I <= numberOfItems; I++) {
+     *     if ((I - B) % N == 0) {
+     *       add to bucket B
+     *     }
+     */
+    private Set<RepGroupId> computeParallelShards(QueryOpInfo info,
+                                                  KVStoreImpl store,
+                                                  RequestContext rc) {
+
+        /*
+         * Must use the driver's "base" topology for all queries
+         */
+        int numShards;
+        try {
+            numShards =
+                store.getDispatcher().getTopologyManager().getTopology(
+                    store, rc.driverTopoSeqNum, rc.timeoutMs).getNumRepGroups();
+            /*
+             * if the driver's notion of topology is different from the current
+             * store topology, it means elasticity is happening and all-shard
+             * parallel queries are not compatible with elasticity
+             */
+            if (store.getTopology().getNumRepGroups() != numShards) {
+                /*
+                 * use of RECOMPILE_QUERY is not very specific but can cause the
+                 * caller to "start over" which is the behavior expected, because
+                 * trying again will likely succeed
+                 */
+                throw new RequestException(
+                    RECOMPILE_QUERY, "Parallel queries on indexes are not " +
+                    "supported during certain points in an elasticity " +
+                    "operation. Please retry the entire coordinated operation");
+            }
+        } catch (TimeoutException te) {
+            throw new RequestException(
+                REQUEST_TIMEOUT, "Failed to get server state required to " +
+                "execute a query");
+        }
+
+        Set<RepGroupId> shards = new HashSet<>();
+        int numOperations = info.numOperations;
+        int bucket = info.operationNumber;
+        for (int i = 1; i <= numShards; i++) {
+            if ((i - bucket) % numOperations == 0) {
+                shards.add(new RepGroupId(i));
+            }
+        }
+        return shards;
+    }
+
+    /* see comment above. operation number is 1-based */
+    private Set<Integer> computeParallelPartitions(QueryOpInfo info,
+                                                   int numPartitions) {
+        Set<Integer> partitions = new HashSet<>();
+        int numOperations = info.numOperations;
+        int bucket = info.operationNumber;
+        for (int i = 1; i <= numPartitions; i++) {
+            if ((i - bucket) % numOperations == 0) {
+                partitions.add(i);
+            }
+        }
+        return partitions;
     }
 
     private void finishQuery(
@@ -3593,6 +3791,8 @@ public abstract class DataService extends DataServiceHandler implements Service 
         Map<String, FieldValue> bindVars;
         String queryName;
         String batchName;
+        int numOperations;
+        int operationNumber;
     }
 
     /*
@@ -4133,6 +4333,10 @@ public abstract class DataService extends DataServiceHandler implements Service 
                 info.isSimpleQuery = Nson.readNsonBoolean(bis);
             } else if (name.equals(QUERY_NAME)) {
                 info.queryName = Nson.readNsonString(bis);
+            } else if (name.equals(NUM_QUERY_OPERATIONS)) {
+                info.numOperations = Nson.readNsonInt(bis);
+            } else if (name.equals(QUERY_OPERATION_NUM)) {
+                info.operationNumber = Nson.readNsonInt(bis);
             } else if (name.equals(VIRTUAL_SCAN)) {
                 info.virtualScan = readVirtualScan(bis);
             } else if (name.equals(SERVER_MEMORY_CONSUMPTION)) {

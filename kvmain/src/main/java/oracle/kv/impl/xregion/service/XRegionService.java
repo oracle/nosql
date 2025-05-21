@@ -995,8 +995,7 @@ public class XRegionService extends StoppableThread {
             new RegionAgentConfig.Builder(sid, type, mode, host, source,
                                           target, config)
                 .setTables(ServiceMDMan.getTbNames(tables))
-                .setSecurityConfig(source.getSecurity())
-                .setLocalWritesOnly(!config.getCascadingRep());
+                .setSecurityConfig(source.getSecurity());
         final RegionAgentConfig conf = builder.build();
         logger.info(lm("Agent (source region=" + source.getName() +
                        ") configuration=" + conf));

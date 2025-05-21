@@ -144,7 +144,7 @@ public class MRTSubscriber extends BaseRegionAgentSubscriber {
      * the hash of the operation's primary key modulo the number of queues.
      * These queues are used to make sure that operations on the same key are
      * performed in order.
-     * <p>
+     *
      * Since Java guarantees that access to an immutable object stored in a
      * final field is thread safe after construction, access to the array
      * elements is safe because they are only set in the constructor. But that
@@ -882,23 +882,11 @@ public class MRTSubscriber extends BaseRegionAgentSubscriber {
 
             /* set new region id */
            ((RowImpl) tgtRow).setRegionId(regionId);
-           /* log looped back rows and track stats */
+           /* log loopback rows, may need a separate stat */
            if (regionId == Region.LOCAL_REGION_ID) {
                final String tb = tgtRow.getTable().getFullNamespaceName();
-               final MRTableMetrics tbm = getMetrics().getTableMetrics(tb);
-               if (!initialization) {
-                   /* only track loop back stats in streaming */
-                   if (StreamOperation.Type.PUT.equals(type)) {
-                       tbm.incrLoopbackPuts(1);
-                   } else {
-                       tbm.incrLoopbackDels(1);
-                   }
-               }
-               final String stage = initialization ? "transfer" :  "streaming";
-               final String msg = "Looped back writes from table=" + tb +
-                                  ", type=" + type +
-                                  ", source region=" + srcRegion +
-                                  ", stage=" + stage;
+               final String msg = "Loopback rows from table=" + tb + " in " +
+                                  (initialization ? "transfer" :  "streaming");
                rlLogger.log(tb, Level.INFO, lm(msg));
            }
 

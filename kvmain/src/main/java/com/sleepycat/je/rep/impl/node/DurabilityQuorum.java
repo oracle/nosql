@@ -127,12 +127,8 @@ public class DurabilityQuorum {
          * period since the pre-log hook.  Note that in this case we merely
          * want to check; we don't want to switch into active arbitration
          * unless/until we actually lose the connection to the replica at
-         * commit time.
-         * This code is used by DesignatedPrimaryProvider.  In the case of a
-         * two node, one Arbiter replication group one node can be designated
-         * to be the master in case one of the nodes fails, and in that
-         * situation it only requires a single ack from itself to count a
-         * transaction as durable.
+         * commit time. TODO: this doesn't seem right! Shouldn't we require
+         * activation at this point!!!
          */
         if (repImpl.getRepNode().getArbiter().activationPossible()) {
             String msg = "txn " + txn.getId() +

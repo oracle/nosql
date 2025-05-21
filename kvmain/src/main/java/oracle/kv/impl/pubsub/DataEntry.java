@@ -13,9 +13,6 @@
 
 package oracle.kv.impl.pubsub;
 
-import static oracle.kv.impl.pubsub.DataEntry.Type.TXN_ABORT;
-import static oracle.kv.impl.pubsub.DataEntry.Type.TXN_COMMIT;
-
 import oracle.kv.table.TimeToLive;
 
 import com.sleepycat.je.dbi.DatabaseId;
@@ -105,25 +102,18 @@ public class DataEntry {
     }
 
     /**
-     * Builds a data entry that represents a transaction commit
+     * Builds a data entry where update timestamp is not applicable
      *
-     * @param vlsn     vlsn of entry
+     * @param type     type of entry
+     * @param vlsn     vlsn of operation
      * @param txnId    txn id
-     * @param ts       timestamp of commit
+     * @param key      key of the entry
+     * @param value    value of the entry
+     * @param dbId     database ID of the entry or null
      */
-    static DataEntry getCommitEntry(long vlsn, long txnId, long ts) {
-        return new DataEntry(TXN_COMMIT, vlsn, txnId, null, null, null, ts);
-    }
-
-    /**
-     * Builds a data entry that represents a transaction abort
-     *
-     * @param vlsn     vlsn of entry
-     * @param txnId    txn id
-     * @param ts       timestamp of abort
-     */
-    static DataEntry getAbortEntry(long vlsn, long txnId, long ts) {
-        return new DataEntry(TXN_ABORT, vlsn, txnId, null, null, null, ts);
+    DataEntry(Type type, long vlsn, long txnId, byte[] key, byte[] value,
+              DatabaseId dbId) {
+        this(type, vlsn, txnId, key, value, dbId, 0);
     }
 
     /**

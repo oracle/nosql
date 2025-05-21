@@ -69,18 +69,16 @@ public interface SubscriptionCallback {
      *
      * @param vlsn  VLSN of commit entry
      * @param txnId id of txn to commit
-     * @param timestamp timestamp of the commit entry
      */
-    void processCommit(long vlsn, long txnId, long timestamp);
+    void processCommit(long vlsn, long txnId);
 
     /**
      * Process an abort entry from stream
      *
      * @param vlsn  VLSN of abort entry
      * @param txnId id of txn to abort
-     * @param timestamp timestamp of the abort entry
      */
-    void processAbort(long vlsn, long txnId, long timestamp);
+    void processAbort(long vlsn, long txnId);
 
     /**
      * Process the exception from stream.

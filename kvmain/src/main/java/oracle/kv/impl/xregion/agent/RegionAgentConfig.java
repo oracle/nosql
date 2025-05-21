@@ -192,7 +192,7 @@ public class RegionAgentConfig {
      * Gets the set of tables that the agent needs to subscribe at the
      * beginning
      *
-     * @return array of subscribed tables
+     * @return the set of subscribed tables
      */
     String[] getTables() {
         return tables.toArray(new String[0]);
@@ -292,7 +292,7 @@ public class RegionAgentConfig {
                ", ckpt enabled=" + enableCkptTable +
                ", ckpt interval ops=" + ckptIntvOps +
                ", ckpt interval secs=" + ckptIntvSecs +
-               ", local writes only=" + localWritesOnly;
+               ", local write only=" + localWritesOnly;
     }
 
     /**
@@ -344,7 +344,8 @@ public class RegionAgentConfig {
         private String securityConfig;
 
         /**
-         * Unit test only
+         * Unit test only,
+         *
          * true if checkpoint is enabled, false otherwise.
          */
         private boolean enableCkptTable;
@@ -520,7 +521,7 @@ public class RegionAgentConfig {
          *
          * @return this instance
          */
-        public Builder setLocalWritesOnly(boolean localWritesOnly) {
+        Builder setLocalWritesOnly(boolean localWritesOnly) {
             this.localWritesOnly = localWritesOnly;
             return this;
         }

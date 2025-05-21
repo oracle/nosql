@@ -768,6 +768,7 @@ public abstract class Shell {
     private void runLine(String line, boolean checkQuotesMatch)
         throws ShellException {
 
+        exitCode = EXIT_OK;
         if (line.length() > 0 && !isComment(line)) {
             String[] splitArgs;
             try {
@@ -822,13 +823,7 @@ public abstract class Shell {
             cmdArgs = checkCommonFlags(cmdArgs);
             try {
                 final String result = command.execute(cmdArgs, this, line);
-                /*
-                 * Do not overwrite exitCode in case of exit command, so that
-                 * the exitCode of previous command is retained.
-                 */
-                if (!(command instanceof ExitCommand)) {
-                    exitCode = command.getExitCode();
-                }
+                exitCode = command.getExitCode();
                 return result;
             } catch (CommandNotFoundException cnfe) {
                 /*

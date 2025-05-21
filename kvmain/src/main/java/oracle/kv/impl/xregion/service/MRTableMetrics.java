@@ -56,10 +56,6 @@ public class MRTableMetrics extends JsonMetricsHeader {
     private volatile long streamBytes = 0;
     /** # of persisted streamed bytes to target */
     private volatile long persistStreamBytes = 0;
-    /** # of looped back puts */
-    private volatile long loopbackPuts = 0;
-    /** # of looped back deletes */
-    private volatile long loopbackDels = 0;
 
     /** per-region initialization statistics */
     private final ConcurrentMap<String, TableInitStat> initialization =
@@ -129,14 +125,6 @@ public class MRTableMetrics extends JsonMetricsHeader {
         return persistStreamBytes;
     }
 
-    public long getLoopbackPuts() {
-        return loopbackPuts;
-    }
-
-    public long getLoopbackDels() {
-        return loopbackDels;
-    }
-
     /* used by json */
     public Map<String, TableInitStat> getInitialization() {
         return new ConcurrentSkipListMap<>(initialization);
@@ -152,8 +140,6 @@ public class MRTableMetrics extends JsonMetricsHeader {
         incrDels(metrics.getDels());
         incrWinPuts(metrics.getWinPuts());
         incrWinDels(metrics.getWinDels());
-        incrLoopbackPuts(metrics.getLoopbackPuts());
-        incrLoopbackDels(metrics.getLoopbackDels());
         incrIncompatibleRows(metrics.getIncompatibleRows());
         incrStreamBytes(metrics.getStreamBytes());
         incrPersistStreamBytes(metrics.getPersistStreamBytes());
@@ -195,14 +181,6 @@ public class MRTableMetrics extends JsonMetricsHeader {
         persistStreamBytes += delta;
     }
 
-    public synchronized void incrLoopbackPuts(long delta) {
-        loopbackPuts += delta;
-    }
-
-    public synchronized void incrLoopbackDels(long delta) {
-        loopbackDels += delta;
-    }
-
     @Override
     public String toString() {
         return JsonUtils.print(this, true);
@@ -221,8 +199,6 @@ public class MRTableMetrics extends JsonMetricsHeader {
                dels == other.dels &&
                winPuts == other.winPuts &&
                winDels == other.winDels &&
-               loopbackPuts == other.loopbackPuts &&
-               loopbackDels == other.loopbackDels &&
                streamBytes == other.streamBytes &&
                persistStreamBytes == other.persistStreamBytes &&
                incompatibleRows == other.incompatibleRows &&
@@ -238,11 +214,10 @@ public class MRTableMetrics extends JsonMetricsHeader {
                Long.hashCode(dels) +
                Long.hashCode(winPuts) +
                Long.hashCode(winDels) +
-               Long.hashCode(loopbackPuts) +
-               Long.hashCode(loopbackDels) +
                Long.hashCode(streamBytes) +
                Long.hashCode(persistStreamBytes) +
                Long.hashCode(incompatibleRows) +
                initialization.hashCode();
     }
+
 }

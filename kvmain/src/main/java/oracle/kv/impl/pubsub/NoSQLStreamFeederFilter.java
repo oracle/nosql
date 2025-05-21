@@ -674,12 +674,6 @@ public class NoSQLStreamFeederFilter implements FeederFilter, Serializable {
             }
             openTxnIds = new HashSet<>();
             initialized = true;
-            LoggerUtils.info(logger, repImpl,
-                             lm("NoSQLStreamFilter initialized" +
-                                ", filterId=" + filterId +
-                                ", hostRN=" + hostRN +
-                                ", # partitions=" + nTotalParts +
-                                ", local writes only=" + localWritesOnly));
         }
 
         /* entry from pgt db and need process, partGenTblDBId cannot be null */

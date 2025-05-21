@@ -405,7 +405,7 @@ public class RequestHandlerImpl extends VersionedRemoteImpl
      * Test hook to be invoked immediately before initiating a request
      * transaction commit.
      */
-    private TestHook<ExecuteRequest> preCommitTestHook;
+    private TestHook<RepImpl> preCommitTestHook;
 
     /**
      * Test hook to be invoked before the response is returned.
@@ -610,7 +610,7 @@ public class RequestHandlerImpl extends VersionedRemoteImpl
         requestNOPExecute = hook;
     }
 
-    public void setPreCommitTestHook(TestHook<ExecuteRequest> hook) {
+    public void setPreCommitTestHook(TestHook<RepImpl> hook) {
         preCommitTestHook = hook;
     }
 
@@ -895,7 +895,7 @@ public class RequestHandlerImpl extends VersionedRemoteImpl
      * Holds the context needed to execute a request, particularly for when the
      * request is completed by a JE async acknowledgements handler.
      */
-    public class ExecuteRequest {
+    private class ExecuteRequest {
         private final Request request;
         private final InternalOperation internalOp;
 
@@ -1126,7 +1126,9 @@ public class RequestHandlerImpl extends VersionedRemoteImpl
                 if (txn.isValid()) {
                     streamHandle.prepare();
                     /* If testing SR21210, throw InsufficientAcksException. */
-                    assert TestHookExecute.doHookIfSet(preCommitTestHook, this);
+                    assert TestHookExecute.doHookIfSet
+                        (preCommitTestHook,
+                         RepInternal.getRepImpl(repEnv));
                     /*
                      * Grab the internal txn before the commit since the commit
                      * clears that field but we need to check for async acks
@@ -1425,13 +1427,6 @@ public class RequestHandlerImpl extends VersionedRemoteImpl
                             ex));
                 }
             }
-        }
-
-        /**
-         * Unit test only
-         */
-        public InternalOperation getInternalOp() {
-            return internalOp;
         }
     }
 

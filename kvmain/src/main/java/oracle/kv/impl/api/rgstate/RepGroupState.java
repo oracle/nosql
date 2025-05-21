@@ -87,7 +87,7 @@ public class RepGroupState {
      * than any real timestamp, so that update will consider the first state
      * update received from the server as newer than the initial REPLICA state
      */
-    private long lastChange = -1;
+    private volatile long lastChange = -1;
 
     /**
      * The states for RNs that are members of the group. The collection starts
@@ -175,6 +175,15 @@ public class RepGroupState {
     public RepNodeState getMaster() {
         final RepNodeId stableGroupMasterId = groupMasterId;
         return (stableGroupMasterId == null) ? null : get(stableGroupMasterId);
+    }
+
+    /**
+     * Returns the last time of any node state change.
+     *
+     * @return the last time, {@code -1} if no change.
+     */
+    public long getLastChangeTime() {
+        return lastChange;
     }
 
     /**

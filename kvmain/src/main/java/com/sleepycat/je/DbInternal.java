@@ -488,21 +488,6 @@ public class DbInternal {
     public static boolean getCheckpointUP(final EnvironmentConfig config) {
         return config.getCheckpointUP();
     }
-    
-    /**
-     * Proxy to EnvironmentConfig.setBImgIdx()
-     */
-    public static void setCreateBImgIdx(final EnvironmentConfig config,
-                                       final boolean bImgIdx) {
-        config.setCreateBImgIdx(bImgIdx);
-    }
-    
-    /**
-     * Proxy to EnvironmentConfig.getBImgIdx()
-     */
-    public static boolean getBImgIdx(final EnvironmentConfig config) {
-        return config.getBImgIdx();
-    }
 
     /**
      * Proxy to EnvironmentConfig.setTxnReadCommitted()

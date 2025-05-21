@@ -3073,12 +3073,6 @@ public class Cursor implements ForwardCursor {
 
         final OperationResult result = cursorImpl.updateCurrentRecord(
             key, data, writeParams, returnOldData, returnNewData);
-        
-        if (result != null && result.getBeforeImageDBEntry() != null) {
-            final EnvironmentImpl envImpl = dbImpl.getEnv();
-            envImpl.getBeforeImageIndex()
-                .put(result.getBeforeImageDBEntry());
-        }
 
         if (result != null && includeInOpStats) {
             dbImpl.getEnv().incUpdateOps(dbImpl);

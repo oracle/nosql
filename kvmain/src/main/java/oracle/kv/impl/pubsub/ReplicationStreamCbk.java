@@ -107,11 +107,15 @@ class ReplicationStreamCbk implements SubscriptionCallback {
      *
      * @param vlsn  VLSN of commit entry
      * @param txnId id of txn to commit
-     * @param ts  timestamp of commit
      */
     @Override
-    public void processCommit(long vlsn, long txnId, long ts) {
-        processEntry(DataEntry.getCommitEntry(vlsn, txnId, ts));
+    public void processCommit(long vlsn, long txnId) {
+        processEntry(new DataEntry(DataEntry.Type.TXN_COMMIT,
+                                   vlsn,
+                                   txnId,
+                                   null,
+                                   null,
+                                   null));
         stat.incrNumCommits(vlsn);
     }
 
@@ -120,11 +124,15 @@ class ReplicationStreamCbk implements SubscriptionCallback {
      *
      * @param vlsn  VLSN of abort entry
      * @param txnId id of txn to abort
-     * @param ts  timestamp of abort
      */
     @Override
-    public void processAbort(long vlsn, long txnId, long ts) {
-        processEntry(DataEntry.getAbortEntry(vlsn, txnId, ts));
+    public void processAbort(long vlsn, long txnId) {
+        processEntry(new DataEntry(DataEntry.Type.TXN_ABORT,
+                                   vlsn,
+                                   txnId,
+                                   null,
+                                   null,
+                                   null));
         stat.incrNumAborts(vlsn);
     }
 

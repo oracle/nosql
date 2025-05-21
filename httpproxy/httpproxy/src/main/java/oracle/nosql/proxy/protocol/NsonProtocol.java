@@ -161,6 +161,7 @@ public class NsonProtocol {
     public static String LIST_MAX_TO_READ = "lx";
     public static String LIST_START_INDEX = "ls";
     public static String MATCH_VERSION = "mv";
+    public static String MAX_QUERY_PARALLELISM = "mp";
     public static String MAX_READ_KB = "mr";
     public static String MAX_SHARD_USAGE_PERCENT = "ms";
     public static String MAX_WRITE_KB = "mw";
@@ -168,6 +169,7 @@ public class NsonProtocol {
     public static String NAMESPACE = "ns";
     public static String NUMBER_LIMIT = "nl";
     public static String NUM_OPERATIONS = "no";
+    public static String NUM_QUERY_OPERATIONS = "nq";
     public static String OPERATION = "op";
     public static String OPERATIONS = "os";
     public static String OPERATION_ID = "od";
@@ -181,6 +183,7 @@ public class NsonProtocol {
     public static String QUERY = "q";
     public static String QUERY_BATCH_TRACES = "qts";
     public static String QUERY_NAME = "qn";
+    public static String QUERY_OPERATION_NUM = "on";
     public static String QUERY_VERSION = "qv";
     public static String RANGE = "rg";
     public static String RANGE_PATH = "rp";
@@ -1078,7 +1081,8 @@ public class NsonProtocol {
     private static void writePreparedQuery(NsonSerializer ns,
                                            NioByteOutputStream buf,
                                            PrepareCB cbInfo,
-                                           PreparedStatementImpl prep)
+                                           PreparedStatementImpl prep,
+                                           Topology topo)
         throws IOException {
 
         if (buf.isDirect()) {
@@ -1094,6 +1098,8 @@ public class NsonProtocol {
         writeMapField(ns, TABLE_NAME, cbInfo.getTableName());
         writeMapField(ns, QUERY_OPERATION,
                       (int)cbInfo.getOperation().ordinal());
+        int maxParallelism = computeMaxParallelism(prep, topo);
+        writeMapField(ns, MAX_QUERY_PARALLELISM, maxParallelism);
 
         /*
          * serialize the table access info and prepared query into a
@@ -1111,6 +1117,30 @@ public class NsonProtocol {
         writeMapField(ns, PREPARED_QUERY, buf.array(), 0, buf.getOffset());
     }
 
+    /*
+     * Single partition, along with any query that requires sorting or
+     * aggregation on client: 0 (indicates no parallelism possible)
+     * All shards: num shards
+     * All partitions: number of partitions
+     */
+    private static int computeMaxParallelism(PreparedStatementImpl prep,
+                                             Topology topo) {
+        if (prep.getDistributionKind() == null) {
+            /* this happens for update queries */
+            return 0;
+        }
+
+        if (!prep.isSimpleQuery() || prep.getDistributionKind().equals(
+                PreparedStatementImpl.DistributionKind.SINGLE_PARTITION)) {
+            return 0;
+        }
+        if (prep.getDistributionKind().equals(
+                PreparedStatementImpl.DistributionKind.ALL_SHARDS)) {
+            return topo.getNumRepGroups();
+        }
+        /* else ALL_PARTITIONS */
+        return topo.getNumPartitions();
+    }
 
     public static void writeQueryFinish(NsonSerializer ns,
                                         DataServiceHandler handler,
@@ -1153,7 +1183,7 @@ public class NsonProtocol {
 
         if (isPrepared == false) {
             /* Write the proxy-side query plan. */
-            writePreparedQuery(ns, buf, cbInfo, prep);
+            writePreparedQuery(ns, buf, cbInfo, prep, topo);
             /* Write the driver-side query plan. */
             FieldValueWriterImpl valWriter = new FieldValueWriterImpl();
             buf.setWriteIndex(0); // reset to beginning

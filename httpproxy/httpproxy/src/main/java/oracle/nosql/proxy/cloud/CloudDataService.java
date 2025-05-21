@@ -503,8 +503,15 @@ public class CloudDataService extends DataService {
         CommonResponse res;
         switch (info.getResourceType()) {
         case WORKREQUEST:
-            res = TableUtils.getWorkRequest(null /* AccessContext */, info.ocid,
-                                            tm, true /* internal */, rc.lc);
+            /*
+             * By design, CMEK related work requests are only visible through
+             * the REST API, so the binary API specifically only fetches DDL
+             * related requests. This is used by the GAT DDL in other region to
+             * check the DDL request information in current region.
+             */
+            res = TableUtils.getDdlWorkRequest(null /* AccessContext */,
+                                               info.ocid, tm,
+                                               true /* internal */, rc.lc);
             break;
         case TABLE:
             res = TableUtils.getTable(null /* AccessContext */, info.ocid,

@@ -229,7 +229,8 @@ class ArbiterAcker {
 
     private void initializeConnection()
         throws ReplicaConnectRetryException,
-               IOException {
+               IOException,
+               ReplicaConnectRetryException {
             createArbiterFeederChannel();
             arbiterImpl.refreshCachedGroup();
             ReplicaFeederHandshake handshake =

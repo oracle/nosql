@@ -87,7 +87,6 @@ import oracle.kv.impl.topo.RepGroupId;
 import oracle.kv.impl.topo.RepNodeId;
 import oracle.kv.impl.topo.Topology;
 import oracle.kv.impl.util.FileNames;
-import oracle.kv.impl.util.FormatUtils;
 import oracle.kv.impl.util.KVRepTestConfig;
 import oracle.kv.impl.util.PollCondition;
 import oracle.kv.impl.util.TestUtils;
@@ -233,40 +232,21 @@ public class PubSubTestBase extends TestBase {
         super.tearDown();
     }
 
-    protected String logTimestamp(long ts) {
-        return ts + "(" + FormatUtils.formatDateTime(ts) + ")";
-    }
-
-    void createNamespace(String ns) {
+    protected void createNamespace(String ns) {
         String ddl = "CREATE NAMESPACE IF NOT EXISTS " + ns;
         store.executeSync(ddl);
     }
 
-    protected Table createTable(KVStore kvs, String testTable) {
+    protected void createTable(KVStore kvs, String testTable) {
         final String ddl = "CREATE TABLE " + testTable + " " +
                            "(id INTEGER, name STRING, age INTEGER, " +
                            "PRIMARY KEY (id))";
         kvs.executeSync(ddl);
         /* Ensure table created */
-        final Table ret = kvs.getTableAPI().getTable(testTable);
-        assertNotNull("table " + testTable + " not created", ret);
-        trace("Table=" + testTable + " has been created at store=" +
+        assertNotNull("table " + testTable + " not created",
+                      kvs.getTableAPI().getTable(testTable));
+        trace("test table " + testTable + " has been created at store=" +
               ((KVStoreImpl)kvs).getTopology().getKVStoreName());
-        return ret;
-    }
-
-    protected Table createChildTable(KVStore kvs, String parent, String child) {
-        final String tb = parent + "." + child;
-        final String ddl = "CREATE TABLE " + tb +
-                           " (state STRING, address STRING, " +
-                           " PRIMARY KEY (state))";
-        kvs.executeSync(ddl);
-        /* Ensure table created */
-        final Table ret =  kvs.getTableAPI().getTable(tb);
-        assertNotNull("table " + tb + " not created", ret);
-        trace("Table=" + tb + " has been created at store=" +
-              ((KVStoreImpl)kvs).getTopology().getKVStoreName());
-        return ret;
     }
 
     protected NoSQLPublisher createPublisher() {
@@ -798,7 +778,7 @@ public class PubSubTestBase extends TestBase {
     }
 
     /* make a random row */
-    protected RowImpl makeRandomRow(TableImpl table, int which) {
+    private RowImpl makeRandomRow(TableImpl table, int which) {
 
         RowImpl row = table.createRow();
 

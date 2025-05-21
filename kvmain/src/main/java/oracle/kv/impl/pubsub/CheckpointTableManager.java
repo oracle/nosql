@@ -81,11 +81,11 @@ public class CheckpointTableManager {
     /**
      * retry interval in ms
      */
-    final static int RETRY_INTERVAL_MS = 3000;
+    private final static int RETRY_INTERVAL_MS = 3000;
     /**
      * maximum number of attempts
      */
-    final static int MAX_NUM_ATTEMPTS = 20;
+    private final static int MAX_NUM_ATTEMPTS = 20;
 
     /**
      * read checkpoint from master

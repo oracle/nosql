@@ -678,7 +678,30 @@ public class RepNode implements TopologyManager.PostUpdateListener,
         }
 
         logger.log(Level.FINE, "Sending NOP to {0}", rns.getRepNodeId());
+        return executeNOPInternal(rns, lm);
+    }
 
+    /**
+     * Sends a NOP to a random node in the specified group excluding the
+     * specified RNs.
+     *
+     * @param groupId
+     * @param excludeRNs
+     * @return true if the operation was successful
+     */
+    public boolean sendRandomNOP(RepGroupId groupId, Set<RepNodeId> excludeRNs) {
+
+        final RepGroupState rgs =
+            requestDispatcher.getRepGroupStateTable().getGroupState(groupId);
+        final LoginManager lm =
+            repNodeService.getRepNodeSecurity().getLoginManager();
+        final RepNodeState rns = rgs.getRandomRN(null, excludeRNs);
+
+        logger.log(Level.FINE, "Sending NOP to {0}", rns.getRepNodeId());
+        return executeNOPInternal(rns, lm);
+    }
+
+    private boolean executeNOPInternal(RepNodeState rns, LoginManager lm) {
         try {
             if (requestDispatcher.executeNOP(rns, 1000, lm) != null) {
                 return true;
@@ -689,6 +712,7 @@ public class RepNode implements TopologyManager.PostUpdateListener,
                        ex);
         }
         return false;
+
     }
 
     /* For test */
@@ -723,6 +747,13 @@ public class RepNode implements TopologyManager.PostUpdateListener,
         return requestDispatcher.getRepGroupStateTable().
                                             getGroupState(groupId).getMaster();
     }
+
+    /**
+     * Returns the rep group state.
+     */
+    public RepGroupState getRepGroupState(RepGroupId groupId) {
+        return requestDispatcher.getRepGroupStateTable().getGroupState(groupId);
+     }
 
     /**
      * Invoked when the replicated environment has been invalidated due to an

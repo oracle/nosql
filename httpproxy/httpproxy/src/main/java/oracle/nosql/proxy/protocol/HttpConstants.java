@@ -352,6 +352,20 @@ public class HttpConstants {
     public static final String SORT_ORDER_ASC = "sort_order_asc";
 
     /**
+     * Used by list-workrequests request
+     */
+    public static final String TYPES = "types";
+
+    /**
+     * Used by configuration requests
+     */
+    public static final String GENERAL = "general";
+    public static final String DRY_RUN = "dryrun";
+    public static final String IF_MATCH = "ifmatch";
+    public static final String KEY_ID = "keyid";
+    public static final String VAULT_ID = "vaultid";
+
+    /**
      * Used by setTableActive to specify the timestamp of the dml operation
      * which activates the table in IDLE state.
      */

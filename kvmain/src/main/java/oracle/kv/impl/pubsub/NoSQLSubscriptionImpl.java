@@ -575,18 +575,7 @@ public class NoSQLSubscriptionImpl implements NoSQLSubscription {
      */
     @Override
     public void subscribeTable(String tableName) {
-        subscribeTable(tableName, false);
-    }
-
-    /**
-     * Adds a subscribed table to the running subscription, and specify if to
-     * stream transaction.
-     * @param tableName name of the table
-     * @param streamTxn true if to stream transactions, false to stream write
-     *                 operations in {@link StreamOperation}.
-     */
-    public void subscribeTable(String tableName, boolean streamTxn) {
-        startChangeWorker(StreamChangeReq.Type.ADD, tableName, streamTxn);
+        startChangeWorker(StreamChangeReq.Type.ADD, tableName);
     }
 
     /**
@@ -596,7 +585,7 @@ public class NoSQLSubscriptionImpl implements NoSQLSubscription {
      */
     @Override
     public void unsubscribeTable(String tableName) {
-        startChangeWorker(StreamChangeReq.Type.REMOVE, tableName, false);
+        startChangeWorker(StreamChangeReq.Type.REMOVE, tableName);
     }
 
     /**
@@ -1163,13 +1152,11 @@ public class NoSQLSubscriptionImpl implements NoSQLSubscription {
 
     /* Starts change worker thread */
     private synchronized void startChangeWorker(StreamChangeReq.Type type,
-                                                String table,
-                                                boolean streamTxn) {
+                                                String table) {
         if (!isCanceled() && !parentPU.isClosed()) {
             /* check if too many requests before submit to executor */
             if (!isTooManyRequests()) {
-                executor.submit(
-                    new StreamChangeWorkerThread(type, table, streamTxn));
+                executor.submit(new StreamChangeWorkerThread(type, table));
                 logger.info(lm("Submitted worker thread for request=" + type +
                                " table=" + table + ", #pending requests=" +
                                pendingRequests.incrementAndGet()));
@@ -1226,16 +1213,13 @@ public class NoSQLSubscriptionImpl implements NoSQLSubscription {
 
         private final StreamChangeReq.Type type;
         private final String tableName;
-        private final boolean streamTxn;
-        StreamChangeWorkerThread(StreamChangeReq.Type type,
-                                 String tableName,
-                                 boolean streamTxn) {
+
+        StreamChangeWorkerThread(StreamChangeReq.Type type, String tableName) {
             super("StreamChangeWorkerThread" + "-" +
                   UUID.randomUUID().toString().subSequence(0, 8) +
                   "-" + subscriber.getSubscriptionConfig().getSubscriberId());
             this.type = type;
             this.tableName = tableName;
-            this.streamTxn = streamTxn;
         }
 
         @Override
@@ -1337,8 +1321,7 @@ public class NoSQLSubscriptionImpl implements NoSQLSubscription {
                         break;
                     case OK:
                         err = "Change successfully applied to filter" +
-                              " (type=" + type + ", table=" + tableName +
-                              ", stream txn=" + streamTxn + ")";
+                              " (type=" + type + ", table=" + tableName + ")";
                         logger.fine(() -> lm(err));
                         if (type.equals(StreamChangeReq.Type.ADD)) {
                             processAdd(tableImpl);
@@ -1387,7 +1370,7 @@ public class NoSQLSubscriptionImpl implements NoSQLSubscription {
                 checkCanceled();
 
                 /* add the table to the subscribed table list */
-                parentPU.addTable(tableImpl, streamTxn);
+                parentPU.addTable(tableImpl);
 
                 /* unset expiration time if stream is not empty */
                 parentPU.unsetExpireTimeMs();

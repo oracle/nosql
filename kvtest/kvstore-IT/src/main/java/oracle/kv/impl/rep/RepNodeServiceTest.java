@@ -1132,8 +1132,7 @@ public class RepNodeServiceTest extends UncaughtExceptionTestBase {
     /**
      * Test hook to generate an environment failure exception during a request.
      */
-    static class EnvFailureExceptionHook implements
-        TestHook<RequestHandlerImpl.ExecuteRequest> {
+    class EnvFailureExceptionHook implements TestHook<RepImpl> {
 
         int count = 0;
 
@@ -1142,7 +1141,7 @@ public class RepNodeServiceTest extends UncaughtExceptionTestBase {
         }
 
         @Override
-        public void doHook(RequestHandlerImpl.ExecuteRequest arg) {
+        public void doHook(RepImpl arg) {
             count++;
 
             throw EnvironmentFailureException.unexpectedException

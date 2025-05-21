@@ -234,12 +234,12 @@ public enum ErrorCode {
     SECURITY_INFO_UNAVAILABLE {
         @Override
         public HttpResponseStatus getHttpStatusCode() {
-            return HttpResponseStatus.NOT_FOUND;
+            return HttpResponseStatus.SERVICE_UNAVAILABLE;
         }
 
         @Override
         public String getErrorCode() {
-            return TYPE_NOT_AUTHORIZED_OR_NOT_FOUND;
+            return TYPE_SERVICE_AVAILABLE;
         }
     },
     CANNOT_CANCEL_WORK_REQUEST {

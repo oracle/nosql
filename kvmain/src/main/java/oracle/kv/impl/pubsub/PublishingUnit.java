@@ -15,13 +15,10 @@ package oracle.kv.impl.pubsub;
 
 import static com.sleepycat.je.utilint.VLSN.FIRST_VLSN;
 import static com.sleepycat.je.utilint.VLSN.NULL_VLSN;
-import static oracle.kv.impl.pubsub.CheckpointTableManager.MAX_NUM_ATTEMPTS;
-import static oracle.kv.impl.pubsub.CheckpointTableManager.RETRY_INTERVAL_MS;
 import static oracle.kv.impl.util.CommonLoggerUtils.exceptionString;
 import static oracle.kv.impl.util.ThreadUtils.threadId;
 
 import java.net.UnknownHostException;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -186,12 +183,6 @@ public class PublishingUnit {
     private volatile long expireTimeMs = Long.MAX_VALUE;
 
     /**
-     * A synchronized set of subscribed table names that to stream
-     * transactions instead of write operations.
-     */
-    private final Set<String> streamTxnTables;
-
-    /**
      * Builds a publishing unit for a subscription
      *
      * @param publisher  parent publisher
@@ -240,7 +231,6 @@ public class PublishingUnit {
         directory = null;
         executor = Executors.newSingleThreadScheduledExecutor(
             new PublishingUnitThreadFactory());
-        streamTxnTables = Collections.synchronizedSet(new HashSet<>());
     }
 
     /**
@@ -287,16 +277,10 @@ public class PublishingUnit {
 
             /* determine where to start */
             final StreamPosition initPos = getStartStreamPos(config);
-            /* sanity check of subscribed streaming txn tables */
-            sanityCheckStreamTxnTables(config);
             logger.info(lm("Subscription id=" + si + " to stream from " +
                            "shards=" + shards + " out of all=" + all +
                            ", stream mode=" + config.getStreamMode() +
-                           ", from position=" + initPos +
-                           ", stream txn tables=" +
-                           config.getStreamTxnTables() +
-                           ", include abort txn=" +
-                           config.getStreamAbortTxn()));
+                           ", from position=" + initPos));
             /* prepare the unit */
             prepareUnit(config);
 
@@ -879,14 +863,6 @@ public class PublishingUnit {
         return config.getChangeTimeoutMs();
     }
 
-    public boolean getStreamTransaction(String table) {
-        return streamTxnTables.contains(table);
-    }
-
-    public boolean includeAbortTransaction() {
-        return config.getStreamAbortTxn();
-    }
-
     /**
      * Returns true if kvstore is a non-secure store
      *
@@ -1019,7 +995,7 @@ public class PublishingUnit {
      *
      * @return a copy of subscribed tables, or null
      */
-    public Set<String> getSubscribedTables() {
+    Set<String> getSubscribedTables() {
         if (tables == null) {
             return null;
         }
@@ -1032,11 +1008,8 @@ public class PublishingUnit {
      *
      * @param table table to add
      */
-    void addTable(TableImpl table, boolean streamTxn) {
+    void addTable(TableImpl table) {
         tables.put(table.getFullNamespaceName(), table);
-        if (streamTxn) {
-            streamTxnTables.add(table.getFullNamespaceName());
-        }
     }
 
     /**
@@ -1216,9 +1189,6 @@ public class PublishingUnit {
                     notFoundTbls.add(table);
                 } else {
                     tables.put(tableImpl.getFullNamespaceName(), tableImpl);
-                    if (conf.getStreamTxn(table)) {
-                        streamTxnTables.add(tableImpl.getFullNamespaceName());
-                    }
                 }
             }
 
@@ -1231,9 +1201,8 @@ public class PublishingUnit {
                 throw new SubscriptionFailureException(si, err, stnfe);
             }
 
-            logger.info(lm("PU subscribed tables=" + tables.keySet() +
-                           ", table names=" + tableNames +
-                           ", stream txn tables=" + streamTxnTables));
+            logger.fine(() -> lm("PU subscribed tables=" + tables.keySet() +
+                                 ", table names=" + tableNames));
         } else {
             /* user subscribes all tables */
             logger.fine(() -> lm("PU subscribed all tables"));
@@ -1365,75 +1334,6 @@ public class PublishingUnit {
 
     NoSQLPublisher getParent() {
         return parent;
-    }
-
-    /**
-     * Retrieves table from kvstore with retry.
-     * @param table table name
-     * @return table instance if available, or null
-     */
-    private TableImpl getTableWithRetry(String table) {
-        int attempt = 0;
-        final NoSQLSubscriberId sid = config.getSubscriberId();
-        while (!isClosed()) {
-            attempt++;
-            try {
-                final TableImpl ret =
-                    (TableImpl) kvstore.getTableAPI().getTable(table);
-                if (ret != null) {
-                    return ret;
-                }
-                if (attempt == MAX_NUM_ATTEMPTS) {
-                    final String err =
-                        "Table=" + table + " not found" +
-                        ", max attempts=" + MAX_NUM_ATTEMPTS +
-                        ", store=" + getStoreName();
-                    logger.warning(lm(err));
-                    break;
-                }
-                synchronized (this) {
-                    wait(RETRY_INTERVAL_MS);
-                }
-            } catch (FaultException fe) {
-                final String err = "Cannot get table=" + table +
-                                   ", will retry, error=" + fe;
-                logger.finest(() -> lm(err));
-            } catch (Exception exp) {
-                final String err = "Error in accessing table=" + table +
-                                   ", store=" + getStoreName();
-                logger.warning(lm(err + ", cause=" + exp));
-                throw new SubscriptionFailureException(sid, err);
-            }
-        }
-        return null;
-    }
-
-    /**
-     * Sanity check of tables to stream transactions
-     * @param conf subscription configuration
-     */
-    private void sanityCheckStreamTxnTables(NoSQLSubscriptionConfig conf) {
-        final Set<String> txnTables = conf.getStreamTxnTables();
-        if (txnTables.isEmpty()) {
-            return;
-        }
-        final NoSQLSubscriberId sid = conf.getSubscriberId();
-        for (String table : txnTables) {
-            final TableImpl tb = getTableWithRetry(table);
-            if (tb == null) {
-                final String err = "Stream txn table=" + table + " not found";
-                logger.warning(lm(err));
-                throw new SubscriptionFailureException(sid, err);
-            }
-            if (!tb.isTop()) {
-                final String err =
-                    "Stream txn table=" + table + " is not a top table" +
-                    " at store=" + getStoreName();
-                logger.warning(lm(err));
-                throw new SubscriptionFailureException(sid, err);
-            }
-        }
-        logger.fine(() -> lm("Done checking stream txn tables=" + txnTables));
     }
 
     private void verifyCkptTable(NoSQLSubscriptionConfig conf) {

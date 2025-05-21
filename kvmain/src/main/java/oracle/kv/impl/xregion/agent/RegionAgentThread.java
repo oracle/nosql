@@ -368,7 +368,6 @@ public class RegionAgentThread extends StoppableThread {
     public void run() {
 
         logger.info(lm("Region agent starts, mode=" + config.getStartMode() +
-                       ", local writes only=" + config.isLocalWritesOnly() +
                        ", tables=" + Arrays.toString(config.getTables())));
 
         try {
@@ -776,14 +775,6 @@ public class RegionAgentThread extends StoppableThread {
      */
     public RegionInfo getHost() {
         return config.getHost();
-    }
-
-    /**
-     * Unit test only
-     * @return if cascading replication is turned on
-     */
-    public boolean isCascadingReplication() {
-        return !config.isLocalWritesOnly();
     }
 
     /**

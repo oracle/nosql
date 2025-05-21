@@ -433,6 +433,14 @@ public class Config {
             new ParamDef("childTableEnabled", "true",
                          ParamType.BOOL, ParamContext.CLOUD);
 
+    /**
+     * Cloud only: true if enabled customer managed encryption key(CMEK), it is
+     * disabled by default.
+     */
+    public static ParamDef CMEK_ENABLED =
+            new ParamDef("cmekEnabled", "false",
+                         ParamType.BOOL, ParamContext.CLOUD);
+
     /* ------- End params ---------*/
 
     /*
@@ -1117,6 +1125,10 @@ public class Config {
 
     public int getTableCacheCheckIntervalSec() {
         return getInt(TABLE_CACHE_CHECK_INTERVAL_SEC);
+    }
+
+    public boolean isCmekEnabled() {
+        return getBool(CMEK_ENABLED);
     }
 
     /* Helpers to convert a String property value to a type */

@@ -47,15 +47,13 @@ public class NoSQLSubscriptionConfig {
      * Default total memory size in megabytes of output queues for all shards
      */
     public final static int DEFAULT_OUTPUT_QUEUE_SIZE_MB = 256;
+
     /**
      * Default flag to use external operations for elastic operations in
      * kvstore.
      */
     private final static boolean DEFAULT_EXTERNAL_CKPT_ELASTICITY = false;
-    /**
-     * Default flag to include aborted transaction in streaming transaction
-     */
-    private final static boolean DEFAULT_STREAM_ABORT_TXN = false;
+
     /**
      * Default max connect. After discussion the Streams API should
      * favor service availability over stream consistence that would
@@ -217,19 +215,6 @@ public class NoSQLSubscriptionConfig {
      */
     private final boolean useExtCkptElasticity;
 
-    /**
-     * Subscribed tables for which the subscription would stream transaction
-     * instead of single write operation per streaming event.
-     */
-    private final Set<String> streamTxnTables;
-
-    /**
-     * True to stream aborted transactions for tables in
-     * {@link #streamTxnTables}, false to ignore aborted transactions.
-     */
-    private final boolean streamAbortTxn;
-
-
     private NoSQLSubscriptionConfig(Builder builder) {
 
         subscriberId = builder.subscriberId;
@@ -247,9 +232,6 @@ public class NoSQLSubscriptionConfig {
         statReportIntvOps = builder.statReportIntvOps;
         outputQueueSzMB = builder.outputQueueSzMB;
         useExtCkptElasticity = builder.useExtCkptElasticity;
-        streamAbortTxn = builder.streamAbortTxn;
-        streamTxnTables = new HashSet<>();
-        streamTxnTables.addAll(builder.streamTxnTables);
 
         /*
          * If FROM_(EXACT_)STREAM_POSITION, user must specify a stream
@@ -412,8 +394,7 @@ public class NoSQLSubscriptionConfig {
             streamMode.equals(NoSQLStreamMode.FROM_EXACT_CHECKPOINT)) {
             return "Subscription=" + subscriberId +
                    " configured to stream from checkpoint with stream mode=" +
-                   streamMode + ", subscribed tables=" + tableNames +
-                   ", local writes only=" + localWritesOnly;
+                   streamMode + ", subscribed tables=" + tableNames;
         }
 
         if (streamMode.equals(NoSQLStreamMode.FROM_STREAM_POSITION) ||
@@ -421,14 +402,12 @@ public class NoSQLSubscriptionConfig {
             return "Subscription=" + subscriberId +
                    " configured to stream from position=" + initialPosition +
                    " with stream mode=" + streamMode +  ", subscribed " +
-                   "tables=" + tableNames +
-                   ", local writes only=" + localWritesOnly;
+                   "tables=" + tableNames;
         }
 
         return "Subscription=" + subscriberId +
                " configured to stream with stream mode=" + streamMode +
-               ", subscribed tables=" + tableNames +
-               ", local writes only=" + localWritesOnly;
+               ", subscribed tables=" + tableNames;
     }
 
     /**
@@ -688,35 +667,6 @@ public class NoSQLSubscriptionConfig {
     }
 
     /**
-     * @hidden
-     * <p> Returns true to stream transaction per {@link StreamOperation},
-     * false otherwise
-     */
-    public boolean getStreamTxn(String table) {
-        return streamTxnTables.contains(table);
-    }
-
-    /**
-     * @hidden
-     * <p> Returns Set of subscribed tables to stream transaction per
-     * {@link StreamOperation}.
-     */
-    public Set<String> getStreamTxnTables() {
-        return streamTxnTables;
-    }
-
-    /**
-     * @hidden
-     * <p>
-     * Returns true to to include aborted transaction in stream, false to
-     * ignore aborted transactions. Only effective when subscription is
-     * configured to stream transactions.
-     */
-    public boolean getStreamAbortTxn() {
-        return streamAbortTxn;
-    }
-
-    /**
      * Uses mapper to generate checkpoint table map
      * @param sid subscriber id
      * @param mapper checkpoint table name mapper
@@ -810,8 +760,6 @@ public class NoSQLSubscriptionConfig {
         private long statReportIntvOps = DEFAULT_REPORT_INTV_OPS;
         private int outputQueueSzMB = DEFAULT_OUTPUT_QUEUE_SIZE_MB;
         private boolean useExtCkptElasticity = DEFAULT_EXTERNAL_CKPT_ELASTICITY;
-        private boolean streamAbortTxn = DEFAULT_STREAM_ABORT_TXN;
-        private final Set<String> streamTxnTables = new HashSet<>();
 
         /**
          * Makes a builder for NoSQLSubscriptionConfig with required
@@ -1227,34 +1175,6 @@ public class NoSQLSubscriptionConfig {
          */
         public Builder setUseExternalCheckpointForElasticity() {
             useExtCkptElasticity = true;
-            return this;
-        }
-
-        /**
-         * @hidden
-         * Sets to stream transaction per {@link StreamOperation}. The table
-         * has to be a subscribed table that exists in the source kvstore,
-         * and it must be a top table, otherwise the subscription would fail
-         * with {@link SubscriptionFailureException}.
-         * @param tableName table to stream transactions
-         */
-        public Builder setStreamTxn(String tableName) {
-            if (!subscribedTables.contains(tableName)) {
-                throw new IllegalArgumentException(
-                    "Table=" + tableName + " not in the subscribed table " +
-                    "list" + subscribedTables);
-            }
-            streamTxnTables.add(tableName);
-            return this;
-        }
-
-        /**
-         * @hidden
-         *
-         * Sets to include aborted transaction
-         */
-        public Builder setIncludeAbortTxn() {
-            streamAbortTxn = true;
             return this;
         }
 

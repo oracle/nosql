@@ -50,8 +50,6 @@ import oracle.kv.pubsub.StreamOperation.PutEvent;
 import oracle.kv.pubsub.StreamOperation.SequenceId;
 import oracle.kv.pubsub.SubscribedTableVersionException;
 import oracle.kv.pubsub.SubscriptionFailureException;
-import oracle.kv.table.Table;
-import oracle.kv.txn.TransactionIdImpl;
 
 import com.sleepycat.je.utilint.StoppableThread;
 import com.sleepycat.je.utilint.VLSN;
@@ -186,8 +184,6 @@ public class OpenTransactionBuffer {
 
     /* deserializer to create stream operations from JE data entries */
     private final StreamOperation.Deserializer deserializer;
-    /** true if include abort transactions, false otherwise */
-    private final boolean includeAbortTxn;
 
     OpenTransactionBuffer(ReplicationStreamConsumer parent,
                           RepGroupId repGroupId,
@@ -246,15 +242,6 @@ public class OpenTransactionBuffer {
 
         /* to be initialized in startWorker() */
         workerThread = null;
-
-        final PublishingUnit pu = parent.getPu();
-        if (pu == null) {
-            /* some unit test only */
-            includeAbortTxn = false;
-        } else {
-            /* regular stream */
-            includeAbortTxn = pu.includeAbortTransaction();
-        }
     }
 
     public RepGroupId getRepGroupId() {
@@ -519,8 +506,7 @@ public class OpenTransactionBuffer {
     }
 
     /* Aborts a txn from openTxnBuffer */
-    private synchronized void abort(final DataEntry entry)
-        throws InterruptedException {
+    private synchronized void abort(final DataEntry entry) {
 
         assert (DataEntry.Type.TXN_ABORT.equals(entry.getType()));
 
@@ -539,12 +525,6 @@ public class OpenTransactionBuffer {
             return;
         }
 
-        if (includeAbortTxn) {
-            final long ts = entry.getLastUpdateMs();
-            final long abortVLSN = entry.getVLSN();
-            commitAbortHelper(false, txn, txnid, ts, abortVLSN);
-        }
-
         /* remove txn from openTxnBuffer and update openTxnBuffer stats */
         final long numOps =  txn.size();
         numAbortOps.addAndGet(numOps);
@@ -555,32 +535,6 @@ public class OpenTransactionBuffer {
                              ", # of ops aborted=" + numOps));
     }
 
-    /**
-     * Returns true if the stream operation is from a table that streams
-     * transactions, false otherwise
-     */
-    private boolean isStreamTxnTable(StreamOperation op) {
-        final PublishingUnit pu = parent.getPu();
-        if (pu == null) {
-            /* some unit test only */
-            return false;
-        }
-        final Table table;
-        if (op.getType().equals(StreamOperation.Type.PUT)) {
-            table = op.asPut().getRow().getTable();
-        } else if (op.getType().equals(StreamOperation.Type.DELETE)) {
-            table = op.asDelete().getPrimaryKey().getTable();
-        } else {
-            /* not put or delete */
-            return false;
-        }
-
-        /* gets its top table name to decide if stream txn */
-        final String topTableName =
-            ((TableImpl) table).getTopLevelTable().getFullNamespaceName();
-        return pu.getStreamTransaction(topTableName);
-    }
-
     /* Commits an open txn from openTxnBuffer  */
     private synchronized void commit(final DataEntry entry)
         throws SubscriptionFailureException, InterruptedException {
@@ -588,7 +542,6 @@ public class OpenTransactionBuffer {
         assert (DataEntry.Type.TXN_COMMIT.equals(entry.getType()));
 
         final long txnid = entry.getTxnID();
-        final long vlsn = entry.getVLSN();
         final List<DataEntry> txn = openTxnBuffer.remove(txnid);
         if (txn == null) {
             /*
@@ -598,31 +551,25 @@ public class OpenTransactionBuffer {
              * wont receive PUT/DEL for such internal db entries, so there
              * is no open txn for such commit/abort in buffer.
              */
-            logger.finest(() -> "Ignore a non-existent txn id=" + txnid +
-                                ", vlsn=" + vlsn);
+            logger.finest(() -> "Ignore a non-existent txn id=" + txnid);
             return;
         }
 
-        commitAbortHelper(true, txn, txnid, entry.getLastUpdateMs(), vlsn);
+        commitHelper(txn);
 
         /* remove txn from openTxnBuffer and update openTxnBuffer stats */
         final long numOps =  txn.size();
         numCommitOps.addAndGet(numOps);
         numCommitTxn.getAndIncrement();
-        lastCommitVLSN = vlsn;
+        lastCommitVLSN = entry.getVLSN();
         logger.finest(() -> lm("Committed txn=" + txnid + " with vlsn=" +
                                lastCommitVLSN + ", # of ops committed=" +
                                numOps));
     }
 
     /* Commits a transaction and convert data entry to stream operations */
-    private void commitAbortHelper(boolean commit,
-                                   List<DataEntry> allOps,
-                                   long txnId,
-                                   long ts,
-                                   long commitVLSN)
+    private void commitHelper(List<DataEntry> allOps)
         throws SubscriptionFailureException, InterruptedException {
-        final List<StreamOperation> txnOps = new ArrayList<>();
         for (DataEntry entry : allOps) {
 
             /* sanity check just in case */
@@ -630,11 +577,11 @@ public class OpenTransactionBuffer {
             if ((type != DataEntry.Type.PUT) &&
                 (type != DataEntry.Type.DELETE)) {
                 throw new IllegalStateException(
-                    "Type=" + type + " cannot be streamed to client.");
+                    "Type " + type + " cannot be streamed to client.");
             }
             if (entry.getKey() == null) {
-                throw new IllegalStateException(
-                    "key cannot be null when being deserialized.");
+                throw new IllegalStateException("key cannot be null when being " +
+                                                "deserialized.");
             }
 
              /* process a partition generation db entry */
@@ -649,33 +596,9 @@ public class OpenTransactionBuffer {
                                                       entry.getVLSN(),
                                                       entry.getLastUpdateMs(),
                                                       entry.getExpirationMs());
-            if (msg == null) {
-                /* cannot deserialize the entry */
-                continue;
-            }
-            if (!isStreamTxnTable(msg)) {
-                /* enqueue stream operation */
-                enqueueMsg(msg);
-                logger.finest(() -> lm("Enqueue " + (commit ?
-                    "commit" : "abort") + " op=" + msg));
-            } else {
-                /* cache the ops in transaction */
-                txnOps.add(msg);
-            }
-        }
-
-        if (!txnOps.isEmpty()) {
-            /* create txn stream operation */
-            final int shardId = repGroupId.getGroupId();
-            final TransactionIdImpl
-                id = new TransactionIdImpl(shardId, txnId, ts);
-            final StreamSequenceId sq = new StreamSequenceId(commitVLSN);
-            final StreamOperation txn =
-                new StreamTxnEvent(id, sq, commit, txnOps);
             /* enqueue stream operation */
-            enqueueMsg(txn);
-            logger.finest(() -> lm("Enqueue " + (commit ?
-                "commit" : "abort") + " txn=" + txn));
+            enqueueMsg(msg);
+            logger.finest(() -> lm("committed op=" + msg));
         }
     }
 
@@ -770,9 +693,6 @@ public class OpenTransactionBuffer {
         final Map<String, TableImpl> tbMap = getCachedTables(key);
         if (tbMap == null) {
             /* not a subscribed table or dropped */
-            logger.finest(() -> lm("Key not found in subscribed tables" +
-                                   ", cached tables=" + cachedTables.keySet() +
-                                   ", dropped tables="+ droppedTables));
             return null;
         }
 
@@ -800,8 +720,6 @@ public class OpenTransactionBuffer {
         // later
 
         /* cannot deserialize */
-        logger.finest(() -> lm("Cannot deserialize key from tables=" +
-                               tbMap.keySet()));
         return null;
     }
 

@@ -7,7 +7,6 @@
 
 package oracle.kv.impl.admin.client;
 
-import static oracle.kv.impl.util.CommandParser.JSON_FLAG;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
@@ -54,7 +53,6 @@ import oracle.kv.util.shell.CommonShell.TimeCommand;
 import oracle.kv.util.shell.CommonShell.VerboseCommand;
 import oracle.kv.util.shell.Shell;
 import oracle.kv.util.shell.Shell.CommandComparator;
-import oracle.kv.util.shell.Shell.ExitCommand;
 import oracle.kv.util.shell.ShellCommand;
 import oracle.kv.util.shell.ShellException;
 
@@ -897,32 +895,6 @@ public class CommandShellTest extends TestBase {
             assertEquals(shell.getCsfReadTimeout(), 3000);
         } finally {
             shell.shutdown();
-        }
-    }
-
-    @Test
-    public void testCommandShellRetainExitCode() {
-        final ByteArrayOutputStream outStream = new ByteArrayOutputStream();
-        final PrintStream cmdOut = new PrintStream(outStream);
-        final CommandShell shell = getTestShell(System.in, cmdOut);
-        final ExitCommand exitCommand = new ExitCommand();
-
-        /* Set exit code to 1 */
-        final String msg = "A message";
-        final IllegalArgumentException iae = new IllegalArgumentException(msg);
-        final String line = "Error line";
-        shell.handleUnknownException(line, iae);
-
-        try {
-            shell.run(exitCommand.getCommandName(),
-                      new String[] { exitCommand.getCommandName() });
-            assertEquals(Shell.EXIT_UNKNOWN, shell.getExitCode());
-
-            shell.run(exitCommand.getCommandName(),
-                      new String[] { exitCommand.getCommandName(), JSON_FLAG });
-            assertEquals(Shell.EXIT_UNKNOWN, shell.getExitCode());
-        } catch (ShellException se) {
-            fail("unexpected exception: " + se);
         }
     }
 

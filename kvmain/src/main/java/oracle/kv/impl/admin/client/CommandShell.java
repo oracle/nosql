@@ -1624,13 +1624,7 @@ public class CommandShell extends CommonShell {
         final ShellCommandResult result =
             command.executeJsonOutput(cmdArgs, this);
 
-        /*
-         * Do not overwrite exitCode in case of exit command, so that the
-         * exitCode of previous command is retained.
-         */
-        if (!(command instanceof ExitCommand)) {
-            exitCode = command.getExitCode();
-        }
+        exitCode = command.getExitCode();
 
         return CommandJsonUtils.handleConversionFailure(
             (CommandJsonUtils.JsonConversionTask<String>)() -> {

@@ -31,7 +31,7 @@ public class JEVersion implements Comparable<JEVersion>, Serializable {
      * Release version.
      */
     public static final JEVersion CURRENT_VERSION =
-        new JEVersion(25, 2, 4, null);
+        new JEVersion(25, 1, 11, null);
 
     private final int majorNum;
     private final int minorNum;

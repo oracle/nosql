@@ -67,14 +67,6 @@ public class XRegionServiceMetrics extends JsonMetricsHeader
      */
     private volatile long winDels = 0;
     /**
-     * # of looped back put operations
-     */
-    private volatile long loopbackPuts = 0;
-    /**
-     * # of looped back delete operations
-     */
-    private volatile long loopbackDels = 0;
-    /**
      * # incompatible rows from remote
      */
     private volatile long incompatibleRows = 0;
@@ -117,16 +109,8 @@ public class XRegionServiceMetrics extends JsonMetricsHeader
         winPuts = val;
     }
 
-    public void setLoopbackPuts(long val) {
-        loopbackPuts = val;
-    }
-
     public void setWinDels(long val) {
         winDels = val;
-    }
-
-    public void setLoopbackDels(long val) {
-        loopbackDels = val;
     }
 
     public void setStreamBytes(long val) {
@@ -173,14 +157,7 @@ public class XRegionServiceMetrics extends JsonMetricsHeader
     public long getWinPuts() {
         return winPuts;
     }
-    @Override
-    public long getLoopbackPuts() {
-        return loopbackPuts;
-    }
-    @Override
-    public long getLoopbackDels() {
-        return loopbackDels;
-    }
+
     @Override
     public long getWinDels() {
         return winDels;
@@ -274,8 +251,6 @@ public class XRegionServiceMetrics extends JsonMetricsHeader
                dels == other.dels &&
                winPuts == other.winPuts &&
                winDels == other.winDels &&
-               loopbackPuts == other.loopbackPuts &&
-               loopbackDels == other.loopbackDels &&
                regionStat.equals(other.regionStat);
     }
 
@@ -291,8 +266,6 @@ public class XRegionServiceMetrics extends JsonMetricsHeader
                Long.hashCode(dels) +
                Long.hashCode(winPuts) +
                Long.hashCode(winDels) +
-               Long.hashCode(loopbackPuts) +
-               Long.hashCode(loopbackDels) +
                regionStat.hashCode();
     }
 }

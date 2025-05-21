@@ -248,12 +248,7 @@ public class BeforeImageIndex {
                 BeforeImageIndexStatDefinition.N_BIMG_RECORDS_BY_DELETES);
         nBImgByTombs = new IntStat(statistics,
                 BeforeImageIndexStatDefinition.N_BIMG_RECORDS_BY_TOMBSTONES);
-        if (!openBeforeImageDatabase()) {
-            if (!envImpl.isReadOnly()) {
-                throw EnvironmentFailureException
-                    .unexpectedState("Unable to create the before image database ");
-            }
-        }
+
     }
 
     public static void setBeforeImageHook(TestHook<?> hook) {
@@ -279,25 +274,13 @@ public class BeforeImageIndex {
      * operation which can be concurrent.
      *
      */
-    private synchronized boolean openBeforeImageDatabase()
+    private synchronized void openBeforeImageDatabase()
         throws DatabaseException {
 
-            /*
-               Not able to create this internal db as part of user operation
-               due to following  reasons.
-               1. if we use the same locker of user txn, then until the txn 
-               commits, no other users put operation can happen. 
-               2. Aborted txn might involve, the another blocked txn on this
-               monitor to carry over the same task.
-               3. if we use different lockers i.e nested transactions. the
-               commit of this locker in replica replay may be causing the dtvlsn
-               of master to update when a subscriber is blocked on waitforDtvlsn 
-               code, causing the partial non durable transaction entry to be 
-               streamed.(TODO check this)
-               Due to the above issues, we are initializing the database
-               during the env creation when we are single threaded.
-             */
-
+            // We cannot use the locker from user operation to avoid issues
+            // when other user, get the db, and the user operation which
+            // created the db was aborted. isn't this simpler to just initialize
+            // after env creation when we are single threaded.
             final Locker locker = Txn.createLocalAutoTxn(envImpl,
                     new TransactionConfig());
 
@@ -307,9 +290,10 @@ public class BeforeImageIndex {
                         DbType.BEFORE_IMAGE.getInternalName(),
                         null /* databaseHandle */, false);
                 if (db == null) {
-
                     if (envImpl.isReadOnly()) {
-                    	return false;
+                        /* This should have been caught earlier. */
+                        throw EnvironmentFailureException.unexpectedState(
+                                "A replicated environment can't be opened read only.");
                     }
                     DatabaseConfig dbConfig = new DatabaseConfig();
                     dbConfig.setReplicated(false);
@@ -317,7 +301,6 @@ public class BeforeImageIndex {
                             DbType.BEFORE_IMAGE.getInternalName(), dbConfig);
                 }
                 beforeImageDbImpl = db;
-                return true;
             } finally {
                 locker.operationEnd(true);
             }
@@ -354,8 +337,7 @@ public class BeforeImageIndex {
                 "beforeImageIndex put " + entry.getAbortLsn() + " "
                 + entry.getExpTime() + " " + entry.isExpInHours());
         if (beforeImageDbImpl == null) {
-        	 throw EnvironmentFailureException
-             .unexpectedState("No BeforeImage Database Exists");
+            openBeforeImageDatabase();
         }
         TestHookExecute.doHookIfSet(beforeImageHook);
         DatabaseEntry key = new DatabaseEntry();
@@ -392,10 +374,12 @@ public class BeforeImageIndex {
     public DatabaseEntry get(long abortLsn, Locker lck) {
 
         LoggerUtils.fine(logger, envImpl, "beforeImageIndex get " + abortLsn);
-		if (beforeImageDbImpl == null) {
-			throw EnvironmentFailureException
-					.unexpectedState("No BeforeImage Database Exists");
-		}
+
+        if (beforeImageDbImpl == null) {
+            // todo throw an exception
+            throw EnvironmentFailureException
+                .unexpectedState("No BeforeImage Database Exists ");
+        }
 
         DatabaseEntry key = new DatabaseEntry();
         DatabaseEntry data = new DatabaseEntry();
@@ -439,6 +423,8 @@ public class BeforeImageIndex {
 
     /**
      * For debugging and unit tests
+     *
+     * @throws DatabaseException
      */
     public void dumpDb(boolean display, List<DatabaseEntry> idxDataList) {
 

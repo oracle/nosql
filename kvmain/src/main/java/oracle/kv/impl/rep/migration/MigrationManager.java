@@ -34,6 +34,7 @@ import java.util.logging.Logger;
 import oracle.kv.impl.api.TopologyManager.Localizer;
 import oracle.kv.impl.api.table.DroppedTableException;
 import oracle.kv.impl.fault.DatabaseNotReadyException;
+import oracle.kv.impl.fault.OperationFaultException;
 import oracle.kv.impl.query.runtime.RuntimeControlBlock;
 import oracle.kv.impl.rep.DatabaseTrigger;
 import oracle.kv.impl.rep.PartitionManager;
@@ -195,7 +196,7 @@ public class MigrationManager implements Localizer {
     public int decrNoopHandlerWrites(PartitionId pid) {
         final AtomicInteger counter = numNoopHandlerWrites.get(pid);
         if (counter == null) {
-            throw new IllegalArgumentException(
+            throw new OperationFaultException(
                 "No pending operation counter for partition=" + pid);
         }
         return counter.decrementAndGet();

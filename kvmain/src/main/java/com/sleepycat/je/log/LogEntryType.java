@@ -280,7 +280,7 @@ public class LogEntryType {
      * -----------------------
      *  [KVSTORE-2316] Remove support for OldBINDelta
      *
-     *  Version 25 (in JE 25.1)
+     *  Version 25 (in JE 24.2)
      * -----------------------
      *  [KVSTORE-2302] Add support for Before Images
      *

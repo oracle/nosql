@@ -13,13 +13,10 @@
 
 package oracle.kv.pubsub;
 
-import java.util.List;
-
 import oracle.kv.impl.api.table.TableImpl;
 import oracle.kv.impl.topo.RepGroupId;
 import oracle.kv.table.PrimaryKey;
 import oracle.kv.table.Row;
-import oracle.kv.txn.TransactionIdImpl;
 
 /**
  * The operation (Put, Delete) that was delivered over the NoSQL stream.
@@ -118,13 +115,7 @@ public interface StreamOperation {
          *
          * An internally generated stream operation
          */
-        INTERNAL,
-
-        /**
-         * @hidden
-         * A {@link TransactionEvent} operation
-         */
-        TRANSACTION
+        INTERNAL
     }
 
     /**
@@ -149,18 +140,6 @@ public interface StreamOperation {
      * @throws IllegalArgumentException if this operation is not a Delete
      */
     DeleteEvent asDelete();
-
-    /**
-     * @hidden
-     * Converts this operation to a {@link TransactionEvent}.
-     *
-     * @return this operation as a Transaction
-     * @throws IllegalArgumentException if this operation is not a Transaction
-     */
-    default TransactionEvent asTransaction() {
-        throw new IllegalArgumentException(
-            "This operation is not a transaction");
-    }
 
     /**
      * Used to signal a Put operation
@@ -240,51 +219,6 @@ public interface StreamOperation {
          * delete operation
          */
         long getPrimaryKeySize();
-    }
-
-    /**
-     * @hidden
-     * Used to signal a Transaction operation
-     */
-    interface TransactionEvent extends StreamOperation {
-
-        /**
-         * Returns the transaction id
-         * @return transaction id
-         */
-        TransactionIdImpl getTransactionId();
-
-        /**
-         * Returns the type of the transaction as {@link TransactionType}
-         * @return transaction type
-         */
-        TransactionType getTransactionType();
-
-        /**
-         * Returns the number of write operations in the transaction
-         * @return the number of write operations
-         */
-        long getNumOperations();
-
-        /**
-         * Returns an ordered list of write operations in the transaction.
-         * All write operations are on the same order they are performed in
-         * the source kvstore.
-         * @return ordered list of write operations.
-         */
-        List<StreamOperation> getOperations();
-
-        /**
-         * Types of transaction
-         */
-        enum TransactionType {
-
-            /** committed transaction */
-            COMMIT,
-
-            /** aborted transaction */
-            ABORT
-        }
     }
 
     /**
