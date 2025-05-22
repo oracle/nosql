@@ -1,0 +1,97 @@
+#!/bin/bash
+# check-service-monitor: Search the SN logs for service monitor events
+# and check for unexpected service failures. Detects failures that were
+# not explicitly injected by the test (typically via node killer) as
+# well as cases where services are not restarted because they
+# experienced too many restarts in a short period of time.
+#
+# If the verbose flag is not specified and unexpected failures are
+# found, the events are ordered by time and printed to standard error.
+#
+# If the verbose flag is specified, all service monitor events are
+# echoed to standard output, in addition to a final summary line.
+#
+# Exits with status 0 if SN log files with service lifecycle events are
+# found successfully in the specified directory and no unexpected
+# service failures are found. Otherwise exits with a non-zero status.
+# (The check for service lifecycle events is to make sure that the
+# directory actually contains SN logs.)
+
+PROG=$(basename $0)
+USAGE="Usage: $PROG [-vh] [dir]\n
+ -v\t   Print all service monitor events\n
+ -h\t   Print help message\n
+ dir\t  The directory to search for logs, defaults to current directory"
+
+LIFECYCLE_PAT="LIFECYCLE Service status change:"
+MONITOR_PAT="LIFECYCLE Service monitor event:"
+FAULT_PAT="event=EXIT \(cause=FAULT\|.* restart=DENIED\)"
+
+while [ $# != 0 ]; do
+    if [ "-v" == "$1" ]; then
+        verbose=true
+        shift
+    elif [ "-h" == "$1" ]; then
+        echo -e $USAGE >&2
+        exit 1
+    elif [ "$1" = -* ]; then
+        echo "Error: Unknown option: $1" >&2
+        echo -e $USAGE >&2
+        exit 1
+    else
+        break
+    fi
+done
+
+dir=$(pwd)
+if [ $# != 0 ]; then
+    dir="$1"
+    shift
+fi
+
+if [ $# != 0 ]; then
+    echo "Error: Unexpected extra arguments: $*" >&2
+    echo -e $USAGE >&2
+    exit 1
+fi
+
+tmp=$(mktemp /tmp/$PROG.XXXXXX) || exit 1
+files=$(find "$dir" -type f \( -name 'sn*log*' -or -name 'snaboot*log*' \)) \
+    || exit 1
+
+for f in $files; do
+    grep -h -e "$MONITOR_PAT\|$LIFECYCLE_PAT" $f >> $tmp
+    # Exit status 2 means the grep failed independently of whether the
+    # pattern was or was not found
+    if [ $? == 2 ]; then
+        exit 1;
+    fi
+done
+
+if [ ! -s $tmp ]; then
+    echo "Error: No service events found" >&2
+    rm -f $tmp
+    exit 1
+fi
+
+tmp2=$(mktemp /tmp/$PROG.XXXXXX) || exit 1
+grep "$MONITOR_PAT" $tmp | sort -u > $tmp2
+
+if [ "$verbose" == "true" ]; then
+   cat $tmp2
+   grep "$FAULT_PAT" $tmp2 > /dev/null
+else
+   grep "$FAULT_PAT" $tmp2 >&2
+fi
+grep_status=$?
+
+rm -f $tmp $tmp2
+
+if [ $grep_status == 0 ]; then
+    echo "Found faults" >&2
+    exit 1
+fi
+
+if [ "$verbose" == "true" ]; then
+    echo "No faults found"
+fi

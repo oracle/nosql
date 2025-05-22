@@ -1,0 +1,48 @@
+#!/bin/bash
+# check-node-killer-logs: Search the RN, admin, and node killer logs to
+# produce a list of lifecycle, fault injection, shutdown request, and
+# node killer unexpected events sorted by time, to help debug node
+# killer failures.
+
+PROG=$(basename $0)
+USAGE="Usage: $PROG [-h] [dir]\n
+  -h\t   Print help message\n
+  dir\t  The directory to search for logs, defaults to current directory"
+
+while [ $# != 0 ]; do
+    if [ "-h" == $1 ]; then
+        echo -e $USAGE >&2
+        exit 1
+    elif [ "$1" = -* ]; then
+        echo "Error: Unknown option: $1" >&2
+        echo -e $USAGE >&2
+        exit 1
+    else
+        break
+    fi
+done
+
+dir=$(pwd)
+if [ $# != 0 ]; then
+    dir="$1"
+    shift
+fi
+
+if [ $# != 0 ]; then
+    echo "Error: Unexpected extra arguments: $*" >&2
+    echo -e $USAGE >&2
+    exit 1
+fi
+
+# Use find to get all RN, admin, and node killer logs. Use grep to
+# collect all service lifecycle, fault injection, and shutdown requests
+# in the RN and admin logs, and unexpected event entries in the node
+# killer logs. Since each entry starts with a timestamp, sorting them
+# will sort them by time, using the -u option to remove duplicates.
+find $dir \
+     -type f \
+     \( -name 'rg*log*' -or -name 'admin*log*' -or -name 'sn*log*' \
+        -or -name nodekill.out \) \
+     -exec grep -h -e \
+     'LIFECYCLE Service status change\|\[NodeKiller\] Unexpected event' \{\} + \
+    | sort -u
