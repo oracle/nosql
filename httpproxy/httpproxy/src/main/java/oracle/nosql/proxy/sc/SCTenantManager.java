@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2011, 2025 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011, 2024 Oracle and/or its affiliates. All rights reserved.
  *
  * This file was distributed by Oracle as part of a version of Oracle NoSQL
  * Database made available at:
@@ -17,11 +17,7 @@ import static oracle.nosql.proxy.protocol.HttpConstants.CHANGE_COMPARTMENT;
 import static oracle.nosql.proxy.protocol.HttpConstants.COMPARTMENT_ID;
 import static oracle.nosql.proxy.protocol.HttpConstants.CROSS_REGION_DDL;
 import static oracle.nosql.proxy.protocol.HttpConstants.DML_MS;
-import static oracle.nosql.proxy.protocol.HttpConstants.DRY_RUN;
 import static oracle.nosql.proxy.protocol.HttpConstants.END_TIMESTAMP;
-import static oracle.nosql.proxy.protocol.HttpConstants.GENERAL;
-import static oracle.nosql.proxy.protocol.HttpConstants.IF_MATCH;
-import static oracle.nosql.proxy.protocol.HttpConstants.KEY_ID;
 import static oracle.nosql.proxy.protocol.HttpConstants.LIMIT;
 import static oracle.nosql.proxy.protocol.HttpConstants.NAME_ONLY;
 import static oracle.nosql.proxy.protocol.HttpConstants.NAME_PATTERN;
@@ -39,13 +35,9 @@ import static oracle.nosql.proxy.protocol.HttpConstants.TABLE_INDEXES;
 import static oracle.nosql.proxy.protocol.HttpConstants.TABLE_STOREINFO;
 import static oracle.nosql.proxy.protocol.HttpConstants.TABLE_USAGE;
 import static oracle.nosql.proxy.protocol.HttpConstants.TENANT_ID;
-import static oracle.nosql.proxy.protocol.HttpConstants.VAULT_ID;
 import static oracle.nosql.proxy.security.AccessContext.INTERNAL_OCID_PREFIX;
 import static oracle.nosql.util.http.HttpConstants.REQUEST_ORIGIN_HEADER;
 import static oracle.nosql.util.http.HttpConstants.REQUEST_ORIGIN_PROXY;
-import static oracle.nosql.util.http.HttpConstants.WORK_REQUEST_TYPE;
-import static oracle.nosql.util.http.HttpConstants.WORK_REQUEST_DDL;
-import static oracle.nosql.util.http.HttpConstants.WORK_REQUEST_KMSKEY;
 
 import java.lang.reflect.Type;
 import java.net.HttpURLConnection;
@@ -89,8 +81,6 @@ import oracle.nosql.util.tmi.DdlHistoryEntry;
 import oracle.nosql.util.tmi.DropInputs;
 import oracle.nosql.util.tmi.IndexInfo;
 import oracle.nosql.util.tmi.IndexInfo.IndexState;
-import oracle.nosql.util.tmi.KmsKeyInfo;
-import oracle.nosql.util.tmi.ListWorkRequestsResult;
 import oracle.nosql.util.tmi.ReplicaStats;
 import oracle.nosql.util.tmi.StoreInfo;
 import oracle.nosql.util.tmi.TableCollection;
@@ -100,7 +90,6 @@ import oracle.nosql.util.tmi.TableInfo.TableState;
 import oracle.nosql.util.tmi.TableLimits;
 import oracle.nosql.util.tmi.TableUsage;
 import oracle.nosql.util.tmi.TenantLimits;
-import oracle.nosql.util.tmi.WorkRequest;
 
 /**
  * Implementation of TenantManager that talks over an HTTP/1 connection to
@@ -146,7 +135,6 @@ public class SCTenantManager implements TenantManager {
     private String tmUrlBase; /* /V0/tm/ */
     private String tmWorkRequestsBase;  /* /V0/tm/workRequests */
     private String filterRequestsBase;  /* /V0/filters */
-    private String cmekUrlBase;  /* /V0/cmek/kmsKey */
     private List<String> pingUrls;
     private final String tmAPIVersion;
     private final Cache<String, TenantLimits> limitsCache;
@@ -183,17 +171,17 @@ public class SCTenantManager implements TenantManager {
 
         /*
          * cache TenantLimits objects. Configuration calls are
-         * self-explanatory. The cache has an expiration time on entries.
-         * Don't use a built-in loader.
+         * self-explanatory. The cache has a maxium size and expiration time
+         * on entries. Don't use a built-in loader.
          *
-         * Expire after 10 minutes in the cache.
+         * Expire after 10 minutes, max of 500 entries (tenants) in the cache.
          *
          * There are other configuration options for this object, such as stats.
          * They are not used at this time.
          */
-        limitsCache = CacheBuilder.build(
-            new CacheConfig().setLifetime(10 * 60 * 1000)
-                             .setName("TenantLimitsCache"));
+        limitsCache =
+            CacheBuilder.build(new CacheConfig().setCapacity(500).
+                               setLifetime(10 * 60 * 1000));
 
         scRequest = new HttpRequest().disableRetry()
             .setTimeout(this.connectTimeoutMs, this.readTimeoutMs)
@@ -967,10 +955,10 @@ public class SCTenantManager implements TenantManager {
     }
 
     @Override
-    public GetDdlWorkRequestResponse getDdlWorkRequest(AccessContext actx,
-                                                       String workRequestId,
-                                                       boolean internal,
-                                                       LogContext lc)  {
+    public GetWorkRequestResponse getWorkRequest(AccessContext actx,
+                                                 String workRequestId,
+                                                 boolean internal,
+                                                 LogContext lc)  {
         try {
             final StringBuilder sb = new StringBuilder()
                 .append(getTMWorkRequestsBase())
@@ -985,66 +973,23 @@ public class SCTenantManager implements TenantManager {
             }
 
             final String url = sb.toString();
-            logTrace(lc, "GetDdlWorkRequest: " + url);
+
+            logTrace(lc, "GetWorkRequest: " + url);
             final HttpResponse response =
                 doHttpRequest(scRequest, HttpMethod.GET, url,
                               null /* payload */,
                               scSSLHandler, lc);
 
             if (response.getStatusCode() != HttpURLConnection.HTTP_OK) {
-                ErrorResponse er = getErrorResponse(response,
-                                                    "GetDdlWorkRequest");
-                logError(response, lc, "GetDdlWorkRequest error: " + er);
-                return new GetDdlWorkRequestResponse(er);
+                ErrorResponse er = getErrorResponse(response, "GetWorkRequest");
+                logError(response, lc, "GetWorkRequest error: " + er);
+                return new GetWorkRequestResponse(er);
             }
 
             DdlHistoryEntry ddlEntry = deserializePojo(response.getOutput(),
                                                        DdlHistoryEntry.class);
-            return new GetDdlWorkRequestResponse(response.getStatusCode(),
-                                                 ddlEntry);
-        } catch (Exception e) {
-            logException("GetWorkRequest", e, lc);
-            return new GetDdlWorkRequestResponse(handleError(e));
-        }
-    }
-
-    @Override
-    public GetWorkRequestResponse getWorkRequest(AccessContext actx,
-                                                 String workRequestId,
-                                                 boolean internal,
-                                                 LogContext lc) {
-
-        try {
-            final StringBuilder sb = new StringBuilder()
-                .append(getTMWorkRequestsBase())
-                .append(workRequestId);
-            addQueryParam(sb, GENERAL, "true", true);
-            if (actx != null && actx.getTenantId() != null) {
-                addQueryParam(sb, TENANT_ID, actx.getTenantId(), false);
-            }
-            if (internal) {
-                addInternalQueryParam(sb, false);
-            }
-
-            final String url = sb.toString();
-
-            logTrace(lc, "GetWorkRequest: " + url);
-            final HttpResponse resp =
-                doHttpRequest(scRequest, HttpMethod.GET, url,
-                              null /* payload */,
-                              scSSLHandler, lc);
-
-            if (resp.getStatusCode() != HttpURLConnection.HTTP_OK) {
-                ErrorResponse er =
-                    getErrorResponse(resp, "GetWorkRequest");
-                logError(resp, lc, "GetWorkRequest error: " + er);
-                return new GetWorkRequestResponse(er);
-            }
-
-            WorkRequest workRequest = deserializePojo(resp.getOutput(),
-                                                      WorkRequest.class);
-            return new GetWorkRequestResponse(resp.getStatusCode(),
-                                              workRequest);
+            return new GetWorkRequestResponse(response.getStatusCode(),
+                                              ddlEntry);
         } catch (Exception e) {
             logException("GetWorkRequest", e, lc);
             return new GetWorkRequestResponse(handleError(e));
@@ -1053,27 +998,20 @@ public class SCTenantManager implements TenantManager {
 
     @Override
     public ListWorkRequestResponse listWorkRequests(AccessContext actx,
-                                                    String nextPageToken,
+                                                    int startIndex,
                                                     int limit,
                                                     LogContext lc) {
         try {
             StringBuilder sb = new StringBuilder()
                 .append(getTMWorkRequestsBase());
             addQueryParam(sb, actx, true);
-            if (nextPageToken != null) {
-                addQueryParam(sb, START_INDEX, nextPageToken, false);
+            if (startIndex >= 0) {
+                addQueryParam(sb, START_INDEX,
+                              String.valueOf(startIndex), false);
             }
             if (limit > 0) {
                 addQueryParam(sb, LIMIT, String.valueOf(limit), false);
             }
-
-            if (actx.getAuthorizedOps() != null) {
-                for (OpCode op : actx.getAuthorizedOps()) {
-                    addQueryParam(sb, WORK_REQUEST_TYPE,
-                                  mapWorkRequestType(op), false);
-                }
-            }
-
             final String url = sb.toString();
 
             logTrace(lc, "ListWorkRequests: " + url);
@@ -1089,27 +1027,15 @@ public class SCTenantManager implements TenantManager {
                 return new ListWorkRequestResponse(er);
             }
 
-            ListWorkRequestsResult result =
-                deserializePojo(response.getOutput(),
-                                ListWorkRequestsResult.class);
+            DdlHistoryEntry[] ddlEntries = deserializePojo(response.getOutput(),
+                                                DdlHistoryEntry[].class);
+            int lastIndex = startIndex + ddlEntries.length;
             return new ListWorkRequestResponse(response.getStatusCode(),
-                                               result.getWorkRequests(),
-                                               result.getNextPageToken());
+                                               ddlEntries,
+                                               lastIndex);
         } catch (Exception e) {
             logException("ListWorkRequests", e, lc);
             return new ListWorkRequestResponse(handleError(e));
-        }
-    }
-
-    private String mapWorkRequestType(OpCode op) {
-        switch(op) {
-        case GET_TABLE:
-            return WORK_REQUEST_DDL;
-        case GET_CONFIG_KMS_KEY:
-            return WORK_REQUEST_KMSKEY;
-        default:
-            throw new IllegalArgumentException(
-                "Invalid sub operation for list-workrequest: " + op);
         }
     }
 
@@ -1131,8 +1057,7 @@ public class SCTenantManager implements TenantManager {
                 return new ListRuleResponse(er);
             }
 
-            Rule[] rules = Rule.getGson().fromJson(response.getOutput(),
-                                                   Rule[].class);
+            Rule[] rules = deserializePojo(response.getOutput(), Rule[].class);
             logTrace(lc, "listRules: " + rules.length + " rules returned");
             return new ListRuleResponse(response.getStatusCode(), rules);
         } catch (Exception e) {
@@ -1330,133 +1255,6 @@ public class SCTenantManager implements TenantManager {
         }
     }
 
-    /*
-     * GET V0/cmek/kmskey
-     */
-    @Override
-    public GetKmsKeyInfoResponse getKmsKey(AccessContext actx,
-                                           boolean internal,
-                                           LogContext lc) {
-        final String op = "getKmsKey";
-        try {
-            String url = getCmekUrlBase();
-            if (internal) {
-                url += "?" + INTERNAL_QUERY;
-            }
-            logTrace(lc, op + ": " + url);
-
-            final HttpResponse res = doHttpRequest(scRequest, HttpMethod.GET,
-                                                   url, null /* payload */,
-                                                   scSSLHandler, lc);
-            if (res.getStatusCode() != HttpURLConnection.HTTP_OK) {
-                ErrorResponse err = getErrorResponse(res, op);
-                logError(res, lc, op + " error: " + err);
-                return new GetKmsKeyInfoResponse(err);
-            }
-
-            KmsKeyInfo keyInfo = deserializePojo(res.getOutput(),
-                                                 KmsKeyInfo.class);
-            return new GetKmsKeyInfoResponse(keyInfo, res.getStatusCode());
-        } catch (Exception ex) {
-            logException(op, ex, lc);
-            return new GetKmsKeyInfoResponse(handleError(ex));
-        }
-    }
-
-    /*
-     *   PUT V0/cmek/kmskey?tenantid=<tenant_id>&&keyid=<key_id>
-     *                      [&&vaultid=<vault_id>]
-     *                      [&&dryrun=<boolean>]
-     *                      [&&ifmatch=<etag>]
-     */
-    @Override
-    public WorkRequestIdResponse updateKmsKey(AccessContext actx,
-                                              String kmsKeyId,
-                                              String kmsVaultId,
-                                              byte[] matchETag,
-                                              boolean dryRun,
-                                              LogContext lc) {
-        final String op = "updateKmsKey";
-        try {
-            StringBuilder sb = new StringBuilder(getCmekUrlBase());
-            addQueryParam(sb, TENANT_ID, actx.getTenantId(), true);
-            addQueryParam(sb, KEY_ID, kmsKeyId, false);
-            if (kmsVaultId != null) {
-                addQueryParam(sb, VAULT_ID, kmsVaultId, false);
-            }
-            addQueryParam(sb, DRY_RUN, String.valueOf(dryRun), false);
-            if (matchETag != null) {
-                addQueryParam(sb, IF_MATCH, JsonUtils.encodeBase64(matchETag),
-                              false);
-            }
-            final String url = sb.toString();
-
-            logTrace(lc, op + ": " + url);
-
-            final HttpResponse res = doHttpRequest(scRequest, HttpMethod.PUT,
-                                                   url, null /* payload */,
-                                                   scSSLHandler, lc);
-            if (res.getStatusCode() != HttpURLConnection.HTTP_OK) {
-                ErrorResponse er = getErrorResponse(res, op);
-                logError(res, lc, op + " error: " + er);
-                return new WorkRequestIdResponse(er);
-            }
-
-            String workRequestId = res.getOutput();
-            logTrace(lc, op + ": response from TM: " + workRequestId);
-
-            return new WorkRequestIdResponse(res.getStatusCode(), workRequestId);
-
-        } catch (Exception ex) {
-            logException(op, ex, lc);
-            return new WorkRequestIdResponse(handleError(ex));
-        }
-    }
-
-    /*
-     * DELETE V0/cmek/kmskey?tenantid=<tenant_id>
-     *                       [&&dryrun=<boolean>]
-     *                       [&&ifmatch=<etag>]
-     */
-    @Override
-    public WorkRequestIdResponse removeKmsKey(AccessContext actx,
-                                              byte[] matchETag,
-                                              boolean dryRun,
-                                              LogContext lc) {
-
-        final String op = "removeKmsKey";
-        try {
-            StringBuilder sb = new StringBuilder(getCmekUrlBase());
-            addQueryParam(sb, TENANT_ID, actx.getTenantId(), true);
-            addQueryParam(sb, DRY_RUN, String.valueOf(dryRun), false);
-            if (matchETag != null) {
-                addQueryParam(sb, IF_MATCH, JsonUtils.encodeBase64(matchETag),
-                              false);
-            }
-            final String url = sb.toString();
-
-            logTrace(lc, op + ": " + url);
-
-            final HttpResponse res = doHttpRequest(scRequest, HttpMethod.DELETE,
-                                                   url, null /* payload */,
-                                                   scSSLHandler, lc);
-            if (res.getStatusCode() != HttpURLConnection.HTTP_OK) {
-                ErrorResponse er = getErrorResponse(res, op);
-                logError(res, lc, op + " error: " + er);
-                return new WorkRequestIdResponse(er);
-            }
-
-            String workRequestId = res.getOutput();
-            logTrace(lc, op + ": response from TM: " + workRequestId);
-
-            return new WorkRequestIdResponse(res.getStatusCode(), workRequestId);
-
-        } catch (Exception ex) {
-            logException(op, ex, lc);
-            return new WorkRequestIdResponse(handleError(ex));
-        }
-    }
-
     private GetTableResponse executeTableRequest(HttpMethod method,
                                                  String url,
                                                  String payload,
@@ -1530,17 +1328,6 @@ public class SCTenantManager implements TenantManager {
             establishURLBase();
         }
         return tmUrlBase;
-    }
-
-
-    /**
-     * Access to the base URL must be protected in case the SC is reset.
-     */
-    synchronized private String getCmekUrlBase() {
-        if (cmekUrlBase == null) {
-            establishURLBase();
-        }
-        return cmekUrlBase;
     }
 
     /**
@@ -1629,9 +1416,6 @@ public class SCTenantManager implements TenantManager {
         if (filterRequestsBase == null || reset) {
             /* filters url base */
             filterRequestsBase = scAPIBase + "/filters";
-        }
-        if (cmekUrlBase == null || reset) {
-            cmekUrlBase = scAPIBase + "/cmek/kmskey";
         }
     }
 

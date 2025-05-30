@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2011, 2025 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011, 2024 Oracle and/or its affiliates. All rights reserved.
  *
  * This file was distributed by Oracle as part of a version of Oracle NoSQL
  * Database made available at:
@@ -90,12 +90,9 @@ import oracle.nosql.util.tmi.ReplicaStats;
 import oracle.nosql.util.tmi.TableInfo;
 import oracle.nosql.util.tmi.TableInfo.ActivityPhase;
 import oracle.nosql.util.tmi.TableInfo.TableState;
-import oracle.nosql.util.tmi.WorkRequest.EntityType;
-import oracle.nosql.util.tmi.WorkRequest.OperationType;
 import oracle.nosql.util.tmi.TableLimits;
 import oracle.nosql.util.tmi.TableUsage;
 import oracle.nosql.util.tmi.TenantLimits;
-import oracle.nosql.util.tmi.WorkRequest;
 
 /*
  * A TenantManager instance that creates and uses a KVStore instance
@@ -1417,10 +1414,10 @@ public class LocalTenantManager implements TenantManager {
     }
 
     @Override
-    public GetDdlWorkRequestResponse getDdlWorkRequest(AccessContext actx,
-                                                       String workRequestId,
-                                                       boolean internal,
-                                                       LogContext lc) {
+    public GetWorkRequestResponse getWorkRequest(AccessContext actx,
+                                                 String workRequestId,
+                                                 boolean internal,
+                                                 LogContext lc) {
         /* Path parameter */
         WorkRequestId workReqId = WorkRequestId.fromString(workRequestId);
 
@@ -1487,7 +1484,7 @@ public class LocalTenantManager implements TenantManager {
                                 false /* autoReclaimable */,
                                 null /* limits */,
                                 null /* retryToken */);
-        return new GetDdlWorkRequestResponse(200, ddlEntry);
+        return new GetWorkRequestResponse(200, ddlEntry);
     }
 
     private DdlHistoryEntry.DdlOp mapDdlOp(OpCode op) {
@@ -1505,93 +1502,6 @@ public class LocalTenantManager implements TenantManager {
         default:
             throw new IllegalArgumentException(
                 "Unexpected OpCode for mapDdlOp: " + op);
-        }
-    }
-
-    @Override
-    public GetWorkRequestResponse getWorkRequest(AccessContext actx,
-                                                 String workRequestId,
-                                                 boolean internal,
-                                                 LogContext lc) {
-
-        /* Path parameter */
-        WorkRequestId workReqId = WorkRequestId.fromString(workRequestId);
-
-        /*
-         * Check access again since compartmentId and tableName are
-         * extracted from workRequestId until now.
-         */
-        WorkRequest.ActionType actionType = WorkRequest.ActionType.IN_PROGRESS;
-        WorkRequest.Status status = WorkRequest.Status.IN_PROGRESS;
-        Timestamp createTime = new Timestamp(workReqId.getAcceptedTime());
-
-        ErrorCode errorCode = null;
-        String errorMsg = null;
-        if (actx != null) {
-            actx.setCompartmentId(workReqId.getCompartmentId());
-            GetTableResponse res = getTable(actx,
-                                            workReqId.getTableName(),
-                                            workReqId.getOperationId(),
-                                            false,
-                                            lc);
-            if (res.getSuccess()) {
-                final TableInfo ti = res.getTableInfo();
-                status = (ti.getStateEnum() == TableState.ACTIVE ||
-                          ti.getStateEnum() == TableState.DROPPED)?
-                              WorkRequest.Status.SUCCEEDED :
-                              WorkRequest.Status.IN_PROGRESS;
-                if (workReqId.getOpCode() == OpCode.CREATE_TABLE) {
-                    actionType = WorkRequest.ActionType.CREATED;
-                } else if (workReqId.getOpCode() == OpCode.DROP_TABLE) {
-                    actionType = WorkRequest.ActionType.DELETED;
-                }
-            } else {
-                if (workReqId.getOpCode() == OpCode.DROP_TABLE &&
-                    res.getErrorCode() == TABLE_NOT_FOUND) {
-                    status = WorkRequest.Status.SUCCEEDED;
-                    actionType = WorkRequest.ActionType.DELETED;
-                } else {
-                    status = WorkRequest.Status.FAILED;
-                    errorCode = ErrorCode.values()[res.getErrorCode()];
-                    errorMsg = res.getErrorString();
-                }
-            }
-        }
-
-        String identifier = NameUtils.makeQualifiedName(
-                                workReqId.getCompartmentId(),
-                                workReqId.getTableName());
-        WorkRequest workRequest =
-            new WorkRequest(workRequestId,
-                            mapOperationType(workReqId.getOpCode()),
-                            status,
-                            workReqId.getCompartmentId(),
-                            identifier,
-                            workReqId.getTableName(),
-                            EntityType.TABLE,
-                            null /* tags */,
-                            actionType,
-                            createTime.getTime(),
-                            0 /* timeStarted */,
-                            0 /* timeUpdated */,
-                            errorCode,
-                            errorMsg);
-        return new GetWorkRequestResponse(200, workRequest);
-    }
-
-    private OperationType mapOperationType(OpCode op) {
-        switch(op) {
-        case CREATE_TABLE:
-            return OperationType.CREATE_TABLE;
-        case DROP_TABLE:
-            return OperationType.DELETE_TABLE;
-        case ALTER_TABLE:
-        case CREATE_INDEX:
-        case DROP_INDEX:
-            return OperationType.UPDATE_TABLE;
-        default:
-            throw new IllegalArgumentException(
-                "Unexpected OpCode for mapOperationType: " + op);
         }
     }
 

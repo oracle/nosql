@@ -13,41 +13,28 @@
 
 package oracle.nosql.util.filter;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.lang.reflect.Type;
-import java.sql.Timestamp;
+import java.time.Instant;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import com.google.gson.JsonDeserializationContext;
-import com.google.gson.JsonDeserializer;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParseException;
-import com.google.gson.JsonSerializationContext;
-import com.google.gson.JsonSerializer;
-import com.google.gson.JsonSyntaxException;
+import oracle.nosql.common.JsonBuilder;
 
 /*
  * Used in definition of the JSON payloads for the REST APIs between the proxy
  * and SC filters service.
  *
  * To serialize a Java object into a Json string:
- *   Rule rule;
- *   String jsonPayload = rule.toJson();
+ *   Foo foo;
+ *   String jsonPayload = JsonUtils.toJson(foo);
  *
  * To deserialize a Json string into this object:
- *   Rule rule = Rule.fromJson(<JsonString> | <InputStream>);
+ *   Foo foo = JsonUtils.fromJsont(<jsonstring>, Foo.class);
  *
  * The Rule class represents the filter rule which has below information:
  *   o name, the rule name, required.
- *   o action, the action of the rule, default to DROP_REQUEST.
+ *   o action, the action type of the rule, default to DROP_REQUEST.
  *   o tenant, the principal tenant ocid.
  *   o user, the principal ocid.
  *   o table, the target table ocid.
@@ -56,32 +43,21 @@ import com.google.gson.JsonSyntaxException;
  */
 public class Rule {
 
-    private static final Gson gson = new GsonBuilder()
-        .registerTypeAdapter(Action.class, new ActionSerializer())
-        .setDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS")
-        .create();
-
-    public static final Action DROP_REQUEST = new DropRequestAction();
-    private static final Action DEFAULT_ACTION = DROP_REQUEST;
+    private static final ActionType DEF_ACTION = ActionType.DROP_REQUEST;
 
     public enum OpType {
-        ALL,            /* all ops */
-        DDL,            /* ddl ops */
-        WRITE,          /* dml write */
-        READ,           /* dml read, read metadata, work-request, usage */
-        CONFIG_READ,    /* read configuration */
-        CONFIG_UPDATE   /* update configuration */
+        ALL,
+        DDL,
+        WRITE,
+        READ
     }
 
     public enum ActionType {
-        DROP_REQUEST,
-        RETURN_ERROR
+        DROP_REQUEST
     };
 
-    /* The name of the rule */
     private String name;
-    /* The action to take if match the rule */
-    private Action action;
+    private ActionType action;
 
     /* The principal tenant ocid */
     private String tenant;
@@ -89,32 +65,30 @@ public class Rule {
     private String user;
     /* The target table ocid */
     private String table;
-    /* The operations */
     private String[] operations;
-    /* The time stamp the rule was created */
-    private Timestamp createTime;
+    private long createTimeMs;
 
     private transient Set<OpType> opTypes;
 
     public static Rule createRule(String name,
-                                  Action action,
-                                  String tenantId,
-                                  String userId,
+                                  ActionType action,
+                                  String tenantOcid,
+                                  String userOcid,
                                   String tableOcid,
                                   String[] operations) {
-        return new Rule(name,  action, tenantId, userId, tableOcid,
-                        operations, null /* createTime */);
+        return createRule(name, action, tenantOcid, userOcid, tableOcid,
+                          operations, 0);
     }
 
     public static Rule createRule(String name,
-                                  Action action,
-                                  String tenantId,
-                                  String userId,
+                                  ActionType action,
+                                  String tenantOcid,
+                                  String userOcid,
                                   String tableOcid,
                                   String[] operations,
-                                  Timestamp createTime) {
-        return new Rule(name, action, tenantId, userId, tableOcid,
-                        operations, createTime);
+                                  long createTimeMs) {
+        return new Rule(name, action, tenantOcid, userOcid, tableOcid,
+                        operations, createTimeMs);
     }
 
     /* Needed for serialization */
@@ -122,21 +96,22 @@ public class Rule {
     }
 
     private Rule(String name,
-                 Action action,
+                 ActionType action,
                  String tenantOcid,
                  String userOcid,
                  String tableOcid,
                  String[] ops,
-                 Timestamp createTime) {
+                 long createTime) {
 
         this.name = name;
         this.action = action;
         tenant = tenantOcid;
         user = userOcid;
         table = tableOcid;
-        this.createTime = createTime;
+        createTimeMs = createTime;
         operations = ops;
         validate();
+        setOpTypes();
     }
 
     public void setName(String name) {
@@ -147,12 +122,8 @@ public class Rule {
         return name;
     }
 
-    public Action getAction() {
-        return action;
-    }
-
-    public ActionType getActionType() {
-        return getAction().getType();
+    public ActionType getAction() {
+        return (action != null) ? action : DEF_ACTION;
     }
 
     public String getTenant() {
@@ -172,17 +143,31 @@ public class Rule {
     }
 
     public Set<OpType> getOpTypes() {
-        if (opTypes == null) {
-            opTypes = new HashSet<>();
+        if (opTypes != null) {
+            return opTypes;
+        }
+        setOpTypes();
+        return opTypes;
+    }
+
+    private void setOpTypes() {
+        opTypes = new HashSet<>();
+        if (getOperations() != null) {
             for (String op : getOperations()) {
                 opTypes.add(parseOpType(op));
             }
         }
-        return opTypes;
     }
 
-    public Timestamp getCreateTime() {
-        return createTime;
+    public String getCreateTime() {
+        if (createTimeMs > 0) {
+            return Instant.ofEpochMilli(createTimeMs).toString();
+        }
+        return null;
+    }
+
+    public long getCreateTimeMs() {
+        return createTimeMs;
     }
 
     /*
@@ -193,8 +178,7 @@ public class Rule {
         return stringsEqual(getTenant(), o.getTenant()) &&
                stringsEqual(getUser(), o.getUser()) &&
                stringsEqual(getTable(), o.getTable()) &&
-               operationsEqual(getOpTypes(), o.getOpTypes()) &&
-               getAction().equals(o.getAction());
+               operationsEqual(getOpTypes(), o.getOpTypes());
     }
 
     public boolean operationsEqual(Set<OpType> ops) {
@@ -202,48 +186,31 @@ public class Rule {
     }
 
     public String toJson() {
-        return gson.toJson(this);
-    }
-
-    /*
-     * Constructs Rule from JSON stream
-     */
-    public static Rule fromJson(InputStream in) {
-        try (InputStreamReader reader = new InputStreamReader(in)) {
-            Rule rule = gson.fromJson(reader, Rule.class);
-            if (rule == null) {
-                throw new IllegalArgumentException(
-                    "Failed to deserailize JSON to Rule object: JSON is empty");
-            }
-            rule.validate();
-            return rule;
-        } catch (JsonSyntaxException | IOException ex) {
-            throw new IllegalArgumentException(
-                "Failed to deserailize JSON to Rule object: " + ex.getMessage());
+        JsonBuilder jb = JsonBuilder.create();
+        jb.append("name", getName());
+        jb.append("action", getAction().name());
+        if (getTenant() != null) {
+            jb.append("tenant", getTenant());
         }
-    }
-
-    /*
-     * Constructs Rule from JSON string
-     */
-    public static Rule fromJson(String json) {
-        try {
-            Rule rule = gson.fromJson(json, Rule.class);
-            if (rule == null) {
-                throw new IllegalArgumentException(
-                    "Failed to deserailize JSON to Rule object: " + json);
-            }
-            rule.validate();
-            return rule;
-        } catch (JsonSyntaxException jse) {
-            throw new IllegalArgumentException(
-                "Failed to deserailize JSON to Rule object: " +
-                jse.getMessage() + ", json=" + json);
+        if (getUser() != null) {
+            jb.append("user", getUser());
         }
-    }
+        if (getTable() != null) {
+            jb.append("table", getTable());
+        }
+        if (getOperations() != null) {
+            jb.startArray("operations");
+            for (String op : getOperations()) {
+                jb.append(op);
+            }
+            jb.endArray();
+        }
 
-    public static Gson getGson() {
-        return gson;
+        if (getCreateTimeMs() > 0) {
+            jb.append("createTimeMs", getCreateTimeMs());
+            jb.append("createTime", getCreateTime());
+        }
+        return jb.toString();
     }
 
     @Override
@@ -251,34 +218,20 @@ public class Rule {
         return toJson();
     }
 
-    private void validate() {
+    public void validate() {
         if (name == null) {
             throw new IllegalArgumentException("Rule name should not be null");
         }
-
-        if (action != null) {
-            action.validate();
-        } else {
-            action = DEFAULT_ACTION;
-        }
-
         if (operations == null || operations.length == 0) {
             throw new IllegalArgumentException(
                 "Rule operations should not be null or empty");
-        }
-        for (String op : operations) {
-            parseOpType(op);
-        }
-
-        if (createTime == null) {
-            createTime = new Timestamp(System.currentTimeMillis());
         }
     }
 
     private static OpType parseOpType(String name) {
         try {
             return OpType.valueOf(name.toUpperCase());
-        } catch (IllegalArgumentException iae) {
+        } catch(IllegalArgumentException iae) {
             throw new IllegalArgumentException("Invalid operation type '" +
                 name + "', not one of the values accepted for Enum class: " +
                 Arrays.toString(OpType.values()));
@@ -289,7 +242,7 @@ public class Rule {
      * Checks if the given OpType set represents the all the operation types if
      * match any of below 2 conditions:
      *  1. contain OpType.ALL
-     *  2. contain all the other OpType except OpType.ALL
+     *  2. contain all the other OpType except OpType.ALL.s
      */
     public static boolean isAllOpType(Set<OpType> ops) {
         for (OpType op : OpType.values()) {
@@ -329,144 +282,5 @@ public class Rule {
             return true;
         }
         return false;
-    }
-
-    /*
-     * Action to take when the rule is matched.
-     */
-    public static class Action {
-        private ActionType type;
-
-        private Action(ActionType type) {
-            this.type = type;
-        }
-
-        public ActionType getType() {
-            return type;
-        }
-
-        public void validate() {
-        }
-
-        @Override
-        public boolean equals(Object obj) {
-            if (this == obj) {
-                return true;
-            }
-            if (!(obj instanceof Action)) {
-                return false;
-            }
-            return type == ((Action)obj).getType();
-        }
-    }
-
-    /*
-     * Drops request
-     */
-    public static class DropRequestAction extends Action {
-        public DropRequestAction() {
-            super(ActionType.DROP_REQUEST);
-        }
-    }
-
-    /*
-     * Returns the specified error
-     *   - errorCode: the response error code (refer to Response error codes
-     *     in httpproxy oracle.nosql.proxy.protocol.Protocol class)
-     *   - errorMessage: the returned error message.
-     */
-    public static class ReturnErrorAction extends Action {
-        private int errorCode;
-        private String errorMessage;
-
-        public ReturnErrorAction(int errorCode, String errorMessage) {
-            super(ActionType.RETURN_ERROR);
-            this.errorCode = errorCode;
-            this.errorMessage = errorMessage;
-
-            validate();
-        }
-
-        public int getErrorCode() {
-            return errorCode;
-        }
-
-        public String getErrorMessage() {
-            return errorMessage;
-        }
-
-        @Override
-        public void validate() {
-            if (errorCode <= 0) {
-                throw new IllegalArgumentException(
-                    "The errorCode must be positive int, see error " +
-                    "codes in oracle.nosql.proxy.protocol class");
-            }
-
-            if (errorMessage == null) {
-                throw new IllegalArgumentException(
-                    "The errorMessage must be not null");
-            }
-        }
-
-        @Override
-        public boolean equals(Object obj) {
-            if (this == obj) {
-                return true;
-            }
-            if (!(obj instanceof ReturnErrorAction)) {
-                return false;
-            }
-
-            ReturnErrorAction o1 = (ReturnErrorAction)obj;
-            return super.equals(obj) &&
-                   (getErrorCode() == o1.getErrorCode()) &&
-                   Objects.equals(getErrorMessage(), o1.getErrorMessage());
-        }
-    }
-
-    /* Customized Json Serializer/Deserialize for Action */
-    private static class ActionSerializer
-        implements JsonSerializer<Action>, JsonDeserializer<Action> {
-
-        @Override
-        public JsonElement serialize(Action action,
-                                     Type typeOfSrc,
-                                     JsonSerializationContext context) {
-            switch(action.getType()) {
-            case DROP_REQUEST:
-                return context.serialize(action, DropRequestAction.class);
-            case RETURN_ERROR:
-                return context.serialize(action, ReturnErrorAction.class);
-            default:
-                throw new JsonParseException("Unknown action: " + action);
-            }
-        }
-
-        @Override
-        public Action deserialize(JsonElement json,
-                                  Type typeOfT,
-                                  JsonDeserializationContext context)
-            throws JsonParseException {
-
-            JsonObject jsonObject = json.getAsJsonObject();
-            String type = jsonObject.get("type").getAsString();
-            ActionType actionType;
-
-            try {
-                actionType = ActionType.valueOf(type);
-            } catch (IllegalArgumentException ex) {
-                throw new JsonParseException("Unknown action type: " + type);
-            }
-
-            switch(actionType) {
-            case DROP_REQUEST:
-                return context.deserialize(json, DropRequestAction.class);
-            case RETURN_ERROR:
-                return context.deserialize(json, ReturnErrorAction.class);
-            default:
-                throw new JsonParseException("Unknown action type: " + type);
-            }
-        }
     }
 }

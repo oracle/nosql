@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2011, 2025 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011, 2024 Oracle and/or its affiliates. All rights reserved.
  *
  * This file was distributed by Oracle as part of a version of Oracle NoSQL
  * Database made available at:
@@ -14,8 +14,6 @@
 package oracle.nosql.proxy.security;
 
 import java.util.Map;
-
-import oracle.nosql.proxy.protocol.Protocol.OpCode;
 
 /**
  * The instance has request security and access context.
@@ -183,42 +181,18 @@ public interface AccessContext {
         return null;
     }
 
-    /**
-     * Return the flag indicates whether the table is active, used for
-     * auto-reclaimable table.
-     */
     public default boolean isTableInactive() {
         return false;
     }
 
-    /**
-     * Reset the table to be active status, used for auto-reclaimable table.
-     */
     public default void resetTableInactive() {
     }
 
-    /**
-     * Return the OBO token, used for GAT.
-     */
     public default String getOboToken() {
         return null;
     }
 
-    /**
-     * Mark the current operation is internal cross-region ddl, used for GAT.
-     */
     public default void setIsInternalDdl(boolean value) {
-    }
-
-    /**
-     * Return the authorized sub operations.
-     *
-     * This method is currently only used for authorization check for
-     * list-work-requests operation, returning the corresponding authorized
-     * sub operations. For all other operations, it returns {@code null}.
-     */
-    public default OpCode[] getAuthorizedOps() {
-        return null;
     }
 
     public static AccessContext NULL_KV_CTX = new AccessContext() {

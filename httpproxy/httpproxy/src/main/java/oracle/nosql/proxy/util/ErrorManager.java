@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2011, 2025 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011, 2024 Oracle and/or its affiliates. All rights reserved.
  *
  * This file was distributed by Oracle as part of a version of Oracle NoSQL
  * Database made available at:
@@ -56,7 +56,7 @@ public class ErrorManager {
     private final SkLogger logger;
     private final MonitorStats stats;
 
-    /* A Timeout cache of rate limiters */
+    /* an LRU cache of rate limiters */
     private Cache<String, RateLimiter> rateLimiters;
 
     /* metrics tracking raw number of delays/DNRs */
@@ -169,10 +169,10 @@ public class ErrorManager {
         dnrPercentage = (double)config.getErrorDnrThreshold() * 100.0 /
                         (double)delayResponseThreshold;
 
-        /* Timeout cache */
+        /* LRU cache */
         this.rateLimiters = CacheBuilder.build(
-            new CacheConfig().setLifetime(config.getErrorCacheLifetimeMs())
-                             .setName("ErrorRateCache"));
+            new CacheConfig().setCapacity(config.getErrorCacheSize())
+                             .setLifetime(config.getErrorCacheLifetimeMs()));
 
         this.delayPool = new ScheduledThreadPoolExecutor(
                              config.getErrorDelayPoolSize());

@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2011, 2025 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011, 2024 Oracle and/or its affiliates. All rights reserved.
  *
  * This file was distributed by Oracle as part of a version of Oracle NoSQL
  * Database made available at:
@@ -350,20 +350,6 @@ public class HttpConstants {
     public static final String STATE = "state";
     public static final String SORT_BY = "sort_by";
     public static final String SORT_ORDER_ASC = "sort_order_asc";
-
-    /**
-     * Used by list-workrequests request
-     */
-    public static final String TYPES = "types";
-
-    /**
-     * Used by configuration requests
-     */
-    public static final String GENERAL = "general";
-    public static final String DRY_RUN = "dryrun";
-    public static final String IF_MATCH = "ifmatch";
-    public static final String KEY_ID = "keyid";
-    public static final String VAULT_ID = "vaultid";
 
     /**
      * Used by setTableActive to specify the timestamp of the dml operation

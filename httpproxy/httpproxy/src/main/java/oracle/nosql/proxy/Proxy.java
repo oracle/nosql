@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2011, 2025 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011, 2024 Oracle and/or its affiliates. All rights reserved.
  *
  * This file was distributed by Oracle as part of a version of Oracle NoSQL
  * Database made available at:
@@ -58,7 +58,6 @@ import oracle.nosql.proxy.rest.cloud.CloudRestDataService;
 import oracle.nosql.proxy.sc.TenantManager;
 import oracle.nosql.proxy.security.AccessChecker;
 import oracle.nosql.proxy.util.ErrorManager;
-import oracle.nosql.proxy.util.ProxyThreadPoolExecutor;
 import oracle.nosql.proxy.util.ShutdownManager;
 import oracle.nosql.util.HttpServerHealth;
 import oracle.nosql.util.ph.HealthReportAgent;
@@ -89,7 +88,6 @@ public final class Proxy {
     private final Config config;
 
     HttpServer server;
-    ProxyThreadPoolExecutor executor;
 
     private final AtomicBoolean shutdown = new AtomicBoolean(false);
 
@@ -278,14 +276,7 @@ public final class Proxy {
             limiterManager.shutDown();
         }
         server.shutdown();
-        /*
-         * executor is owned by the proxy, do clean shutdown
-         */
-        if (executor != null) {
-            executor.shutdown(true);
-        }
         MetricRegistry.defaultRegistry.stopProcessors();
-
         final String subject = "Proxy shut down";
         logger.logEvent("Proxy", Level.INFO, subject,
                         null /* message */, null /* throwable */);
@@ -448,29 +439,20 @@ public final class Proxy {
      */
     public void startServer(SslContext sslCtx, boolean startNetty)
         throws Exception {
-        /*
-         * If internal thread pool is to be used, create it and pass it to
-         * HttpServer
-         */
-        if (config.getRequestThreadPoolSize() > 0 && startNetty) {
-            executor = new ProxyThreadPoolExecutor(
-                config.getRequestThreadPoolSize(), "ProxyRequest");
-        }
 
+        requestHandler = new ServiceRequestHandler(logControl, logger);
+        addServices();
+        warmupCache();
         /*
          * NOTE: if config.getHostname() is null the server will listen
          * on all available interfaces. This is the default value.
          */
-        requestHandler = new ServiceRequestHandler(logControl, logger);
-        addServices();
-        warmupCache();
         if (startNetty) {
             server = new HttpServer(config.getHostname(),
                                     config.getHttpPort(),
                                     config.getHttpsPort(),
                                     config.getNumAcceptThreads(),
                                     config.getNumRequestThreads(),
-                                    executor,
                                     MAX_REQUEST_SIZE,
                                     MAX_CHUNK_SIZE,
                                     config.getIdleReadTimeout(),
@@ -527,9 +509,7 @@ public final class Proxy {
         switch (config.getProxyType()) {
         case KVPROXY:
             requestHandler.addService("ProxyData",
-                new KVDataService(logger, tm,
-                                  stats,
-                                  audit,
+                new KVDataService(logger, tm, stats, audit,
                                   config,
                                   logControl));
             final KVStoreImpl store = ((KVTenantManager)tm).getStore();
@@ -555,8 +535,7 @@ public final class Proxy {
                                   logger);
 
             final CloudDataService dataService =
-                new CloudDataService(logger, tm,
-                                     ac, stats, audit, filter,
+                new CloudDataService(logger, tm, ac, stats, audit, filter,
                                      errorManager,
                                      limiterManager,
                                      config,
@@ -564,8 +543,7 @@ public final class Proxy {
             requestHandler.addService("ProxyData", dataService);
 
             final CloudRestDataService restDataService =
-                new CloudRestDataService(logger, tm,
-                                         ac, stats, audit, filter,
+                new CloudRestDataService(logger, tm, ac, stats, audit, filter,
                                          errorManager,
                                          limiterManager,
                                          config,
@@ -605,15 +583,13 @@ public final class Proxy {
                                   config.getPullRulesIntervalSec(),
                                   logger);
             requestHandler.addService("ProxyData",
-                new CloudDataService(logger, tm,
-                                     ac, stats, audit, filter,
+                new CloudDataService(logger, tm, ac, stats, audit, filter,
                                      errorManager,
                                      limiterManager,
                                      config, logControl));
 
             final CloudRestDataService restDataService =
-                new CloudRestDataService(logger, tm,
-                                         ac, stats, audit,
+                new CloudRestDataService(logger, tm, ac, stats, audit,
                                          filter, errorManager,
                                          limiterManager,
                                          config, logControl);

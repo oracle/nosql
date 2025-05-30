@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2011, 2025 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011, 2024 Oracle and/or its affiliates. All rights reserved.
  *
  * This file was distributed by Oracle as part of a version of Oracle NoSQL
  * Database made available at:
@@ -67,7 +67,6 @@ import static oracle.nosql.proxy.protocol.BinaryProtocol.CURRENT_QUERY_VERSION;
 import static oracle.nosql.proxy.protocol.BinaryProtocol.RECOMPILE_QUERY;
 import static oracle.nosql.proxy.protocol.BinaryProtocol.REPLICA_STATS_LIMIT;
 import static oracle.nosql.proxy.protocol.BinaryProtocol.REQUEST_SIZE_LIMIT_EXCEEDED;
-import static oracle.nosql.proxy.protocol.BinaryProtocol.REQUEST_TIMEOUT;
 import static oracle.nosql.proxy.protocol.BinaryProtocol.SECURITY_INFO_UNAVAILABLE;
 import static oracle.nosql.proxy.protocol.BinaryProtocol.SERVER_ERROR;
 import static oracle.nosql.proxy.protocol.BinaryProtocol.TABLE_NOT_FOUND;
@@ -139,15 +138,12 @@ import java.time.Clock;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.TreeMap;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.RejectedExecutionException;
-import java.util.concurrent.TimeoutException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
@@ -214,6 +210,7 @@ import oracle.nosql.proxy.ProxySerialization.RowReaderImpl;
 import oracle.nosql.proxy.ValueSerializer.RowSerializerImpl;
 import oracle.nosql.proxy.audit.ProxyAuditManager;
 import oracle.nosql.proxy.filter.FilterHandler;
+import oracle.nosql.proxy.filter.FilterHandler.Action;
 import oracle.nosql.proxy.filter.FilterHandler.Filter;
 import oracle.nosql.proxy.protocol.ByteInputStream;
 import oracle.nosql.proxy.protocol.ByteOutputStream;
@@ -233,9 +230,7 @@ import oracle.nosql.proxy.sc.TenantManager;
 import oracle.nosql.proxy.security.AccessContext;
 import oracle.nosql.proxy.security.AccessContext.Type;
 import oracle.nosql.proxy.util.ErrorManager;
-import oracle.nosql.proxy.util.ProxyThreadPoolExecutor;
 import oracle.nosql.proxy.util.TableCache.TableEntry;
-import oracle.nosql.util.filter.Rule;
 import oracle.nosql.util.tmi.IndexInfo;
 import oracle.nosql.util.tmi.TableInfo;
 import oracle.nosql.util.tmi.TableLimits;
@@ -282,14 +277,6 @@ public abstract class DataService extends DataServiceHandler implements Service 
     private final int maxActiveRetryCount;
     private final int maxRetriesPerRequest;
     private final int retryDelayMs;
-
-    /*
-     * If non-null use this executor for async completions for async KV
-     * requests. This does not apply to all request types, only the simple
-     * ones -- put, get, delete, multidelete, write multiple.
-     * It is not used for query or prepare.
-     */
-    private final ProxyThreadPoolExecutor executor;
 
     /* create a default RC */
     private RequestContextFactory rcFactory = new
@@ -431,16 +418,6 @@ public abstract class DataService extends DataServiceHandler implements Service 
                        retryDelayMs, 10, 100);
         this.activeRetryCount = new AtomicInteger(0);
 
-        if (config.getKVThreadPoolSize() > 0) {
-            /*
-             * create an Executor to handle async completions from KV
-             */
-            executor = new ProxyThreadPoolExecutor(
-                config.getKVThreadPoolSize(), "ProxyKVResponse");
-        } else {
-            executor = null;
-        }
-
         initOperations();
     }
 
@@ -473,29 +450,32 @@ public abstract class DataService extends DataServiceHandler implements Service 
                                              ChannelHandlerContext ctx,
                                              LogContext lc,
                                              Object callerContext) {
+        /* Block all requests if there is "big red button" rule */
+        Action action = checkBlockAll(lc);
+        if (action != null) {
+            return action.handleRequest(null, null, lc);
+        }
 
         int threads = activeWorkerThreads.incrementAndGet();
         if (stats != null) {
             stats.markOpActiveWorkerThreads(threads);
         }
+
         /* get readonly/header fields from request, put in rc */
         RequestContext rc =
             rcFactory.createRequestContext(request, ctx, lc, callerContext);
+
         /* this service now always manages reference counting. */
         /* since returning from this method will release() the */
         /* message, retain() it here */
         request.retain();
-        try {
-            /* Block all requests if there is "big red button" rule */
-            Rule rule = getBlockAll(lc);
-            if (rule != null) {
-                return filter.handleRequest(rc, rule);
-            }
 
+        try {
             /* Handle OPTIONS method for pre-flight request. */
             if (HttpMethod.OPTIONS.equals(rc.request.method())) {
                 return handleOptions(rc.request, rc.lc);
             }
+
             /* read binary header. this may throw errors. */
             rc.readBinaryHeader(forceV3, forceV4);
             rc.opType = getOpType(rc.opCode);
@@ -506,7 +486,7 @@ public abstract class DataService extends DataServiceHandler implements Service 
             /* response sending managed by handleRequest() */
             return null;
         } catch (Exception e) {
-            // e.printStackTrace();
+            //e.printStackTrace();
             int code = BAD_PROTOCOL_MESSAGE;
             if (e instanceof RequestException) {
                 code = ((RequestException)e).getErrorCode();
@@ -552,6 +532,7 @@ public abstract class DataService extends DataServiceHandler implements Service 
 
     /* Note: this method should never ever throw an exception */
     private FullHttpResponse handleRequestInternal(RequestContext rc) {
+
         /* Validate the input */
         final FullHttpResponse violation = validateHttpRequest(rc);
         if (violation != null) {
@@ -562,7 +543,6 @@ public abstract class DataService extends DataServiceHandler implements Service 
             markOpStart(rc);
             return handleRequestWithContext(rc);
         } catch (Throwable e) {
-            // e.printStackTrace();
             markOpFailed(rc, 1 /* serverFailure */);
             final String faultMsg = e.toString();
             if (logger.isLoggable(Level.INFO) &&
@@ -636,9 +616,6 @@ public abstract class DataService extends DataServiceHandler implements Service 
         }
 
         /*
-         * NOTE: with use of ProxyThreadPoolExecutor for netty and/or KV
-         * completions it's possible to get some queue size info
-         *
          * TODO: get executor queue size. If above a threshold, don't
          * do internal retry. We currently can't do this, because netty's
          * NioEventExecutor doesn't expose the underlying queue.
@@ -993,7 +970,7 @@ public abstract class DataService extends DataServiceHandler implements Service 
                 throw re;
             } catch (FilterRequestException fre) {
                 /* this will currently always return null. Hmmm... */
-                return handleFilterRequest(fre, rc);
+                return handleFilterRequest(fre, rc.requestId, rc.lc);
             } catch (Throwable t) {
                 /*
                  * This error may indicate a bug in the proxy. Make sure
@@ -1086,6 +1063,7 @@ public abstract class DataService extends DataServiceHandler implements Service 
      */
     private void finishOp(RequestContext rc,
                           FullHttpResponse response) {
+
         if (response == null || rc == null) {
             return;
         }
@@ -1170,9 +1148,6 @@ public abstract class DataService extends DataServiceHandler implements Service 
     @Override
     public void shutDown() {
         tm.shutDown();
-        if (executor != null) {
-            executor.shutdown(true);
-        }
     }
 
     /**
@@ -1197,10 +1172,10 @@ public abstract class DataService extends DataServiceHandler implements Service 
     /**
      * Get
      */
-    private boolean handleGet(final RequestContext rc)
+    private boolean handleGet(RequestContext rc)
         throws IOException {
 
-        final GetOpInfo info = new GetOpInfo();
+        GetOpInfo info = new GetOpInfo();
         if (rc.isNson()) {
             getV4GetOpInfo(info, rc);
         } else {
@@ -1232,86 +1207,70 @@ public abstract class DataService extends DataServiceHandler implements Service 
         ReadOptions options = createReadOptions(info.consistency, rc.timeoutMs,
                                                 rc.actx.getAuthString(), rc.lc);
 
+        CompletableFuture<Result> future;
         if (!useAsync()) {
             Result res = doGet(tableApi, pkey, options);
-            handleGetResponse(res, null, rc, info, pkey);
-            /* handleGetResponse sends the reply so pretend this is async */
-            return true;
+            future = CompletableFuture.completedFuture(res);
         } else {
-            CompletableFuture<Result> future =
-                future = tableApi.getAsyncInternal(pkey, options);
-            future.whenComplete((result, e) -> {
-                    if (executor != null) {
-                        executor.execute(()-> {
-                                handleGetResponse(result, e, rc, info, pkey);
-                            });
-                    } else {
-                        handleGetResponse(result, e, rc, info, pkey);
-                    }
-                });
+            future = tableApi.getAsyncInternal(pkey, options);
         }
+
+        /* Set up an anonymous function to be called when future completes. */
+        future.whenComplete((result, e) -> {
+            FullHttpResponse resp = null;
+            try {
+                if (e != null) {
+                    resp = formulateErrorResponse(e, rc);
+                } else {
+                    if (rc.isNson()) {
+                        NsonProtocol.writeGetResponse(rc, this, result,
+                                                      info.consistency,
+                                                      tableApi,
+                                                      (TableImpl)table,
+                                                      pkey);
+                    } else {
+                        writeSuccess(rc.bbos);
+                        writeThroughput(rc.bbos,
+                                        result.getReadKB(),
+                                        result.getWriteKB(),
+                                        isAbsolute(info.consistency));
+                        if (result.getSuccess()) {
+                            rc.bbos.writeBoolean(true);
+                            /* Read row */
+                            RowReaderImpl reader =
+                                new RowReaderImpl(rc.bbos, table);
+                            tableApi.createRowFromGetResult(
+                                result, pkey, reader);
+                            reader.done();
+                            writeExpirationTime(rc.bbos,
+                                                reader.getExpirationTime());
+                            writeVersion(rc.bbos, reader.getVersion());
+                            if (rc.serialVersion > Protocol.V2) {
+                                writeModificationTime(rc.bbos,
+                                                  reader.getModificationTime());
+                            }
+                        } else {
+                            rc.bbos.writeBoolean(false);
+                        }
+                    }
+                    markDataOpSucceeded(rc,
+                                        result.getNumRecords(),
+                                        result.getReadKB(),
+                                        result.getWriteKB());
+                    rc.setThroughput(result);
+                    resp = defaultHttpResponse(rc);
+                }
+            } catch (Exception ue) {
+                logger.info("Unexpected exception in getAsync response " +
+                    "builder method: " + ue.getMessage(), rc.lc);
+                resp = formulateErrorResponse(ue, rc);
+            } finally {
+                finishOp(rc, resp);
+            }
+        });
+
         /* true == async */
         return true;
-    }
-
-    private void handleGetResponse(final Result result,
-                                   final Throwable e,
-                                   final RequestContext rc,
-                                   final GetOpInfo info,
-                                   final RowSerializer pkey) {
-
-        Table table = rc.entry.getTable();
-        TableAPIImpl tableApi = rc.entry.getTableAPI();
-        FullHttpResponse resp = null;
-        try {
-            if (e != null) {
-                resp = formulateErrorResponse(e, rc);
-            } else {
-                if (rc.isNson()) {
-                    NsonProtocol.writeGetResponse(rc, this, result,
-                                                  info.consistency,
-                                                  tableApi,
-                                                  (TableImpl)table,
-                                                  pkey);
-                } else {
-                    writeSuccess(rc.bbos);
-                    writeThroughput(rc.bbos,
-                                    result.getReadKB(),
-                                    result.getWriteKB(),
-                                    isAbsolute(info.consistency));
-                    if (result.getSuccess()) {
-                        rc.bbos.writeBoolean(true);
-                        /* Read row */
-                        RowReaderImpl reader =
-                            new RowReaderImpl(rc.bbos, table);
-                        tableApi.createRowFromGetResult(
-                            result, pkey, reader);
-                        reader.done();
-                        writeExpirationTime(rc.bbos,
-                                            reader.getExpirationTime());
-                        writeVersion(rc.bbos, reader.getVersion());
-                        if (rc.serialVersion > Protocol.V2) {
-                            writeModificationTime(rc.bbos,
-                                                  reader.getModificationTime());
-                        }
-                    } else {
-                        rc.bbos.writeBoolean(false);
-                    }
-                }
-                markDataOpSucceeded(rc,
-                                    result.getNumRecords(),
-                                    result.getReadKB(),
-                                    result.getWriteKB());
-                rc.setThroughput(result);
-                resp = defaultHttpResponse(rc);
-            }
-        } catch (Exception ue) {
-            logger.info("Unexpected exception in getAsync response " +
-                        "builder method: " + ue.getMessage(), rc.lc);
-            resp = formulateErrorResponse(ue, rc);
-        } finally {
-            finishOp(rc, resp);
-        }
     }
 
     /**
@@ -1397,6 +1356,7 @@ public abstract class DataService extends DataServiceHandler implements Service 
         Key kvKey = null;
         Value kvValue = null;
         KVStoreImpl store = tableApi.getStore();
+        CompletableFuture<Result> future = null;
 
         if (table.isJsonCollection()) {
 
@@ -1436,112 +1396,93 @@ public abstract class DataService extends DataServiceHandler implements Service 
         final RowSerializer rowForReturnRow = row;
         if (!useAsync()) {
             Result res = tableApi.getStore().executeRequest(rq);
-            handlePutResponse(res, null, rc,
-                              genInfo, rowForReturnRow, returnRow);
-            /* handlePutResponse sends the reply so pretend this is async */
-            return true;
+            future = CompletableFuture.completedFuture(res);
+            if (genInfo != null) {
+                res.setGeneratedValue(genInfo.getGeneratedValue());
+            }
         } else {
-            CompletableFuture<Result> future = store.executeRequestAsync(rq);
-            future.whenComplete((result, e) -> {
-                    if (executor != null) {
-                        executor.execute(()-> {
-                                handlePutResponse(result, e, rc,
-                                          genInfo, rowForReturnRow, returnRow);
-                            });
-                    } else {
-                        handlePutResponse(result, e, rc,
-                                          genInfo, rowForReturnRow, returnRow);
-
-                    }
-                });
+            future = store.executeRequestAsync(rq);
         }
 
-        /* true == async */
-        return true;
-    }
-
-    private void handlePutResponse(Result result, Throwable e,
-                                   RequestContext rc,
-                                   GeneratedValueInfo genInfo,
-                                   RowSerializer rowForReturnRow,
-                                   ReturnRow returnRow) {
-        TableImpl table = (TableImpl) rc.entry.getTable();
-        TableAPIImpl tableApi = rc.entry.getTableAPI();
-        FullHttpResponse resp = null;
-        try {
-            if (e != null) {
-                resp = formulateErrorResponse(e, rc);
-            } else {
-                if (genInfo != null) {
-                    result.setGeneratedValue(genInfo.getGeneratedValue());
-                }
-
-                if (rc.isNson()) {
-                    NsonProtocol.writePutResponse(rc, this, result,
-                                                  tableApi,
-                                                  rowForReturnRow,
-                                                  returnRow);
+        future.whenComplete((result, e) -> {
+            FullHttpResponse resp = null;
+            try {
+                if (e != null) {
+                    resp = formulateErrorResponse(e, rc);
                 } else {
-                    Version version = result.getNewVersion();
-
-                    writeSuccess(rc.bbos);
-                    writeThroughput(rc.bbos,
-                                    result.getReadKB(),
-                                    result.getWriteKB(),
-                                    true); // absolute
-
-                    /*
-                     * version and previous info are independent. A
-                     * response may have one, the other or both.
-                     */
-                    if (version != null) {
-                        rc.bbos.writeBoolean(true);
-                        writeVersion(rc.bbos, version);
-                    } else {
-                        rc.bbos.writeBoolean(false);
+                    if (genInfo != null) {
+                        result.setGeneratedValue(genInfo.getGeneratedValue());
                     }
 
-                    /* return row */
-                    /* Note this is where the bbis/input row */
-                    /* may be referenced... */
-                    writeExistingRow(rc.bbos, (version != null),
-                                     returnRow, tableApi,
-                                     rowForReturnRow, result,
-                                     rc.serialVersion);
+                    if (rc.isNson()) {
+                        NsonProtocol.writePutResponse(rc, this, result,
+                                                      tableApi,
+                                                      rowForReturnRow,
+                                                      returnRow);
+                    } else {
+                        Version version = result.getNewVersion();
 
-                    /* generated value for identity column or uuid */
-                    if (rc.serialVersion > V1) {
-                        /* only return it if the operation succeeded */
-                        if ((table.hasIdentityColumn() ||
-                             table.hasUUIDcolumn())
-                            && version != null) {
-                            FieldValue generated =
-                                result.getGeneratedValue();
-                            if (generated != null) {
-                                rc.bbos.writeBoolean(true);
-                                writeFieldValue(rc.bbos, generated);
-                            } else {
-                                rc.bbos.writeBoolean(false);
-                            }
+                        writeSuccess(rc.bbos);
+                        writeThroughput(rc.bbos,
+                                        result.getReadKB(),
+                                        result.getWriteKB(),
+                                        true); // absolute
+
+                        /*
+                         * version and previous info are independent. A
+                         * response may have one, the other or both.
+                         */
+                        if (version != null) {
+                            rc.bbos.writeBoolean(true);
+                            writeVersion(rc.bbos, version);
                         } else {
                             rc.bbos.writeBoolean(false);
                         }
+
+                        /* return row */
+                        /* Note this is where the bbis/input row */
+                        /* may be referenced... */
+                        writeExistingRow(rc.bbos, (version != null),
+                                         returnRow, tableApi,
+                                         rowForReturnRow, result,
+                                         rc.serialVersion);
+
+                        /* generated value for identity column or uuid */
+                        if (rc.serialVersion > V1) {
+                            /* only return it if the operation succeeded */
+                            if ((table.hasIdentityColumn() ||
+                                 table.hasUUIDcolumn())
+                                && version != null) {
+                                FieldValue generated =
+                                    result.getGeneratedValue();
+                                if (generated != null) {
+                                    rc.bbos.writeBoolean(true);
+                                    writeFieldValue(rc.bbos, generated);
+                                } else {
+                                    rc.bbos.writeBoolean(false);
+                                }
+                            } else {
+                                rc.bbos.writeBoolean(false);
+                            }
+                        }
                     }
+                    markDataOpSucceeded(rc,
+                                        result.getNumRecords(),
+                                        result.getReadKB(),
+                                        result.getWriteKB());
+                    rc.setThroughput(result);
+                    resp = defaultHttpResponse(rc);
                 }
-                markDataOpSucceeded(rc,
-                                    result.getNumRecords(),
-                                    result.getReadKB(),
-                                    result.getWriteKB());
-                rc.setThroughput(result);
-                resp = defaultHttpResponse(rc);
+            } catch (Exception ue) {
+                logger.info("Unexpected exception in putAsync response " +
+                    "builder method: " + ue.getMessage(), rc.lc);
+                resp = formulateErrorResponse(ue, rc);
+            } finally {
+                finishOp(rc, resp);
             }
-        } catch (Exception ue) {
-            logger.info("Unexpected exception in putAsync response " +
-                        "builder method: " + ue.getMessage(), rc.lc);
-            resp = formulateErrorResponse(ue, rc);
-        } finally {
-            finishOp(rc, resp);
-        }
+        });
+        /* true == asynchronous */
+        return true;
     }
 
     /**
@@ -1603,84 +1544,64 @@ public abstract class DataService extends DataServiceHandler implements Service 
                                                   doTombStone(rc.entry),
                                                   rc.lc);
 
+        CompletableFuture<Result> future;
         if (!useAsync()) {
             Result res = doDelete(tableApi, pkey, info.matchVersion,
                                   returnRow, options);
-            handleDeleteResponse(res, null, rc, pkey, returnRow);
-            /* handleDeleteResponse sends the reply so pretend this is async */
-            return true;
+            future = CompletableFuture.completedFuture(res);
+        } else if (info.matchVersion == null) {
+            future = tableApi.deleteAsyncInternal(pkey, returnRow, options);
         } else {
-            CompletableFuture<Result> future;
-            if (info.matchVersion == null) {
-                future = tableApi.deleteAsyncInternal(pkey, returnRow, options);
-            } else {
-                future = tableApi.deleteIfVersionAsyncInternal(
-                    pkey,
-                    info.matchVersion,
-                    returnRow,
-                    options);
-            }
-            future.whenComplete((result, e) -> {
-                    if (executor != null) {
-                        executor.execute(()-> {
-                                handleDeleteResponse(result, e, rc,
-                                                     pkey, returnRow);
-                            });
-                    } else {
-                        handleDeleteResponse(result, e, rc, pkey, returnRow);
-                    }
-                });
+            future = tableApi.deleteIfVersionAsyncInternal(pkey,
+                                                           info.matchVersion,
+                                                           returnRow,
+                                                           options);
         }
+
+        future.whenComplete((result, e) -> {
+            FullHttpResponse resp = null;
+            try {
+                if (e != null) {
+                    resp = formulateErrorResponse(e, rc);
+                } else {
+                    if (rc.isNson()) {
+                        NsonProtocol.writeDeleteResponse(rc, this, result,
+                                                         tableApi, pkey,
+                                                         returnRow);
+                    } else {
+                        writeSuccess(rc.bbos);
+                        writeThroughput(rc.bbos,
+                                        result.getReadKB(),
+                                        result.getWriteKB(),
+                                        true); // absolute
+
+                        /* did the delete happen? */
+                        rc.bbos.writeBoolean(result.getSuccess());
+
+                        /* return row */
+                        writeExistingRow(rc.bbos, result.getSuccess(),
+                                         returnRow,
+                                         tableApi, pkey, result,
+                                         rc.serialVersion);
+                    }
+                    markDataOpSucceeded(rc,
+                                        result.getNumRecords(),
+                                        result.getReadKB(),
+                                        result.getWriteKB());
+                    rc.setThroughput(result);
+                    resp = defaultHttpResponse(rc);
+                }
+            } catch (Exception ue) {
+                logger.info("Unexpected exception in deleteAsync response " +
+                    "builder method: " + ue.getMessage(), rc.lc);
+                resp = formulateErrorResponse(ue, rc);
+            } finally {
+                finishOp(rc, resp);
+            }
+        });
 
         /* true == asynchronous */
         return true;
-    }
-
-    private void handleDeleteResponse(final Result result,
-                                      final Throwable e,
-                                      final RequestContext rc,
-                                      final RowSerializer pkey,
-                                      final ReturnRow returnRow) {
-        FullHttpResponse resp = null;
-        TableAPIImpl tableApi = rc.entry.getTableAPI();
-        try {
-            if (e != null) {
-                resp = formulateErrorResponse(e, rc);
-            } else {
-                if (rc.isNson()) {
-                    NsonProtocol.writeDeleteResponse(rc, this, result,
-                                                     tableApi, pkey,
-                                                     returnRow);
-                } else {
-                    writeSuccess(rc.bbos);
-                    writeThroughput(rc.bbos,
-                                    result.getReadKB(),
-                                    result.getWriteKB(),
-                                    true); // absolute
-
-                    /* did the delete happen? */
-                    rc.bbos.writeBoolean(result.getSuccess());
-
-                    /* return row */
-                    writeExistingRow(rc.bbos, result.getSuccess(),
-                                     returnRow,
-                                     tableApi, pkey, result,
-                                     rc.serialVersion);
-                }
-                markDataOpSucceeded(rc,
-                                    result.getNumRecords(),
-                                    result.getReadKB(),
-                                    result.getWriteKB());
-                rc.setThroughput(result);
-                resp = defaultHttpResponse(rc);
-            }
-        } catch (Exception ue) {
-            logger.info("Unexpected exception in deleteAsync response " +
-                        "builder method: " + ue.getMessage(), rc.lc);
-            resp = formulateErrorResponse(ue, rc);
-        } finally {
-            finishOp(rc, resp);
-        }
     }
 
     private String chooseNamespace(String actxNamespace, String queryNamespace) {
@@ -1698,11 +1619,10 @@ public abstract class DataService extends DataServiceHandler implements Service 
         return queryNamespace;
     }
 
+
+
     /**
      * Query
-     *
-     * Note that the use of a separate Executor and thread pool
-     * to handle async responses from KV requests does not apply to queries
      */
     private boolean handleQuery(final RequestContext rc)
         throws IOException {
@@ -1769,10 +1689,6 @@ public abstract class DataService extends DataServiceHandler implements Service 
 
         if (info.isPrepared == false) {
 
-            if (info.numOperations != 0 || info.operationNumber != 0) {
-                throw new IllegalArgumentException(
-                    "Parallel queries require a prepared query");
-            }
             /* this method also enforces limit on query string length */
             cbInfo = TableUtils.getCallbackInfo(rc.actx, info.statement, tm);
             cbInfo.checkSupportedDml();
@@ -1914,7 +1830,7 @@ public abstract class DataService extends DataServiceHandler implements Service 
         }
 
         /*
-         * Set ExecuteOptions.updateLimit for update query to limit the max
+         * Set ExceuteOptions.updateLimit for update query to limit the max
          * number of records can be updated in a single query:
          *  - In onprem, set it to the limit set by application.
          *  - In cloud, the max number of records that can be updated in a
@@ -1926,13 +1842,6 @@ public abstract class DataService extends DataServiceHandler implements Service 
             if (updateLimit > 0) {
                 execOpts.setUpdateLimit(updateLimit);
             }
-        }
-
-        /* insert/update/upsert not allowed to be parallel */
-        if (isUpdateOp &&
-            (info.numOperations != 0 || info.operationNumber != 0)) {
-            throw new IllegalArgumentException(
-                "Cannot perform parallel query on inserts or updates");
         }
 
         /* FUTURE: use info.durability */
@@ -1982,48 +1891,6 @@ public abstract class DataService extends DataServiceHandler implements Service 
             rc.bbos.writeInt(0);
         }
 
-        /*
-         * this method validates the parameters and will throw if invalid.
-         * It returns the total number of operations. If > 0 this is a parallel
-         * query
-         */
-        int numberOfOperations =
-            getParallelQueryOperations(info, prep, store.getTopology());
-
-        /*
-         * Compute synchronous query results. If this is a parallel query
-         * the appropriate set of shards or partitions needs to be passed
-         */
-        Set<RepGroupId> shards = null;
-        Set<Integer> partitions = null;
-
-        if (info.shardId > 0) {
-            /*
-             * this is where the caller is explicitly handling a shard and
-             * is never parallel
-             */
-            shards = new HashSet<>(1);
-            shards.add(new RepGroupId(info.shardId));
-        } else if (numberOfOperations > 1) {
-            execOpts.setIsSimpleQuery(info.isSimpleQuery);
-            if (prep.getDistributionKind().equals(
-                    PreparedStatementImpl.DistributionKind.ALL_SHARDS)) {
-                /* used shard-based split, even if all partition query */
-                shards = computeParallelShards(info, store, rc);
-            } else {
-                /*
-                 * there is no current async kv call to handle a set of
-                 * partitions, so turn off async for this path.
-                 * FUTURE: leave it async if KV supports it. See
-                 * doAsyncQuery()
-                 */
-                partitions =
-                    computeParallelPartitions(
-                        info, store.getTopology().getNumPartitions());
-                doAsync = false;
-            }
-        }
-
         if (doAsync) {
 
             if (info.traceLevel >= 5) {
@@ -2035,8 +1902,7 @@ public abstract class DataService extends DataServiceHandler implements Service 
             final NsonSerializer nser = ns;
 
             Publisher<RecordValue> qpub =
-                doAsyncQuery(store, prep, variables, execOpts,
-                             shards, partitions,
+                doAsyncQuery(store, prep, variables, execOpts, info.shardId,
                              info.traceLevel, rc.lc);
 
             Subscriber<RecordValue> qsub = new Subscriber<RecordValue>() {
@@ -2153,9 +2019,11 @@ public abstract class DataService extends DataServiceHandler implements Service 
 
         int numResults = 0;
 
+        /*
+         * Compute synchronous query results
+         */
         QueryStatementResultImpl qres =
-            doQuery(store, prep, variables, execOpts,
-                    shards, partitions,
+            doQuery(store, prep, variables, execOpts, info.shardId,
                     info.traceLevel, rc.lc);
 
         if (ns == null && info.queryVersion > QUERY_V1) {
@@ -2195,146 +2063,6 @@ public abstract class DataService extends DataServiceHandler implements Service 
         return false; // sync
     }
 
-    /**
-     * Validate parallel query operation parameters and return total number
-     * of operations
-     */
-    private int getParallelQueryOperations(QueryOpInfo info,
-                                           PreparedStatementImpl prep,
-                                           Topology topo) {
-        if (info.numOperations > 0) {
-            if (info.operationNumber <= 0 || info.operationNumber >
-                info.numOperations) {
-                throw new IllegalArgumentException(
-                    "Invalid parallel query parameters");
-            }
-            /*
-             * cannot trust prep.isSimpleQuery() on an already-prepared
-             * statement, use the info passed from the driver
-             */
-            if (!info.isSimpleQuery || prep.getDistributionKind().equals(
-                    PreparedStatementImpl.DistributionKind.SINGLE_PARTITION)) {
-                /* allow 1 but it's the same as if it were 0, not parallel */
-                if (info.numOperations > 1) {
-                    throw new IllegalArgumentException(
-                        "Invalid number of operations for parallel query");
-                }
-                /* a single partition query is not parallel */
-                return 0;
-            }
-            if (prep.getDistributionKind().equals(
-                    PreparedStatementImpl.DistributionKind.ALL_SHARDS)) {
-                if (info.numOperations > topo.getNumRepGroups()) {
-                    throw new IllegalArgumentException(
-                        "Invalid number of operations for parallel query, " +
-                        "it must be less than or equal to " +
-                        topo.getNumRepGroups());
-                }
-            } else if (info.numOperations > topo.getNumPartitions()) {
-                throw new IllegalArgumentException(
-                    "Invalid number of operations for parallel query, " +
-                    "it must be less than or equal to " +
-                    topo.getNumPartitions());
-            }
-            return info.numOperations;
-        } else if (info.operationNumber != 0) {
-            throw new IllegalArgumentException(
-                "Invalid parallel query parameters");
-        }
-        return 0;
-    }
-
-    /*
-     * These methods use a combination of the store topology, the total
-     * number of parallel operations and the operation number to return sets
-     * of items (shards/partitions) in a deterministic manner. The sets must be
-     * the same/repeatable for any <topology, number of ops, op number>
-     * combination in order to properly partition the data being
-     * queried.
-     *
-     * It has already been verified that the number of operations is <=
-     * number of shards or partitions in the topology. The simplest algorithm
-     * is to walk the items assigning each to an operation number "bucket"
-     * until all of the items have been assigned. If the items aren't evenly
-     * divisible by the number of operations some buckets will have additional
-     * items.
-     *
-     * For example if the number of items is 8 and number of operations is 3
-     * then bucket 1 gets items 1, 4, 7, bucket 2 gets 2, 5, 8, and
-     * bucket 3 gets 3, 6.
-     *
-     * These assignments are logically static for the duration of a query but
-     * rather than round-trip them it's simpler to recalculate, which is not
-     * deemed expensive.
-     *
-     * This calculation does the above. Items are 1-based. Starting at 1 and
-     * going to the last item these items go in the target bucket (B)
-     * B = bucket number
-     * I = item number (start at 1)
-     * N = number of operations
-     * for (int I = 1; I <= numberOfItems; I++) {
-     *     if ((I - B) % N == 0) {
-     *       add to bucket B
-     *     }
-     */
-    private Set<RepGroupId> computeParallelShards(QueryOpInfo info,
-                                                  KVStoreImpl store,
-                                                  RequestContext rc) {
-
-        /*
-         * Must use the driver's "base" topology for all queries
-         */
-        int numShards;
-        try {
-            numShards =
-                store.getDispatcher().getTopologyManager().getTopology(
-                    store, rc.driverTopoSeqNum, rc.timeoutMs).getNumRepGroups();
-            /*
-             * if the driver's notion of topology is different from the current
-             * store topology, it means elasticity is happening and all-shard
-             * parallel queries are not compatible with elasticity
-             */
-            if (store.getTopology().getNumRepGroups() != numShards) {
-                /*
-                 * use of RECOMPILE_QUERY is not very specific but can cause the
-                 * caller to "start over" which is the behavior expected, because
-                 * trying again will likely succeed
-                 */
-                throw new RequestException(
-                    RECOMPILE_QUERY, "Parallel queries on indexes are not " +
-                    "supported during certain points in an elasticity " +
-                    "operation. Please retry the entire coordinated operation");
-            }
-        } catch (TimeoutException te) {
-            throw new RequestException(
-                REQUEST_TIMEOUT, "Failed to get server state required to " +
-                "execute a query");
-        }
-
-        Set<RepGroupId> shards = new HashSet<>();
-        int numOperations = info.numOperations;
-        int bucket = info.operationNumber;
-        for (int i = 1; i <= numShards; i++) {
-            if ((i - bucket) % numOperations == 0) {
-                shards.add(new RepGroupId(i));
-            }
-        }
-        return shards;
-    }
-
-    /* see comment above. operation number is 1-based */
-    private Set<Integer> computeParallelPartitions(QueryOpInfo info,
-                                                   int numPartitions) {
-        Set<Integer> partitions = new HashSet<>();
-        int numOperations = info.numOperations;
-        int bucket = info.operationNumber;
-        for (int i = 1; i <= numPartitions; i++) {
-            if ((i - bucket) % numOperations == 0) {
-                partitions.add(i);
-            }
-        }
-        return partitions;
-    }
 
     private void finishQuery(
         QueryOpInfo qinfo,
@@ -2438,9 +2166,6 @@ public abstract class DataService extends DataServiceHandler implements Service 
 
     /**
      * Prepare
-     *
-     * Note that the use of a separate Executor and thread pool
-     * to handle async responses from KV requests does not apply to queries
      */
     private boolean handlePrepare(RequestContext rc)
         throws IOException {
@@ -2714,129 +2439,113 @@ public abstract class DataService extends DataServiceHandler implements Service 
         future = tableApi.executeAsyncInternal(info.tableOps, options);
 
         future.whenComplete((result, e) -> {
-                if (executor != null) {
-                    executor.execute(()-> {
-                            handleWriteMultipleResponse(result, e, rc,
-                                                        tableApi, info);
-                        });
-                } else {
-                    handleWriteMultipleResponse(result, e, rc,
-                                                tableApi, info);
+            FullHttpResponse resp = null;
+            try {
+                /*
+                 * If we got a CompletionException, it needs to first be
+                 * unwrapped. Eventually this should never happen, but for now
+                 * we keep this in for safety.
+                 */
+                if (e != null && e instanceof CompletionException) {
+                    /* don't unwrap (let fail) if running in tests */
+                    if (!inTest()) {
+                        e = e.getCause();
+                    }
                 }
-            });
+                if (e != null && e instanceof TableOpExecutionException) {
+                    TableOpExecutionException toee =
+                        (TableOpExecutionException)e;
+                    if (rc.isNson()) {
+                        NsonProtocol.writeWriteMultipleResponse(
+                            rc,
+                            this,
+                            null, /* result comes from exception */
+                            info,
+                            tableApi,
+                            toee);
+                    } else {
+                        int failedOpIdx = toee.getFailedOperationIndex();
+                        TableOperationResult failedOpResult =
+                            toee.getFailedOperationResult();
 
-        /* true == asynchronous */
-        return true;
-    }
-
-    private void handleWriteMultipleResponse(final Result result,
-                                             Throwable e,
-                                             final RequestContext rc,
-                                             final TableAPIImpl tableApi,
-                                             final WriteMultipleOpInfo info ) {
-        FullHttpResponse resp = null;
-        try {
-            /*
-             * If we got a CompletionException, it needs to first be
-             * unwrapped. Eventually this should never happen, but for now
-             * we keep this in for safety.
-             */
-            if (e != null && e instanceof CompletionException) {
-                /* don't unwrap (let fail) if running in tests */
-                if (!inTest()) {
-                    e = e.getCause();
-                }
-            }
-            if (e != null && e instanceof TableOpExecutionException) {
-                TableOpExecutionException toee =
-                    (TableOpExecutionException)e;
-                if (rc.isNson()) {
-                    NsonProtocol.writeWriteMultipleResponse(
-                        rc,
-                        this,
-                        null, /* result comes from exception */
-                        info,
-                        tableApi,
-                        toee);
-                } else {
-                    int failedOpIdx = toee.getFailedOperationIndex();
-                    TableOperationResult failedOpResult =
-                        toee.getFailedOperationResult();
-
-                    /* serialize failed operation info */
-                    writeSuccess(rc.bbos);
-                    rc.bbos.writeBoolean(false);
-                    writeThroughput(rc.bbos,
-                                    toee.getReadKB(),
-                                    toee.getWriteKB(),
-                                    true); // absolute
-                    rc.bbos.writeByte(failedOpIdx);
-                    TableOperationInfo opInfo =
-                        rc.tableOpInfos.get(failedOpIdx);
-                    writeTableOperationResult(
-                        rc.bbos,
-                        rc.serialVersion,
-                        info.tableOps.get(failedOpIdx).getType(),
-                        opInfo.returnInfo,
-                        opInfo.table,
-                        failedOpResult,
-                        null);
-                }
-                markOpFailed(rc, 1 /* isServerFailure */);
-                resp = defaultHttpResponse(rc);
-            } else if (e != null) {
-                resp = formulateErrorResponse(e, rc);
-            } else {
-                if (rc.isNson()) {
-                    NsonProtocol.writeWriteMultipleResponse(
-                        rc,
-                        this,
-                        result,
-                        info,
-                        tableApi,
-                        null);
-                } else {
-                    final List<TableOperationResult> results =
-                        tableApi.createResultsFromExecuteResult(
-                            result, info.tableOps);
-                    writeSuccess(rc.bbos);
-                    rc.bbos.writeBoolean(true);
-                    writeThroughput(rc.bbos,
-                                    result.getReadKB(),
-                                    result.getWriteKB(),
-                                    true); // absolute
-                    writeInt(rc.bbos, results.size());
-                    int idx = 0;
-                    for (TableOperationResult opResult: results) {
+                        /* serialize failed operation info */
+                        writeSuccess(rc.bbos);
+                        rc.bbos.writeBoolean(false);
+                        writeThroughput(rc.bbos,
+                                        toee.getReadKB(),
+                                        toee.getWriteKB(),
+                                        true); // absolute
+                        rc.bbos.writeByte(failedOpIdx);
                         TableOperationInfo opInfo =
-                            rc.tableOpInfos.get(idx);
-                        FieldValue generatedValue =
-                            opInfo.genInfo != null ?
-                            opInfo.genInfo.getGeneratedValue() : null;
+                            rc.tableOpInfos.get(failedOpIdx);
                         writeTableOperationResult(
                             rc.bbos,
                             rc.serialVersion,
-                            info.tableOps.get(idx).getType(),
+                            info.tableOps.get(failedOpIdx).getType(),
                             opInfo.returnInfo,
                             opInfo.table,
-                            opResult,
-                            generatedValue);
-                        idx++;
+                            failedOpResult,
+                            null);
                     }
+                    markOpFailed(rc, 1 /* isServerFailure */);
+                    resp = defaultHttpResponse(rc);
+                } else if (e != null) {
+                    resp = formulateErrorResponse(e, rc);
+                } else {
+                    if (rc.isNson()) {
+                        NsonProtocol.writeWriteMultipleResponse(
+                            rc,
+                            this,
+                            result,
+                            info,
+                            tableApi,
+                            null);
+                    } else {
+                        final List<TableOperationResult> results =
+                            tableApi.createResultsFromExecuteResult(
+                                result, info.tableOps);
+                        writeSuccess(rc.bbos);
+                        rc.bbos.writeBoolean(true);
+                        writeThroughput(rc.bbos,
+                                        result.getReadKB(),
+                                        result.getWriteKB(),
+                                        true); // absolute
+                        writeInt(rc.bbos, results.size());
+                        int idx = 0;
+                        for (TableOperationResult opResult: results) {
+                            TableOperationInfo opInfo =
+                                rc.tableOpInfos.get(idx);
+                            FieldValue generatedValue =
+                                opInfo.genInfo != null ?
+                                opInfo.genInfo.getGeneratedValue() : null;
+                            writeTableOperationResult(
+                                rc.bbos,
+                                rc.serialVersion,
+                                info.tableOps.get(idx).getType(),
+                                opInfo.returnInfo,
+                                opInfo.table,
+                                opResult,
+                                generatedValue);
+                            idx++;
+                        }
+                    }
+                    markDataOpSucceeded(rc,
+                        result.getNumRecords(), result.getReadKB(),
+                        result.getWriteKB());
+                    rc.setThroughput(result);
+                    resp = defaultHttpResponse(rc);
                 }
-                markDataOpSucceeded(rc,
-                                    result.getNumRecords(), result.getReadKB(),
-                                    result.getWriteKB());
-                rc.setThroughput(result);
-                resp = defaultHttpResponse(rc);
+            } catch (Exception ue) {
+                logger.info("Unexpected exception in multiOp response " +
+                    "builder method: " + ue.getMessage(), rc.lc);
+                resp = formulateErrorResponse(ue, rc);
+            } finally {
+                finishOp(rc, resp);
             }
-        } catch (Exception ue) {
-            logger.info("Unexpected exception in multiOp response " +
-                        "builder method: " + ue.getMessage(), rc.lc);
-            resp = formulateErrorResponse(ue, rc);
-        } finally {
-            finishOp(rc, resp);
-        }
+        });
+
+        /* true == asynchronous */
+        return true;
     }
 
     /**
@@ -2909,69 +2618,55 @@ public abstract class DataService extends DataServiceHandler implements Service 
                                                   rc.lc)
                                     .setMaxWriteKB(info.maxWriteKB);
 
+        CompletableFuture<Result> future;
         if (!useAsync()) {
             Result res = tableApi.multiDeleteInternal(pKey,
                                                       info.continuationKey,
                                                       mro, options);
-            handleMultiDeleteResponse(res, null, rc);
-            /* handleMultiDeleteResponse sends reply, pretend this is async */
-            return true;
+            future = CompletableFuture.completedFuture(res);
         } else {
-            CompletableFuture<Result> future =
+            future =
                 tableApi.multiDeleteAsyncInternal(pKey, info.continuationKey,
                                                   mro, options);
-            future.whenComplete((result, e) -> {
-                    if (executor != null) {
-                        executor.execute(()-> {
-                                handleMultiDeleteResponse(result, e, rc);
-                            });
-                    } else {
-                        handleMultiDeleteResponse(result, e, rc);
-                    }
-                });
         }
+
+        future.whenComplete((result, e) -> {
+            FullHttpResponse resp = null;
+            try {
+                if (e != null) {
+                    resp = formulateErrorResponse(e, rc);
+                } else {
+                    if (rc.isNson()) {
+                        NsonProtocol.writeMultiDeleteResponse(rc, this, result,
+                                                              tableApi);
+                    } else {
+                        writeSuccess(rc.bbos);
+                        writeThroughput(rc.bbos,
+                                        result.getReadKB(),
+                                        result.getWriteKB(),
+                                        true); // absolute
+                        writeInt(rc.bbos, result.getNDeletions());
+                        writeByteArray(rc.bbos, result.getPrimaryResumeKey());
+                    }
+
+                    markDataOpSucceeded(rc,
+                        result.getNumRecords(), result.getReadKB(),
+                        result.getWriteKB());
+                    rc.setThroughput(result);
+
+                    resp = defaultHttpResponse(rc);
+                }
+            } catch (Exception ue) {
+                logger.info("Unexpected exception in multiDelete response " +
+                    "builder method: " + ue.getMessage(), rc.lc);
+                resp = formulateErrorResponse(ue, rc);
+            } finally {
+                finishOp(rc, resp);
+            }
+        });
 
         /* true == asynchronous */
         return true;
-    }
-
-    private void handleMultiDeleteResponse(final Result result,
-                                           final Throwable e,
-                                           final RequestContext rc) {
-        FullHttpResponse resp = null;
-        TableAPIImpl tableApi = rc.entry.getTableAPI();
-
-        try {
-            if (e != null) {
-                resp = formulateErrorResponse(e, rc);
-            } else {
-                if (rc.isNson()) {
-                    NsonProtocol.writeMultiDeleteResponse(rc, this, result,
-                                                          tableApi);
-                } else {
-                    writeSuccess(rc.bbos);
-                    writeThroughput(rc.bbos,
-                                    result.getReadKB(),
-                                    result.getWriteKB(),
-                                    true); // absolute
-                    writeInt(rc.bbos, result.getNDeletions());
-                    writeByteArray(rc.bbos, result.getPrimaryResumeKey());
-                }
-
-                markDataOpSucceeded(rc,
-                                    result.getNumRecords(), result.getReadKB(),
-                                    result.getWriteKB());
-                rc.setThroughput(result);
-
-                resp = defaultHttpResponse(rc);
-            }
-        } catch (Exception ue) {
-            logger.info("Unexpected exception in multiDelete response " +
-                        "builder method: " + ue.getMessage(), rc.lc);
-            resp = formulateErrorResponse(ue, rc);
-        } finally {
-            finishOp(rc, resp);
-        }
     }
 
     /**
@@ -3791,8 +3486,6 @@ public abstract class DataService extends DataServiceHandler implements Service 
         Map<String, FieldValue> bindVars;
         String queryName;
         String batchName;
-        int numOperations;
-        int operationNumber;
     }
 
     /*
@@ -4333,10 +4026,6 @@ public abstract class DataService extends DataServiceHandler implements Service 
                 info.isSimpleQuery = Nson.readNsonBoolean(bis);
             } else if (name.equals(QUERY_NAME)) {
                 info.queryName = Nson.readNsonString(bis);
-            } else if (name.equals(NUM_QUERY_OPERATIONS)) {
-                info.numOperations = Nson.readNsonInt(bis);
-            } else if (name.equals(QUERY_OPERATION_NUM)) {
-                info.operationNumber = Nson.readNsonInt(bis);
             } else if (name.equals(VIRTUAL_SCAN)) {
                 info.virtualScan = readVirtualScan(bis);
             } else if (name.equals(SERVER_MEMORY_CONSUMPTION)) {

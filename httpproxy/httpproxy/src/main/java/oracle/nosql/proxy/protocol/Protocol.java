@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2011, 2025 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011, 2024 Oracle and/or its affiliates. All rights reserved.
  *
  * This file was distributed by Oracle as part of a version of Oracle NoSQL
  * Database made available at:
@@ -110,14 +110,7 @@ public class Protocol {
         DROP_REPLICA(34),
         GET_REPLICA_STATS(35),
         INTERNAL_DDL(36),
-        INTERNAL_STATUS(37),
-
-        /* added for Configuration APIs */
-        GET_CONFIGURATION(38),
-        UPDATE_CONFIGURATION(39),
-        GET_CONFIG_KMS_KEY(40),
-        UPDATE_CONFIG_KMS_KEY(41),
-        REMOVE_CONFIG_KMS_KEY(42);
+        INTERNAL_STATUS(37);
 
         private static final OpCode[] VALUES = values();
         OpCode(int code) {
@@ -199,28 +192,6 @@ public class Protocol {
                     op == OpCode.DROP_REPLICA ||
                     op == OpCode.CREATE_INDEX ||
                     op == OpCode.DROP_INDEX);
-        }
-
-        public static boolean isConfigurationRequestOp(OpCode op) {
-            return (op.ordinal() >= GET_CONFIGURATION.ordinal() &&
-                    op.ordinal() <= REMOVE_CONFIG_KMS_KEY.ordinal());
-        }
-
-        public static boolean isUpdateConfigurationRequestOp(OpCode op) {
-            return (op.ordinal() == UPDATE_CONFIGURATION.ordinal() ||
-                    op.ordinal() == REMOVE_CONFIG_KMS_KEY.ordinal());
-        }
-
-        public static OpCode[] getGetConfigurationSubOps() {
-            return new OpCode[] {OpCode.GET_CONFIG_KMS_KEY};
-        }
-
-        public static OpCode[] getListWorkRequestSubOps(boolean cmekEnabled) {
-            if (cmekEnabled) {
-                return new OpCode[] {OpCode.GET_TABLE,
-                                     OpCode.GET_CONFIG_KMS_KEY};
-            }
-            return new OpCode[] {OpCode.GET_TABLE};
         }
     }
 

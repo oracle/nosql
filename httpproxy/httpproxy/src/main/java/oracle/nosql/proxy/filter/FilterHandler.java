@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2011, 2025 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011, 2024 Oracle and/or its affiliates. All rights reserved.
  *
  * This file was distributed by Oracle as part of a version of Oracle NoSQL
  * Database made available at:
@@ -26,18 +26,16 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 
+import io.netty.buffer.ByteBuf;
 import io.netty.handler.codec.http.FullHttpResponse;
 import oracle.nosql.common.contextlogger.LogContext;
 import oracle.nosql.common.sklogger.SkLogger;
-import oracle.nosql.proxy.DataServiceHandler.RequestContext;
 import oracle.nosql.proxy.RequestException;
 import oracle.nosql.proxy.protocol.Protocol.OpCode;
 import oracle.nosql.proxy.sc.ListRuleResponse;
 import oracle.nosql.proxy.sc.TenantManager;
 import oracle.nosql.util.filter.Rule;
-import oracle.nosql.util.filter.Rule.ActionType;
 import oracle.nosql.util.filter.Rule.OpType;
-import oracle.nosql.util.filter.Rule.ReturnErrorAction;
 
 /*
  * The class manages rules in memory that contains:
@@ -105,11 +103,11 @@ public class FilterHandler {
     private final TenantManager tm;
     private final SkLogger logger;
 
-    /* The action handlers */
-    private final Map<ActionType, ActionHandler> actions = new HashMap<>();
+    /* The action handler of ActionType.DROP_REQUEST */
+    private static final DropRequest dropRequest = new DropRequest();
 
     /* The map of OpCode and OpType */
-    private static final Map<OpCode, OpType> opMap = new HashMap<>();
+    private static Map<OpCode, OpType> opMap = new HashMap<>();
     static {
         /* ddl op */
         opMap.put(OpCode.TABLE_REQUEST, OpType.DDL);
@@ -160,13 +158,6 @@ public class FilterHandler {
         /* table usage */
         opMap.put(OpCode.GET_TABLE_USAGE, OpType.READ);
         opMap.put(OpCode.GET_REPLICA_STATS, OpType.READ);
-
-        /* configuration operations */
-        opMap.put(OpCode.GET_CONFIGURATION, OpType.CONFIG_READ);
-        opMap.put(OpCode.GET_CONFIG_KMS_KEY, OpType.CONFIG_READ);
-        opMap.put(OpCode.UPDATE_CONFIGURATION, OpType.CONFIG_UPDATE);
-        opMap.put(OpCode.UPDATE_CONFIG_KMS_KEY, OpType.CONFIG_UPDATE);
-        opMap.put(OpCode.REMOVE_CONFIG_KMS_KEY, OpType.CONFIG_UPDATE);
     }
 
     public FilterHandler(TenantManager tm,
@@ -182,8 +173,6 @@ public class FilterHandler {
         this.tm = tm;
         this.logger = logger;
 
-        initActionHandlers();
-
         if (pullIntervalSec > 0) {
             /*
              * Starts a demon thread that pull persistent rules from SC and load
@@ -196,12 +185,6 @@ public class FilterHandler {
             /* Don't start the thread if pullIntervalSec is <= 0 */
             pullThread = null;
         }
-    }
-
-    /* Initialize action handlers */
-    private void initActionHandlers() {
-        actions.put(ActionType.DROP_REQUEST, this::handleDropRequest);
-        actions.put(ActionType.RETURN_ERROR, this::handleReturnError);
     }
 
     /*
@@ -574,14 +557,14 @@ public class FilterHandler {
         throw new IllegalStateException("Operation type not found: " + op);
     }
 
-    /* Handles the request using the action defined by the rule.  */
-    public FullHttpResponse handleRequest(RequestContext rc, Rule rule) {
-        ActionHandler handler = actions.get(rule.getActionType());
-        if (handler != null) {
-            return handler.handleRequest(rc, rule);
+    /* Returns the action handler of the given rule */
+    public Action getAction(Rule rule) {
+        switch(rule.getAction()) {
+        case DROP_REQUEST:
+            return dropRequest;
         }
         throw new IllegalStateException("Unsupported action type: " +
-                                        rule.getActionType());
+                                        rule.getAction());
     }
 
     private RuleType getType(Rule rule) {
@@ -673,28 +656,25 @@ public class FilterHandler {
     /*
      * Action handler interface
      */
-    public interface ActionHandler {
-        FullHttpResponse handleRequest(RequestContext rc,  Rule rule);
+    public interface Action {
+        FullHttpResponse handleRequest(ByteBuf responseBuffer,
+                                       String requestId,
+                                       LogContext lc);
     }
 
     /*
      * The action handler that simply drops request.
      */
-    private FullHttpResponse handleDropRequest(RequestContext rc, Rule rule) {
-        if (rc != null && rc.bbos != null) {
-            /* release the buffer */
-            rc.bbos.getBuffer().release();
+    private static class DropRequest implements Action {
+        @Override
+        public FullHttpResponse handleRequest(ByteBuf responseBuffer,
+                                              String requestId,
+                                              LogContext lc) {
+            if (responseBuffer != null) {
+                responseBuffer.release();
+            }
+            return null;
         }
-        return null;
-    }
-
-    /*
-     * The action handler that throws the specified error
-     */
-    private FullHttpResponse handleReturnError(RequestContext rc, Rule rule) {
-        ReturnErrorAction action = (ReturnErrorAction)rule.getAction();
-        throw new RequestException(action.getErrorCode(),
-                                   action.getErrorMessage());
     }
 
     /*
@@ -717,21 +697,11 @@ public class FilterHandler {
                         "interval is " + intervalSec + "sec");
             while (true) {
                 PullRulesResult ret = execute(null);
-                boolean rulesChanged = false;
-                if (ret != null) {
-                    if (ret.getNumLoaded() > 0 || ret.getNumDeleted() > 0) {
-                        logger.info("[Filter] Reload persistent rules: " + ret);
-                        rulesChanged = true;
-                    } else {
-                        logger.fine("[Filter] Reload persistent rules: " + ret);
-                    }
+                if (ret.getNumLoaded() > 0 || ret.getNumDeleted() > 0) {
+                    logger.info("[Filter] Reload persistent rules: " + ret);
+                } else {
+                    logger.fine("[Filter] Reload persistent rules: " + ret);
                 }
-
-                if (rulesChanged ||
-                    rules.values().stream().anyMatch(sub -> !sub.isEmpty())) {
-                    logger.info("[Filter] Rules: " + rules);
-                }
-
                 try {
                     Thread.sleep(intervalSec * 1000);
                 } catch (InterruptedException e) {
@@ -751,33 +721,27 @@ public class FilterHandler {
                     prules = getPersistentRules(null);
                     if (retries > 0) {
                         logger.info(
-                            "[Filter] Get persisted rules successfully after " +
-                            retries + " retries", lc);
+                            "[Filter] List persist rules successfully after " +
+                            retries + " retry", lc);
                     }
                     break;
                 } catch (RuntimeException ex) {
-                    if (retries < MAX_RETRIES) {
-                        logger.info(
-                            "[Filter] Failed to get persisted rules on retry " +
-                            retries + ": " + ex.getMessage(), lc);
+                    if (retries++ < MAX_RETRIES) {
+                        logger.warning(
+                            "[Filter] Failed to list persist rules, retry=" +
+                            retries + ", error=" + ex.getMessage(), lc);
                         try {
                             Thread.sleep(DELAY_MS);
                         } catch (InterruptedException ignored) {
                             /* do nothing */
                         }
-                        retries++;
                         continue;
                     }
-                    logger.warning("[Filter] Failed to get persisted rules " +
-                        "after " + retries + " retries, will retry in " +
-                        intervalSec + " seconds: " + ex.getMessage(), lc);
-                    break;
+                    logger.warning("[Filter] Failed to list persist rules " +
+                        "after retry " + retries + " times : " +
+                        ex.getMessage(), lc);
+                    throw ex;
                 }
-            }
-
-            if (prules == null) {
-                /* Unable to get persist rules, will retry */
-                return null;
             }
 
             int numDel = 0;

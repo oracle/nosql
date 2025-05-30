@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2011, 2025 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011, 2024 Oracle and/or its affiliates. All rights reserved.
  *
  * This file was distributed by Oracle as part of a version of Oracle NoSQL
  * Database made available at:
@@ -97,17 +97,6 @@ public class Config {
         new ParamDef("httpPort", "80", ParamType.INT, ParamContext.ALL);
     public static ParamDef HTTPS_PORT =
         new ParamDef("httpsPort", "443", ParamType.INT, ParamContext.ALL);
-
-    /*
-     * This is used to size the number of Netty threads used to handle incoming
-     * requests from the network. If REQUEST_THREAD_POOL_SIZE is 0 these threads
-     * will also be used to handle the requests through sending the request
-     * to KV. In this case the number should be relatively high in order to
-     * keep up with traffic. If REQUEST_THREAD_POOL_SIZE is non-zero
-     * requests are handled using a separate pool. If that is the case this
-     * number can be smaller. If 0 Netty defaults to 2 * nCPUs (maybe 3x,
-     * depending on netty release)
-     */
     public static ParamDef NUM_REQUEST_THREADS =
         new ParamDef("numRequestThreads", "32", ParamType.INT,
                      ParamContext.ALL);
@@ -118,20 +107,6 @@ public class Config {
     public static ParamDef MONITOR_STATS_ENABLED =
         new ParamDef("monitorStatsEnabled", "false",
                      ParamType.BOOL, ParamContext.ALL);
-    /*
-     * Set to non-zero to use a thread pool separate from Netty for handling
-     * requests. The pool is sized based on this parameter
-     */
-    public static ParamDef REQUEST_THREAD_POOL_SIZE =
-        new ParamDef("requestThreadPoolSize", "0", ParamType.INT, ParamContext.ALL);
-    /*
-     * Set to non-zero to use a thread pool to handle async responses from
-     * KV client calls rather than using the KV threads themselves. This
-     * parameter is only used if ASYNC is true
-     */
-    public static ParamDef KV_THREAD_POOL_SIZE =
-        new ParamDef("kvThreadPoolSize", "0",
-                     ParamType.INT, ParamContext.ALL);
 
     /**  Wallet file that holds the salt value for the query cache */
     public static ParamDef SALT_WALLET =
@@ -325,7 +300,6 @@ public class Config {
      *  errorCacheSize: Maximum number of unique IP addresses to track
      *  error rates for.
      */
-    @Deprecated
     public static ParamDef ERROR_CACHE_SIZE =
             new ParamDef("errorCacheSize", "10000",
                          ParamType.INT, ParamContext.CLOUD);
@@ -431,14 +405,6 @@ public class Config {
      */
     public static ParamDef CHILD_TABLE_ENABLED =
             new ParamDef("childTableEnabled", "true",
-                         ParamType.BOOL, ParamContext.CLOUD);
-
-    /**
-     * Cloud only: true if enabled customer managed encryption key(CMEK), it is
-     * disabled by default.
-     */
-    public static ParamDef CMEK_ENABLED =
-            new ParamDef("cmekEnabled", "false",
                          ParamType.BOOL, ParamContext.CLOUD);
 
     /* ------- End params ---------*/
@@ -844,6 +810,7 @@ public class Config {
                               Integer.toString(numRequestThreads));
     }
 
+
     public int getNumAcceptThreads() {
         return getInt(NUM_ACCEPT_THREADS);
     }
@@ -851,24 +818,6 @@ public class Config {
     public void setNumAcceptThreads(int numThreads) {
         paramVals.setProperty(NUM_ACCEPT_THREADS.paramName,
                               Integer.toString(numThreads));
-    }
-
-    public int getRequestThreadPoolSize() {
-        return getInt(REQUEST_THREAD_POOL_SIZE);
-    }
-
-    public void setRequestThreadPoolSize(int size) {
-        paramVals.setProperty(REQUEST_THREAD_POOL_SIZE.paramName,
-                              Integer.toString(size));
-    }
-
-    public int getKVThreadPoolSize() {
-        return getInt(KV_THREAD_POOL_SIZE);
-    }
-
-    public void setKVThreadPoolSize(int size) {
-        paramVals.setProperty(KV_THREAD_POOL_SIZE.paramName,
-                              Integer.toString(size));
     }
 
     public String getHostname() {
@@ -1075,6 +1024,10 @@ public class Config {
         return getInt(ERROR_CREDIT_MS);
     }
 
+    public int getErrorCacheSize() {
+        return getInt(ERROR_CACHE_SIZE);
+    }
+
     public int getErrorCacheLifetimeMs() {
         return getInt(ERROR_CACHE_LIFETIME_MS);
     }
@@ -1125,10 +1078,6 @@ public class Config {
 
     public int getTableCacheCheckIntervalSec() {
         return getInt(TABLE_CACHE_CHECK_INTERVAL_SEC);
-    }
-
-    public boolean isCmekEnabled() {
-        return getBool(CMEK_ENABLED);
     }
 
     /* Helpers to convert a String property value to a type */
@@ -1219,8 +1168,7 @@ public class Config {
          */
         int requestLimit = getInt(KV_REQUEST_LIMIT);
         if (requestLimit < 0 || getAsync() == false) {
-            requestLimit = Math.max(getNumRequestThreads(),
-                                    getRequestThreadPoolSize());
+            requestLimit = getNumRequestThreads();
         }
         if (requestLimit > RequestLimitConfig.DEFAULT_MAX_ACTIVE_REQUESTS) {
             kvConfig.setRequestLimit(

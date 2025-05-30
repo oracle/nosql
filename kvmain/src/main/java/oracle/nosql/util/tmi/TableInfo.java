@@ -147,9 +147,6 @@ public class TableInfo {
     /* schema state */
     private SchemaState schemaState;
 
-    /* The flag indicates if use FORCE in freezing table schema in ddl */
-    private boolean freezeForce;
-
     /*
      * MR table information
      */
@@ -559,14 +556,6 @@ public class TableInfo {
 
     public SchemaState getSchemaState() {
         return schemaState;
-    }
-
-    public void setFreezeForce(boolean value) {
-        freezeForce = value;
-    }
-
-    public boolean getFreezeForce() {
-        return freezeForce;
     }
 
     public boolean isFrozen() {

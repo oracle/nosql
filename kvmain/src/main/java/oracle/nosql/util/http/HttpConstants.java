@@ -304,9 +304,6 @@ public class HttpConstants {
      * Used for WorkRequest related APIs
      */
     public static final String WORK_REQUEST_ID = "workRequestId";
-    public static final String WORK_REQUEST_TYPE = "type";
-    public static final String WORK_REQUEST_DDL = "ddl";
-    public static final String WORK_REQUEST_KMSKEY = "kmskey";
 
     /**
      * Used for Backfill to RQS API

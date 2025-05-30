@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2011, 2025 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011, 2024 Oracle and/or its affiliates. All rights reserved.
  *
  * This file was distributed by Oracle as part of a version of Oracle NoSQL
  * Database made available at:
@@ -139,6 +139,7 @@ import oracle.nosql.proxy.MonitorStats.OperationType;
 import oracle.nosql.proxy.audit.ProxyAuditContextBuilder;
 import oracle.nosql.proxy.audit.ProxyAuditManager;
 import oracle.nosql.proxy.filter.FilterHandler;
+import oracle.nosql.proxy.filter.FilterHandler.Action;
 import oracle.nosql.proxy.filter.FilterHandler.Filter;
 import oracle.nosql.proxy.protocol.ByteInputStream;
 import oracle.nosql.proxy.protocol.ByteOutputStream;
@@ -345,11 +346,15 @@ public abstract class DataServiceHandler implements Filter {
     }
 
     /*
-     * Returns the block all rule.
+     * Checks if there is a block-all rule and return its action handler if
+     * exists.
      */
-    protected Rule getBlockAll(LogContext lc) {
+    protected Action checkBlockAll(LogContext lc) {
         if (filter != null) {
-            return filter.getFilterAllRule();
+            Rule rule = filter.getFilterAllRule();
+            if (rule != null) {
+                return filter.getAction(rule);
+            }
         }
         return null;
     }
@@ -407,9 +412,13 @@ public abstract class DataServiceHandler implements Filter {
      * in the given FilterRequestException.
      */
     protected FullHttpResponse handleFilterRequest(FilterRequestException fre,
-                                                   RequestContext rc) {
+                                                   String requestId,
+                                                   LogContext lc) {
         if (filter != null) {
-            return filter.handleRequest(rc, fre.getRule());
+            final Rule rule = fre.getRule();
+            return filter.getAction(rule).handleRequest(null,
+                                                        requestId,
+                                                        lc);
         }
         return null;
     }
@@ -496,7 +505,7 @@ public abstract class DataServiceHandler implements Filter {
                                                byte traceLevel,
                                                LogContext lc) {
 
-        return doQuery(store, pstmt, variables, execOpts, null, null,
+        return doQuery(store, pstmt, variables, execOpts, -1 /* shardId */,
                        traceLevel, lc);
     }
 
@@ -520,15 +529,13 @@ public abstract class DataServiceHandler implements Filter {
         return bs;
     }
 
-    protected QueryStatementResultImpl doQuery(
-        KVStoreImpl store,
-        PreparedStatement pstmt,
-        Map<String, FieldValue> variables,
-        ExecuteOptions execOpts,
-        Set<RepGroupId> shards,
-        Set<Integer> partitions,
-        byte traceLevel,
-        LogContext lc) {
+    protected QueryStatementResultImpl doQuery(KVStoreImpl store,
+                                               PreparedStatement pstmt,
+                                               Map<String, FieldValue> variables,
+                                               ExecuteOptions execOpts,
+                                               int shardId,
+                                               byte traceLevel,
+                                               LogContext lc) {
 
         QueryStatementResultImpl qres = null;
 
@@ -536,39 +543,38 @@ public abstract class DataServiceHandler implements Filter {
             pstmt = bindVariables(pstmt, variables, traceLevel, lc);
         }
 
-        if (shards == null && partitions == null) {
+        if (shardId == -1) {
             qres = (QueryStatementResultImpl)store.executeSync(pstmt, execOpts);
-        } else if (shards != null) {
+        } else {
+            /* Execute the query only at the specified shard */
+            RepGroupId rgid = new RepGroupId(shardId);
+            Set<RepGroupId> shards = new HashSet<RepGroupId>(1);
+            shards.add(rgid);
             if (traceLevel >= 2) {
-                trace("Executing query on shards " + shards, lc);
+                trace("Executing query on shard " + shardId, lc);
             }
             qres = (QueryStatementResultImpl)
                    store.executeSyncShards(pstmt, execOpts, shards);
-        } else {
-            if (traceLevel >= 2) {
-                trace("Executing query on partitions " + partitions, lc);
-            }
-            /* there is no KVStoreImpl API for direct execution */
-            qres = (QueryStatementResultImpl) ((PreparedStatementImpl) pstmt).
-                executeSyncPartitions((KVStoreImpl)store, execOpts, partitions);
         }
 
         return qres;
     }
 
-    /*
-     * Note: the partitions parameter is not used but is in preparation
-     * for the addition of an async kv call that handles a partition set
-     */
     protected Publisher<RecordValue> doAsyncQuery(
         KVStoreImpl store,
         PreparedStatement pstmt,
         Map<String, FieldValue> variables,
         ExecuteOptions execOpts,
-        Set<RepGroupId> shards,
-        Set<Integer> partitions, /* FUTURE */
+        int shardId,
         byte traceLevel,
         LogContext lc) {
+
+        /* FUTURE: Set<Integer> partitions = null; */
+        Set<RepGroupId> shards = null;
+        if (shardId >= 0) { // TODO: is zero valid?
+            shards = new HashSet<RepGroupId>(1);
+            shards.add(new RepGroupId(shardId));
+        }
 
         try {
             if (variables != null) {
@@ -2413,10 +2419,7 @@ public abstract class DataServiceHandler implements Filter {
             lc.setId(requestId);
             driverProto = DriverProto.REST;
 
-            /* REST only uses the output buffer */
-            resetOutputBuffer();
-
-            /* TODO: timeout, preferThrottling */
+            /* TODO: timeout, buffers, preferThrottling */
         }
 
         /**
@@ -2613,27 +2616,18 @@ public abstract class DataServiceHandler implements Filter {
          */
         public void resetBuffers() {
             resetInputBuffer();
-            resetOutputBuffer();
+            if (bbos == null) {
+                ByteBuf resp = ctx.alloc().directBuffer(RESPONSE_BUFFER_SIZE);
+                bbos = new ByteOutputStream(resp);
+            }
+            bbos.buffer().writerIndex(0);
         }
 
         /**
          * Reset input buffer.
          */
         public void resetInputBuffer() {
-            if (bbis != null) {
-                bbis.buffer().readerIndex(inputOffset);
-            }
-        }
-
-        /**
-         * Reset output buffer.
-         */
-        public void resetOutputBuffer() {
-            if (bbos == null) {
-                ByteBuf resp = ctx.alloc().directBuffer(RESPONSE_BUFFER_SIZE);
-                bbos = new ByteOutputStream(resp);
-            }
-            bbos.buffer().writerIndex(0);
+            bbis.buffer().readerIndex(inputOffset);
         }
 
         /**

@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2011, 2025 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011, 2024 Oracle and/or its affiliates. All rights reserved.
  *
  * This file was distributed by Oracle as part of a version of Oracle NoSQL
  * Database made available at:
@@ -15,42 +15,38 @@ package oracle.nosql.proxy.sc;
 
 import oracle.nosql.common.json.JsonUtils;
 import oracle.nosql.util.fault.ErrorResponse;
-import oracle.nosql.util.tmi.WorkRequest;
+import oracle.nosql.util.tmi.DdlHistoryEntry;
 
 /**
  * Response to a TenantManager listWorkRequests operation.
  */
 public class ListWorkRequestResponse extends CommonResponse {
-   private final WorkRequest[] workRequests;
-   private final String nextPageToken;
+   private final DdlHistoryEntry[] workRequestInfos;
+   private final int lastIndexReturned;
 
    public ListWorkRequestResponse(int httpResponse,
-                                  WorkRequest[] workRequests,
-                                  String nextPageToken) {
+                                  DdlHistoryEntry[] workRequestInfos,
+                                  int lastIndexReturned) {
        super(httpResponse);
-       this.workRequests = workRequests;
-       this.nextPageToken = nextPageToken;
+       this.workRequestInfos = workRequestInfos;
+       this.lastIndexReturned = lastIndexReturned;
    }
 
    public ListWorkRequestResponse(ErrorResponse err) {
        super(err);
-       workRequests = null;
-       nextPageToken = null;
+       workRequestInfos = null;
+       lastIndexReturned = 0;
    }
 
    /**
-    * Returns an array of WorkRequest, or null on failure
+    * Returns a list of DdlHistoryEntry, or null on failure
     */
-   public WorkRequest[] getWorkRequests() {
-       return workRequests;
+   public DdlHistoryEntry[] getWorkRequestInfos() {
+       return workRequestInfos;
    }
 
-   /**
-    * Returns the starting point for retrieving next batch of results, or null
-    * on failure
-    */
-   public String getNextPageToken() {
-       return nextPageToken;
+   public int getLastIndexReturned() {
+       return lastIndexReturned;
    }
 
    /**
@@ -64,10 +60,8 @@ public class ListWorkRequestResponse extends CommonResponse {
        try {
            StringBuilder sb = new StringBuilder();
            sb.append("{\"workRequests\": ");
-           sb.append(JsonUtils.prettyPrint(workRequests)).append(",");
-           sb.append("\"nextPageToken\": ")
-             .append(nextPageToken)
-             .append("}");
+           sb.append(JsonUtils.prettyPrint(workRequestInfos)).append(",");
+           sb.append("\"lastIndex\": ").append(lastIndexReturned).append("}");
            return sb.toString();
        } catch (IllegalArgumentException iae) {
            return ("Error serializing payload: " + iae.getMessage());
@@ -77,18 +71,18 @@ public class ListWorkRequestResponse extends CommonResponse {
    @Override
    public String toString() {
        StringBuilder sb = new StringBuilder();
-       sb.append("ListWorkRequestResponse [workRequests=[");
-       if (workRequests != null) {
-           for (int i = 0; i < workRequests.length; i++) {
-               sb.append(workRequests[i].toString());
-               if (i < (workRequests.length - 1)) {
+       sb.append("ListWorkRequestResponse [tableInfos=[");
+       if (workRequestInfos == null) {
+           sb.append("null");
+       } else {
+           for (int i = 0; i < workRequestInfos.length; i++) {
+               sb.append(workRequestInfos[i].toString());
+               if (i < (workRequestInfos.length - 1)) {
                    sb.append(",");
                }
            }
        }
-       sb.append("], nextPageToken=")
-         .append(nextPageToken)
-         .append("]");
+       sb.append("]]");
        return sb.toString();
    }
 }

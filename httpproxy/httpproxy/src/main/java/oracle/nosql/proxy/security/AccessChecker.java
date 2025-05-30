@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2011, 2025 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011, 2024 Oracle and/or its affiliates. All rights reserved.
  *
  * This file was distributed by Oracle as part of a version of Oracle NoSQL
  * Database made available at:
@@ -125,19 +125,6 @@ public interface AccessChecker {
      * @param requestUri request URI
      * @param httpHeaders HTTP headers
      * @param opCode a work request operation code
-     * @param authorizeOps the sub operations to be authorized. If not provided,
-     * check the authorization of {@code opCode}. The sub operations must be
-     * valid sub operation of {@code opCode}.
-     * @param shouldAuthorizeAllOps set to true if requires all the sub
-     * operations specified in authorizeOps must be authorized, if any of
-     * sub operations is not authorized,
-     * {@link BinaryProtocol#INSUFFICIENT_PERMISSION} error will be returned.
-     * If false, the authorized sub operations will be returned with
-     * {@link AccessContext#getAuthorizedOps}, if none of sub operations is
-     * authorized, {@link BinaryProtocol#INSUFFICIENT_PERMISSION} error will
-     * be returned.
-     * This flag will be ignored when {@code authorizeOps} is not provided, in
-     * which case {@code opCode} will always be checked for authorization.
      * @param compartmentId compartmentId
      * @param workRequestId work request id
      * @param payload the request payload
@@ -158,8 +145,6 @@ public interface AccessChecker {
         String uri,
         HttpHeaders headers,
         OpCode opCode,
-        @Nullable OpCode[] authorizeOps,
-        boolean shouldAuthorizeAllOps,
         @Nullable String compartmentId,
         @Nullable String workRequestId,
         @Nullable byte[] payload,
@@ -167,51 +152,6 @@ public interface AccessChecker {
         LogContext lc)
         throws RequestException {
 
-        return null;
-    }
-
-    /**
-     * Given HTTP method, headers and paylod extracted from a HTTP request,
-     * checks that the invocation of the configuration operation is valid.
-     * This method should be called before the actual operation execution. The
-     * implementation must be re-entrant. This method also must return the check
-     * results immediately without throwing a retryable exception.
-     *
-     * @param httpMethod HTTP method
-     * @param requestUri request URI
-     * @param httpHeaders HTTP headers
-     * @param opCode a work request operation code
-     * @param authorizeOps the sub operations to be authorized. If not provided,
-     * check the authorization of {@code opCode}. The sub operations must be
-     * valid sub operations of {@code opCode}. If any of sub operations is not
-     * authorized, {@link BinaryProtocol#INSUFFICIENT_PERMISSION} error will
-     * be returned.
-     * @param compartmentId compartmentId
-     * @param payload the request payload
-     * @param filter the filter interface to block request if needed
-     * @param lc the log context object
-     * @return AccessContext the object contains requesting subject information,
-     * which contains tenant id, principal id and permissions associated.
-     * @throws RequestException the errors occurred during access checking.
-     * All errors are thrown as this type of exception but may with different
-     * error code.<p>
-     * <li>{@link BinaryProtocol#INVALID_AUTHORIZATION} that indicates
-     * authorization header is invalid cannot be verified.
-     * </li><li>
-     * {@link BinaryProtocol#INSUFFICIENT_PERMISSION} indicates authorization
-     * header is valid but the caller subject doesn't have the permission to
-     * perform the operation.</li><li>
-     */
-    public default AccessContext checkConfigurationAccess(
-            HttpMethod httpMethod,
-            String uri,
-            HttpHeaders headers,
-            OpCode opCode,
-            @Nullable OpCode[] authorizeOps,
-            String compartmentId,
-            @Nullable byte[] payload,
-            Filter filter,
-            LogContext lc) {
         return null;
     }
 
