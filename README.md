@@ -100,6 +100,7 @@ There are a few ways to get help or report issues:
 
 - Open an issue in the [Issues](./issues) page.
 - Post your question on the [Oracle NoSQL Database Community](https://forums.oracle.com/ords/apexds/domain/dev-community/category/nosql_database?tags=nosql-database-discussions).
+- Please send email to: [NoSQL help mailbox](mailto:nosql_mb@oracle.com)
 
 When requesting help please be sure to include as much detail as possible,
 including version of the SDK and **simple**, standalone example code as needed.
