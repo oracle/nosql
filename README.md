@@ -94,6 +94,13 @@ mvn -P it.kvtif verify
 > If you need to run both kvclient and kvquery tests, use:
 > `mvn -P it.kvclient,it.kvquery verify`
 
+## Documentation
+
+General documentation about the Oracle NoSQL Database and the Oracle NoSQL Database Cloud Service can be found in these locations:
+
+* [Oracle NoSQL Database Cloud Service](https://docs.oracle.com/en/cloud/paas/nosql-cloud/nosql_dev.html)
+* [Oracle NoSQL Database On Premise](https://docs.oracle.com/en/database/other-databases/nosql-database/)
+
 ## Help
 
 There are a few ways to get help or report issues:
@@ -107,7 +114,7 @@ including version of the SDK and **simple**, standalone example code as needed.
 
 ## Changes
 
-See the [Changelog](./CHANGELOG.html).
+See the [Changelog](./CHANGELOG.md).
 
 ## Contributing
 
