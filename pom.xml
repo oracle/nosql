@@ -181,7 +181,7 @@
     <qtf.version>1.0.0</qtf.version>
     <oci.sdk.version>2.49.1</oci.sdk.version>
     <jetestutil.version>19.2.1</jetestutil.version>
-    <kerby.version>2.0.0</kerby.version>
+    <kerby.version>2.1.0</kerby.version>
     <ycsb.version>0.1X.20181216</ycsb.version>
 
     <!-- Make it easier to run single test from project root folder -->
