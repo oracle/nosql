@@ -14,7 +14,7 @@ running on Gen 2 Oracle Cloud Infrastructure hardware.
 ## Prerequisites
 
 - Java SE 11 or later installed on all Storage Nodes
-  - Download and install a [Java](https://www.oracle.com/java/technologies/javase/jdk11-archive-downloads.html)
+  - Download and install a [Java](https://www.oracle.com/java/technologies/downloads/)
   binary release suitable for your system. See the install and setup
   instructions on that page.
 - Maven 3.5.0 or later for build
@@ -98,14 +98,55 @@ mvn -P it.kvtif verify
 
 General documentation about the Oracle NoSQL Database and the Oracle NoSQL Database Cloud Service can be found in these locations:
 
-* [Oracle NoSQL Database Cloud Service](https://docs.oracle.com/en/cloud/paas/nosql-cloud/nosql_dev.html)
+* [Oracle NoSQL Database Cloud Service](https://docs.oracle.com/en/cloud/paas/nosql-cloud/)
 * [Oracle NoSQL Database On Premise](https://docs.oracle.com/en/database/other-databases/nosql-database/)
+
+## Oracle NoSQL SDK
+
+The Oracle NoSQL SDK drivers provide interfaces, documentation, and examples to help develop applications that connect to 
+the Oracle NoSQL Database Cloud Service or Oracle NoSQL Database.
+
+- [Oracle NoSQL SDK for Java](https://github.com/oracle/nosql-java-sdk)
+- [Node.js for Oracle NoSQL Database](https://github.com/oracle/nosql-node-sdk)
+- [.NET SDK for Oracle NoSQL Database](https://github.com/oracle/nosql-dotnet-sdk)
+- [Oracle NoSQL Database Go SDK](https://github.com/oracle/nosql-go-sdk)
+- [Oracle NoSQL Database SDK for Spring Data](https://github.com/oracle/nosql-spring-sdk)
+- [Oracle NoSQL Database Python SDK](https://github.com/oracle/nosql-python-sdk)
+- [Oracle NoSQL Database Rust SDK](https://github.com/oracle/nosql-rust-sdk)
+
+## Oracle NoSQL Plugins
+
+Oracle NoSQL Database Plugins enhances your experience of building an application:
+- [Oracle NoSQL Database IntelliJ Plugin](https://github.com/oracle/nosql-intellij-plugin). The Intellij plugins is hosted in GitHub.
+- [Oracle NoSQL Database Visual Studio Plugin](https://marketplace.visualstudio.com/items?itemName=Oracle.nosql-vscode). The Visual Studio Marketplace hosts a Visual Studios plugin for NoSQL
+
+You can use Oracle NoSQL Database plugins to:
+- View the tables in a well-defined tree structure with Table Explorer.
+- View information on columns, indexes, primary key(s), and shard key(s) for a table.
+- Create tables using form-based schema entry or supply DDL statements.
+- Create Indexes.
+- Execute SELECT SQL queries on a table and view query results in tabular format.
+- Execute DML statements to update, insert, and delete data from a table.
+- and much more
+
+## Container image on GitHub repository
+This [GitHub repository](https://github.com/oracle/docker-images/tree/main/NoSQL) contains Dockerfiles, documentation and samples to build container images for Oracle NoSQL.
+
+**Highlights**
+
+1. This container image can be used by application developers who need to develop and unit test their Oracle NoSQL Database applications.
+2. Behind the scene, we are using KVlite, and I added HTTP Proxy support
+3. This container image was built on Community Edition and published in GitHub Container Registry.
+4. Users can clone this repository and build their image or pull the image directly from the GitHub Container Registry
+5. There are 2 container images available, one using a secure configuration and one using a non-secure configuration
+
+
 
 ## Help
 
 There are a few ways to get help or report issues:
 
-- Open an issue in the [Issues](./issues) page.
+- Open an issue in the [Issues](https://github.com/oracle/nosql-community-edition/issues) page or start a [Discussion](https://github.com/oracle/nosql-community-edition/discussions).
 - Post your question on the [Oracle NoSQL Database Community](https://forums.oracle.com/ords/apexds/domain/dev-community/category/nosql_database?tags=nosql-database-discussions).
 - Please send email to: [NoSQL help mailbox](mailto:nosql_mb@oracle.com)
 
@@ -128,7 +169,7 @@ security vulnerability disclosure process
 
 ## License
 
-Copyright (C) 2024, 2025 Oracle and/or its affiliates. All rights reserved.
+Copyright (C) 2011, 2025 Oracle and/or its affiliates. All rights reserved.
 
-This SDK is licensed under the Apache License 2.0. See
+This software is licensed under the Apache License 2.0. See
 [LICENSE](./LICENSE.txt) for details.
