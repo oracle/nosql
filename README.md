@@ -136,7 +136,7 @@ This [GitHub repository](https://github.com/oracle/docker-images/tree/main/NoSQL
 
 1. This container image can be used by application developers who need to develop and unit test their Oracle NoSQL Database applications.
 2. Behind the scene, we are using KVlite, and I added HTTP Proxy support
-3. This container image was built on Community Edition and published in GitHub Container Registry.
+3. This container image was built on open-source NoSQL and published in GitHub Container Registry.
 4. Users can clone this repository and build their image or pull the image directly from the GitHub Container Registry
 5. There are 2 container images available, one using a secure configuration and one using a non-secure configuration
 
@@ -146,7 +146,7 @@ This [GitHub repository](https://github.com/oracle/docker-images/tree/main/NoSQL
 
 There are a few ways to get help or report issues:
 
-- Open an issue in the [Issues](https://github.com/oracle/nosql-community-edition/issues) page or start a [Discussion](https://github.com/oracle/nosql-community-edition/discussions).
+- Open an issue in the [Issues](https://github.com/oracle/nosql/issues) page or start a [Discussion](https://github.com/oracle/nosql/discussions).
 - Post your question on the [Oracle NoSQL Database Community](https://forums.oracle.com/ords/apexds/domain/dev-community/category/nosql_database?tags=nosql-database-discussions).
 - Please send email to: [NoSQL help mailbox](mailto:nosql_mb@oracle.com)
 
