@@ -33,7 +33,7 @@ The project consists of following modules
   - kvstore-IT (All tests for kvstore, and all TestBase/Util classes, depends
     on kvstore.jar)
   - kvclient-IT (kvclient tests, depends on kvclient and kvstore-IT for compilation)
-  - kvquery-IT (QTF tests, depends on kvstore, kvstore-IT and com.oracle.nosql.common:qtf)
+  - kvquery-IT (QTF tests, depends on kvstore, kvstore-IT)
   - kvdatacheck-IT (Datacheck unit test, depends on kvstore and kvstore-IT)
   - kvtif-IT (Text Index Feeder tests, depends on kvstore-IT)
   - coverage-report (Run jacoco coverage report)
@@ -60,12 +60,13 @@ To build all KV artifacts and copy them with dependencies to a single folder:
 mvn [clean] package
 ```
 
-> [!NOTE] You can find the folder under `packaging/target/`. Above command will
-build and package all modules, but it will skip tests execution by default.
+> [!NOTE]
+> You can find the folder under `packaging/target/`. Above command will build
+> and package all modules, but it will skip tests execution by default.
 
 ## Running Tests
 
-### Running tests for all modules
+### Running tests for all modules in async mode
 
 ```bash
 mvn -fn -PIT verify
@@ -90,21 +91,24 @@ mvn -P it.kvdatacheck verify
 mvn -P it.kvtif verify
 ```
 
-> [!NOTE] It is possible to combine the test profiles.
+> [!TIP]
+> It is possible to combine the test profiles.
 > If you need to run both kvclient and kvquery tests, use:
 > `mvn -P it.kvclient,it.kvquery verify`
 
 ## Documentation
 
-General documentation about the Oracle NoSQL Database and the Oracle NoSQL Database Cloud Service can be found in these locations:
+General documentation about the Oracle NoSQL Database and the Oracle NoSQL
+Database Cloud Service can be found in these locations:
 
-* [Oracle NoSQL Database Cloud Service](https://docs.oracle.com/en/cloud/paas/nosql-cloud/)
-* [Oracle NoSQL Database On Premise](https://docs.oracle.com/en/database/other-databases/nosql-database/)
+- [Oracle NoSQL Database Cloud Service](https://docs.oracle.com/en/cloud/paas/nosql-cloud/)
+- [Oracle NoSQL Database On Premise](https://docs.oracle.com/en/database/other-databases/nosql-database/)
 
 ## Oracle NoSQL SDK
 
-The Oracle NoSQL SDK drivers provide interfaces, documentation, and examples to help develop applications that connect to 
-the Oracle NoSQL Database Cloud Service or Oracle NoSQL Database.
+The Oracle NoSQL SDK drivers provide interfaces, documentation, and examples
+to help develop applications that connect to the Oracle NoSQL Database Cloud
+Service or Oracle NoSQL Database.
 
 - [Oracle NoSQL SDK for Java](https://github.com/oracle/nosql-java-sdk)
 - [Node.js for Oracle NoSQL Database](https://github.com/oracle/nosql-node-sdk)
@@ -117,10 +121,14 @@ the Oracle NoSQL Database Cloud Service or Oracle NoSQL Database.
 ## Oracle NoSQL Plugins
 
 Oracle NoSQL Database Plugins enhances your experience of building an application:
-- [Oracle NoSQL Database IntelliJ Plugin](https://github.com/oracle/nosql-intellij-plugin). The Intellij plugins is hosted in GitHub.
-- [Oracle NoSQL Database Visual Studio Plugin](https://marketplace.visualstudio.com/items?itemName=Oracle.nosql-vscode). The Visual Studio Marketplace hosts a Visual Studios plugin for NoSQL
+
+- [Oracle NoSQL Database IntelliJ Plugin](https://github.com/oracle/nosql-intellij-plugin).
+  The Intellij plugins is hosted in GitHub.
+- [Oracle NoSQL Database Visual Studio Plugin](https://marketplace.visualstudio.com/items?itemName=Oracle.nosql-vscode).
+  The Visual Studio Marketplace hosts a Visual Studios plugin for NoSQL
 
 You can use Oracle NoSQL Database plugins to:
+
 - View the tables in a well-defined tree structure with Table Explorer.
 - View information on columns, indexes, primary key(s), and shard key(s) for a table.
 - Create tables using form-based schema entry or supply DDL statements.
@@ -130,23 +138,29 @@ You can use Oracle NoSQL Database plugins to:
 - and much more
 
 ## Container image on GitHub repository
-This [GitHub repository](https://github.com/oracle/docker-images/tree/main/NoSQL) contains Dockerfiles, documentation and samples to build container images for Oracle NoSQL.
 
-**Highlights**
+This [GitHub repository](https://github.com/oracle/docker-images/tree/main/NoSQL)
+contains Dockerfiles, documentation and samples to build container images for
+Oracle NoSQL.
 
-1. This container image can be used by application developers who need to develop and unit test their Oracle NoSQL Database applications.
+### Highlights
+
+1. This container image can be used by application developers who need to
+   develop and unit test their Oracle NoSQL Database applications.
 2. Behind the scene, we are using KVlite, and I added HTTP Proxy support
-3. This container image was built on open-source NoSQL and published in GitHub Container Registry.
-4. Users can clone this repository and build their image or pull the image directly from the GitHub Container Registry
-5. There are 2 container images available, one using a secure configuration and one using a non-secure configuration
-
-
+3. This container image was built on open-source NoSQL and published in GitHub
+   Container Registry.
+4. Users can clone this repository and build their image or pull the image
+   directly from the GitHub Container Registry
+5. There are 2 container images available, one using a secure configuration
+   and one using a non-secure configuration
 
 ## Help
 
 There are a few ways to get help or report issues:
 
-- Open an issue in the [Issues](https://github.com/oracle/nosql/issues) page or start a [Discussion](https://github.com/oracle/nosql/discussions).
+- Open an issue in the [Issues](https://github.com/oracle/nosql/issues) page
+  or start a [Discussion](https://github.com/oracle/nosql/discussions).
 - Post your question on the [Oracle NoSQL Database Community](https://forums.oracle.com/ords/apexds/domain/dev-community/category/nosql_database?tags=nosql-database-discussions).
 - Please send email to: [NoSQL help mailbox](mailto:nosql_mb@oracle.com)
 
