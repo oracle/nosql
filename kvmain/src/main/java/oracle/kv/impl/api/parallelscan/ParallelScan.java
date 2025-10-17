@@ -255,6 +255,7 @@ public class ParallelScan {
                         entry.getValue(),
                         entry.getVersion(),
                         entry.getExpirationTime(),
+                        entry.getCreationTime(),
                         entry.getModificationTime()));
                 }
             }

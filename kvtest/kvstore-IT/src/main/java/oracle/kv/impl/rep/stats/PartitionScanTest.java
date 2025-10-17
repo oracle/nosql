@@ -189,7 +189,9 @@ public class PartitionScanTest extends RepNodeTestBase {
                     null,
                     table.getShardKey(),
                     table.getFieldMap(),
-                    null, null,
+                    null,
+                    null, /*beforeImageTTL*/
+                    null,
                     false,  0, null, null/* owner */,
                     true /* sysTable */,
                     null /* identity col */,

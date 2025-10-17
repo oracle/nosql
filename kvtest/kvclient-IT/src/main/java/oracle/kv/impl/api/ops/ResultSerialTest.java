@@ -51,18 +51,21 @@ public class ResultSerialTest extends TestBase {
         new ResultValueVersion(VALUE_BYTES,
                                VERSION,
                                3 /* expirationTime */,
+                               0 /* creationTime */,
                                0 /* modificationTime */,
                                -1 /* storageSize */);
     private static final ResultValueVersion RESULT_VALUE_VERSION_MOD =
         new ResultValueVersion(VALUE_BYTES,
                                VERSION,
                                3 /* expirationTime */,
+                               0 /* creationTime */,
                                4 /* modificationTime */,
                                -1 /* storageSize */);
     private static final ResultValueVersion RESULT_VALUE_VERSION_STORAGE =
         new ResultValueVersion(VALUE_BYTES,
                                VERSION,
                                3 /* expirationTime */,
+                               0 /* creationTime */,
                                4 /* modificationTime */,
                                5 /* storageSize */);
     private static final ResultKeyValueVersion RESULT_KEY_VALUE_VERSION_EXP =
@@ -70,6 +73,7 @@ public class ResultSerialTest extends TestBase {
                                   VALUE_BYTES,
                                   VERSION,
                                   3 /* expirationTime */,
+                                  0 /* creationTime */,
                                   0 /* modificationTime */,
                                   false /* isTombstone */);
     private static final ResultKeyValueVersion RESULT_KEY_VALUE_VERSION_MOD =
@@ -77,6 +81,7 @@ public class ResultSerialTest extends TestBase {
                                   VALUE_BYTES,
                                   VERSION,
                                   3 /* expirationTime */,
+                                  0 /* creationTime */,
                                   4 /* modificationTime */,
                                   false /* isTombstone */);
     private static final ResultKeyValueVersion RESULT_KEY_VALUE_VERSION_TB =
@@ -84,6 +89,7 @@ public class ResultSerialTest extends TestBase {
                                   VALUE_BYTES,
                                   VERSION,
                                   3 /* expirationTime */,
+                                  0 /* creationTime */,
                                   4 /* modificationTime */,
                                   true /* isTombstone */);
     /**
@@ -101,19 +107,22 @@ public class ResultSerialTest extends TestBase {
                               1 /* readKB */,
                               2 /* writeKB */,
                               RESULT_VALUE_VERSION_EXP),
-                SerialVersion.MINIMUM, 0x1c79a005443f68cbL),
+                SerialVersion.MINIMUM, 0x1c79a005443f68cbL,
+                SerialVersion.CREATION_TIME_VER, 0xde540db894a75b62L),
             serialVersionChecker(
                 new GetResult(OpCode.GET,
                               1 /* readKB */,
                               2 /* writeKB */,
                               RESULT_VALUE_VERSION_MOD),
-                SerialVersion.MINIMUM, 0xa6b456f464e3c768L),
+                SerialVersion.MINIMUM, 0xa6b456f464e3c768L,
+                SerialVersion.CREATION_TIME_VER, 0x8364304311a59ecbL),
             serialVersionChecker(
                 new GetResult(OpCode.GET,
                               1 /* readKB */,
                               2 /* writeKB */,
                               RESULT_VALUE_VERSION_STORAGE),
-                SerialVersion.MINIMUM, 0x5512c63d261c2e17L));
+                SerialVersion.MINIMUM, 0x5512c63d261c2e17L,
+                SerialVersion.CREATION_TIME_VER, 0x419284c566f0ab2aL));
     }
 
     @Test
@@ -127,10 +136,12 @@ public class ResultSerialTest extends TestBase {
                               VERSION,
                               10 /* expTime */,
                               false /* wasUpdate */,
+                              0 /* creationTime */,
                               0 /* modificationTime */,
                               -1 /* storageSize */,
                               -1 /* shard */),
-                SerialVersion.MINIMUM, 0x961816f3e524fa7dL),
+                SerialVersion.MINIMUM, 0x961816f3e524fa7dL,
+                SerialVersion.CREATION_TIME_VER, 0xa5db3f0a4ed8585bL),
             serialVersionChecker(
                 new PutResult(OpCode.PUT,
                               1 /* readKB */,
@@ -139,10 +150,12 @@ public class ResultSerialTest extends TestBase {
                               VERSION,
                               10 /* expTime */,
                               false /* wasUpdate */,
+                              0 /* creationTime */,
                               11 /* modificationTime */,
                               -1 /* storageSize */,
                               -1 /* shard */),
-                SerialVersion.MINIMUM, 0x65051cf4a2615e1dL),
+                SerialVersion.MINIMUM, 0x65051cf4a2615e1dL,
+                SerialVersion.CREATION_TIME_VER, 0x31ce10e68f5cdc30L),
             serialVersionChecker(
                 new PutResult(OpCode.PUT,
                               1 /* readKB */,
@@ -151,10 +164,13 @@ public class ResultSerialTest extends TestBase {
                               VERSION,
                               10 /* expTime */,
                               false /* wasUpdate */,
+                              0 /* creationTime */,
                               11 /* modificationTime */,
                               12 /* storageSize */,
                               13 /* shard */),
-                SerialVersion.MINIMUM, 0x4035eb2620422159L));
+                SerialVersion.MINIMUM, 0x4035eb2620422159L,
+                SerialVersion.CREATION_TIME_VER, 0x8c868ff28db608eeL)
+            );
     }
 
     @Test
@@ -166,21 +182,24 @@ public class ResultSerialTest extends TestBase {
                                  2 /* writeKB */,
                                  RESULT_VALUE_VERSION_EXP,
                                  true /* success */),
-                SerialVersion.MINIMUM, 0xd6b58ee93336952dL),
+                SerialVersion.MINIMUM, 0xd6b58ee93336952dL,
+                SerialVersion.CREATION_TIME_VER, 0x8b397364d5e8377bL),
             serialVersionChecker(
                 new DeleteResult(OpCode.DELETE,
                                  1 /* readKB */,
                                  2 /* writeKB */,
                                  RESULT_VALUE_VERSION_MOD,
                                  true /* success */),
-                SerialVersion.MINIMUM, 0x66bbe208857f246dL),
+                SerialVersion.MINIMUM, 0x66bbe208857f246dL,
+                SerialVersion.CREATION_TIME_VER, 0x84a782aa3e15ce8eL),
             serialVersionChecker(
                 new DeleteResult(OpCode.DELETE,
                                  1 /* readKB */,
                                  2 /* writeKB */,
                                  RESULT_VALUE_VERSION_STORAGE,
                                  true /* success */),
-                SerialVersion.MINIMUM, 0x25cb8a869de8fb84L));
+                SerialVersion.MINIMUM, 0x25cb8a869de8fb84L,
+                SerialVersion.CREATION_TIME_VER, 0xec077950c1437c36L));
     }
 
     @Test
@@ -222,7 +241,8 @@ public class ResultSerialTest extends TestBase {
                                          2 /* writeKB */,
                                          RESULT_VALUE_VERSION_EXP,
                                          true /* success */))),
-                SerialVersion.MINIMUM, 0xfbc341b841ec19b0L),
+                SerialVersion.MINIMUM, 0xfbc341b841ec19b0L,
+                SerialVersion.CREATION_TIME_VER, 0x5b203d39eb69f638L),
             serialVersionChecker(
                 new ExecuteResult(
                     OpCode.EXECUTE,
@@ -234,7 +254,8 @@ public class ResultSerialTest extends TestBase {
                                      2 /* writeKB */,
                                      RESULT_VALUE_VERSION_EXP,
                                      false /* success */)),
-                SerialVersion.MINIMUM, 0xdb0549d4ee8b9d3aL));
+                SerialVersion.MINIMUM, 0xdb0549d4ee8b9d3aL,
+                SerialVersion.CREATION_TIME_VER, 0x213d33e8bb48e0c3L));
     }
 
     @Test
@@ -265,7 +286,8 @@ public class ResultSerialTest extends TestBase {
                                   true /* moreElements */),
                 SerialVersion.MINIMUM, 0x748e650ff4aabeeaL,
                 SerialVersion.TABLE_ITERATOR_TOMBSTONES_VER,
-                0x226a94684e4b9475L),
+                0x226a94684e4b9475L,
+                SerialVersion.CREATION_TIME_VER, 0x82ee31160536c72bL),
             serialVersionChecker(
                 new IterateResult(OpCode.STORE_ITERATE,
                                   1 /* readKB */,
@@ -274,7 +296,8 @@ public class ResultSerialTest extends TestBase {
                                   true /* moreElements */),
                 SerialVersion.MINIMUM, 0x967a8e1f86a512bbL,
                 SerialVersion.TABLE_ITERATOR_TOMBSTONES_VER,
-                0x451c2971bf01bc22L),
+                0x451c2971bf01bc22L,
+                SerialVersion.CREATION_TIME_VER, 0xe1239651aed9af8dL),
             serialVersionChecker(
                 new IterateResult(OpCode.STORE_ITERATE,
                                   1 /* readKB */,
@@ -282,7 +305,9 @@ public class ResultSerialTest extends TestBase {
                                   singletonList(RESULT_KEY_VALUE_VERSION_TB),
                                   true /* moreElements */),
                 SerialVersion.TABLE_ITERATOR_TOMBSTONES_VER,
-                0xb430af80b284951fL));
+                0xb430af80b284951fL,
+                SerialVersion.CREATION_TIME_VER,
+                0x6f01f80e490f46b2L));
     }
 
     @Test
@@ -332,11 +357,13 @@ public class ResultSerialTest extends TestBase {
                             VALUE_BYTES,
                             VERSION,
                             3 /* expirationTime */,
+                            0 /* creationTime */,
                             0 /* modificationTime */)),
                     true /* moreElements */),
                 SerialVersion.MINIMUM, 0xfba1899f70ebbb03L,
                 SerialVersion.TABLE_ITERATOR_TOMBSTONES_VER,
-                0xe9d5fdbc25f9656cL),
+                0xe9d5fdbc25f9656cL,
+                SerialVersion.CREATION_TIME_VER, 0xb9e5b3fd47c10af7L),
             serialVersionChecker(
                 new IndexRowsIterateResult(
                     OpCode.INDEX_ITERATE,
@@ -349,11 +376,14 @@ public class ResultSerialTest extends TestBase {
                             VALUE_BYTES,
                             VERSION,
                             3 /* expirationTime */,
+                            0 /* creationTime */,
                             4 /* modificationTime */)),
                     true /* moreElements */),
                 SerialVersion.MINIMUM, 0xe14fa82463ae23d0L,
                 SerialVersion.TABLE_ITERATOR_TOMBSTONES_VER,
-                0xb85aa6567512024aL));
+                0xb85aa6567512024aL,
+                SerialVersion.CREATION_TIME_VER, 0x33829f3f9a4ac107L)
+        );
     }
 
     @Test
@@ -369,7 +399,8 @@ public class ResultSerialTest extends TestBase {
                     3 /* resumeParentKeyIndex */),
                 SerialVersion.MINIMUM, 0x37c53d0c655f61b3L,
                 SerialVersion.TABLE_ITERATOR_TOMBSTONES_VER,
-                0xe6bb01ba5d56a3bdL),
+                0xe6bb01ba5d56a3bdL,
+                SerialVersion.CREATION_TIME_VER, 0xc807b4a234215c05L),
             serialVersionChecker(
                 new BulkGetIterateResult(
                     OpCode.MULTI_GET_BATCH,
@@ -380,7 +411,8 @@ public class ResultSerialTest extends TestBase {
                     3 /* resumeParentKeyIndex */),
                 SerialVersion.MINIMUM, 0x7b10fe7bbe8748ebL,
                 SerialVersion.TABLE_ITERATOR_TOMBSTONES_VER,
-                0xf86b4a12b5d94633L));
+                0xf86b4a12b5d94633L,
+                SerialVersion.CREATION_TIME_VER, 0x9b93f66276b338a7L));
     }
 
     @Test

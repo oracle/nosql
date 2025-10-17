@@ -37,6 +37,7 @@ import oracle.kv.impl.rep.RepNode;
 import oracle.kv.impl.rep.migration.MigrationStreamHandle;
 import oracle.kv.impl.topo.PartitionId;
 import oracle.kv.impl.util.TxnUtil;
+import oracle.kv.table.TimeToLive;
 
 import com.sleepycat.je.Cursor;
 import com.sleepycat.je.Database;
@@ -46,7 +47,6 @@ import com.sleepycat.je.LockMode;
 import com.sleepycat.je.OperationResult;
 import com.sleepycat.je.Transaction;
 import com.sleepycat.je.WriteOptions;
-import com.sleepycat.util.PackedInteger;
 
 /**
  * Server handler for {@link Put}.
@@ -97,6 +97,7 @@ public class PutHandler extends BasicPutHandler<Put> {
         ResultValueVersion prevVal = null;
         long expTime = 0L;
         Version version = null;
+        long creationTime = 0L;
         long modificationTime = 0L;
         int storageSize = -1;
         boolean wasUpdate;
@@ -105,21 +106,25 @@ public class PutHandler extends BasicPutHandler<Put> {
         byte[] valueBytes = op.getValueBytes();
 
         assert (keyBytes != null) && (valueBytes != null);
-        checkTombstoneLength(tombstone, valueBytes.length);
+        checkTombstone(tombstone, valueBytes);
 
         final DatabaseEntry keyEntry = new DatabaseEntry(keyBytes);
         DatabaseEntry dataEntry = valueDatabaseEntry(valueBytes);
 
         OperationResult opres = null;
-        WriteOptions jeOptions;
-        if (tombstone) {
-            jeOptions = makeOption(repnode.getRepNodeParams().getTombstoneTTL(),
-                                   true /* updateTTL */);
-            jeOptions.setTombstone(true);
-        } else {
-            jeOptions = makeOption(op.getTTL(), op.getUpdateTTL());
-        }
 
+        final TimeToLive ttl;
+        final boolean updateTTL;
+        if (tombstone) {
+            ttl = repnode.getRepNodeParams().getTombstoneTTL();
+            updateTTL = true;
+        } else {
+            ttl = op.getTTL();
+            updateTTL = op.getUpdateTTL();
+        }
+        final WriteOptions jeOptions =
+            makeOption(ttl, updateTTL, op.getTableId(), operationHandler,
+                       tombstone);
         jeOptions.setAllQueryIndexes(op.getAllIndexes(), op.getAllIndexIds());
         jeOptions.setIndexesToUpdate(op.getIndexesToUpdate());
 
@@ -150,6 +155,7 @@ public class PutHandler extends BasicPutHandler<Put> {
 
                     version = operationHandler.getVersion(cursor);
                     expTime = opres.getExpirationTime();
+                    creationTime = opres.getCreationTime();
                     modificationTime = opres.getModificationTime();
                     storageSize = getStorageSize(cursor);
                     wasUpdate = false;
@@ -230,6 +236,7 @@ public class PutHandler extends BasicPutHandler<Put> {
 
                     expTime = opres.getExpirationTime();
                     version = operationHandler.getVersion(cursor);
+                    creationTime = opres.getCreationTime();
                     modificationTime = opres.getModificationTime();
                     storageSize = getStorageSize(cursor);
 
@@ -245,6 +252,7 @@ public class PutHandler extends BasicPutHandler<Put> {
                 MigrationStreamHandle.get().addPut(keyEntry,
                                                    dataEntry,
                                                    version.getVLSN(),
+                                                   creationTime,
                                                    modificationTime,
                                                    expTime,
                                                    tombstone);
@@ -256,6 +264,7 @@ public class PutHandler extends BasicPutHandler<Put> {
                                             version,
                                             expTime,
                                             wasUpdate,
+                                            creationTime,
                                             modificationTime,
                                             storageSize,
                                             repnode.getRepNodeId().
@@ -266,11 +275,11 @@ public class PutHandler extends BasicPutHandler<Put> {
         }
     }
 
-    protected static void checkTombstoneLength(boolean tombstone, int length) {
-        /* tombstone layout: FORMAT(1 byte) | REGION_ID(packed int) */
-        if (tombstone && length > (PackedInteger.MAX_LENGTH + 1)) {
+    protected static void checkTombstone(boolean tombstone, byte[] valueBytes) {
+        if (tombstone && !Value.isTombstone(valueBytes)) {
             throw new FaultException("The value for tombstone " +
-                "must be empty. length=" + length, true);
+                "must be empty. length=" +
+                (valueBytes.length - Value.getValueOffset(valueBytes)), true);
         }
     }
 

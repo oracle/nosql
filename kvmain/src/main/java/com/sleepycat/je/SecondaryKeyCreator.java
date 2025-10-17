@@ -124,6 +124,9 @@ public interface SecondaryKeyCreator {
      * or non-null, and the implementation is expected to ignore it; otherwise,
      * this parameter is always non-null.
      *
+     * @param creationTime the creation time of the record. It is
+     * needed only if the secondary index indexes the creation time.
+     *
      * @param modificationTime the last modification time of the record. It is
      * needed only if the secondary index indexes the modification time.
      *
@@ -142,6 +145,7 @@ public interface SecondaryKeyCreator {
     public boolean createSecondaryKey(SecondaryDatabase secondary,
                                       DatabaseEntry key,
                                       DatabaseEntry data,
+                                      long creationTime,
                                       long modificationTime,
                                       long expirationTime,
                                       int storageSize,

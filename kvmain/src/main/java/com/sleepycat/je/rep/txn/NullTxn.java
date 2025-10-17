@@ -68,17 +68,28 @@ public class NullTxn extends MasterTxn {
      * uses it to process its acknowledgments, effectively making it ack
      * processing async.
      */
-    private static TransactionConfig NULL_TXN_CONFIG = new TransactionConfig();
+    private final static TransactionConfig NULL_TXN_CONFIG =
+            new TransactionConfig();
+    private final static TransactionConfig NULL_SYNC_TXN_CONFIG =
+            new TransactionConfig();
 
     static {
        NULL_TXN_CONFIG.
            setDurability(new Durability(SyncPolicy.WRITE_NO_SYNC,
                                         SyncPolicy.WRITE_NO_SYNC,
                                         ReplicaAckPolicy.SIMPLE_MAJORITY));
+        NULL_SYNC_TXN_CONFIG.
+                setDurability(new Durability(SyncPolicy.SYNC,
+                        SyncPolicy.SYNC,
+                        ReplicaAckPolicy.SIMPLE_MAJORITY));
     }
 
     public NullTxn(EnvironmentImpl envImpl) {
-        super(envImpl, NULL_TXN_CONFIG);
+        this(envImpl, false);
+    }
+
+    public NullTxn(EnvironmentImpl envImpl, boolean sync) {
+        super(envImpl, sync ? NULL_SYNC_TXN_CONFIG : NULL_TXN_CONFIG);
     }
 
     @Override

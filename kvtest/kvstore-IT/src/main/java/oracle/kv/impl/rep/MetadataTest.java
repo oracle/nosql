@@ -116,6 +116,7 @@ public class MetadataTest extends RepNodeTestBase {
                     userTable.getShardKey(),
                     userTable.getFieldMap(),
                     null, /* TTL */
+                    null, /*beforeImageTTL*/
                     null, /* limits */
                     false, 0,
                     null,
@@ -173,6 +174,7 @@ public class MetadataTest extends RepNodeTestBase {
                     userTable.getShardKey(),
                     userTable.getFieldMap(),
                     null, /* TTL */
+                    null, /*beforeImageTTL*/
                     null, /* limits */
                     false, 0,
                     null,
@@ -263,6 +265,7 @@ public class MetadataTest extends RepNodeTestBase {
                     userTable.getShardKey(),
                     userTable.getFieldMap(),
                     null,
+                    null, /*beforeImageTTL*/
                     null, /* limits */
                     false, 0,
                     null,
@@ -331,6 +334,7 @@ public class MetadataTest extends RepNodeTestBase {
                            table.getShardKey(),
                            table.getFieldMap(),
                            null,
+                           null, /*beforeImageTTL*/
                            null, /* limits */
                            false, 0,
                            null, null);

@@ -22,6 +22,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import oracle.kv.impl.api.table.IndexImpl.IndexField;
 import oracle.kv.impl.query.shell.output.ResultOutputFactory;
 import oracle.kv.impl.query.shell.output.ResultOutputFactory.OutputMode;
 import oracle.kv.impl.query.shell.output.ResultOutputFactory.ResultOutput;
@@ -43,6 +44,7 @@ public class TabularFormatter {
 
     private final static String FIELD_NAME = "name";
     private final static String FIELD_TTL = "ttl";
+    private final static String FIELD_BEFORE_IMAGE_TTL = "beforeImageTTL";
     private final static String FIELD_OWNER = "owner";
     private final static String FIELD_NAMESPACE = "namespace";
     private final static String FIELD_SYSTABLE = "sysTable";
@@ -64,7 +66,7 @@ public class TabularFormatter {
     private final static String FIELD_TABLE = "table";
     private final static String FIELD_FIELDS = "fields";
     private final static String FIELD_MULTI_KEY = "multiKey";
-    private final static String FIELD_TYPES = "declaredType";
+    private final static String FIELD_TYPES = "fieldType";
     private final static String FIELD_ANNOTATIONS = "annotations";
     private final static String FIELD_PROPERTIES = "properties";
 
@@ -155,6 +157,7 @@ public class TabularFormatter {
         row.put(FIELD_NAMESPACE, emptyIfNull(table.getInternalNamespace()));
         row.put(FIELD_NAME, table.getFullName());
         row.put(FIELD_TTL, emptyIfNull(table.getDefaultTTL()));
+        row.put(FIELD_BEFORE_IMAGE_TTL, emptyIfNull(table.getBeforeImageTTL()));
         row.put(FIELD_OWNER, emptyIfNull(table.getOwner()));
         row.put(FIELD_SYSTABLE, booleanYesNo(table.isSystemTable()));
         row.put(FIELD_JSON_COLLECTION, booleanYesNo(table.isJsonCollection()));
@@ -289,16 +292,22 @@ public class TabularFormatter {
         row.put(FIELD_MULTI_KEY, booleanYesNo(index.isMultiKey()));
 
         ArrayValue av = row.putArray(FIELD_FIELDS);
-        for (String field : index.getFields()) {
+        for (int i = 0; i < index.numFields(); i++) {
+            String field = TableJsonUtils.toExternalIndexField(index, i, true);
             av.add(field);
         }
 
         if (!isTextIndex) {
             av = row.putArray(FIELD_TYPES);
-            if (index.getTypes() != null) {
-                for (Type t : index.getTypes()) {
-                    av.add(emptyIfNull(t));
+            for (int i = 0; i < index.numFields(); i++) {
+                IndexField ifield = index.getIndexPath(i);
+                Type t;
+                if (ifield.getFunction() != null) {
+                    t = ifield.getType().getType();
+                } else {
+                    t = index.getFieldType(i);
                 }
+                av.add(emptyIfNull(t));
             }
         } else {
             av = row.putArray(FIELD_ANNOTATIONS);
@@ -362,6 +371,7 @@ public class TabularFormatter {
         tb.addString(FIELD_NAMESPACE);
         tb.addString(FIELD_NAME);
         tb.addString(FIELD_TTL);
+        tb.addString(FIELD_BEFORE_IMAGE_TTL);
         tb.addString(FIELD_OWNER);
         tb.addString(FIELD_JSON_COLLECTION);
         tb.addString(FIELD_SYSTABLE);

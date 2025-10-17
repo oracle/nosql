@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2011, 2024 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011, 2025 Oracle and/or its affiliates. All rights reserved.
  *
  * This file was distributed by Oracle as part of a version of Oracle NoSQL
  * Database made available at:
@@ -23,7 +23,6 @@ import oracle.nosql.common.sklogger.LongGauge;
 import oracle.nosql.common.sklogger.MetricProcessor;
 import oracle.nosql.common.sklogger.MetricRegistry;
 import oracle.nosql.common.sklogger.PerfQuantile;
-import oracle.nosql.common.sklogger.SizeQuantile;
 import oracle.nosql.common.sklogger.SkLogger;
 
 
@@ -82,7 +81,7 @@ public class MonitorStats {
      * number of currently active worker threads. This is different
      * from number of active requests when running in async mode.
      */
-    private SizeQuantile activeWorkerThreads;
+    private LongGauge activeWorkerThreads;
 
     /*
      * Proxy request operation metrics
@@ -101,8 +100,8 @@ public class MonitorStats {
     /*
      * Proxy data operation charged metrics
      */
-    private SizeQuantile dataResponseReadSize;
-    private SizeQuantile dataResponseWriteSize;
+    private Counter dataResponseReadSize;
+    private Counter dataResponseWriteSize;
 
     /*
      * Proxy kvstore clients metrics
@@ -183,14 +182,14 @@ public class MonitorStats {
         }
 
         activeWorkerThreads =
-            MetricRegistry.getSizeQuantile(ACTIVE_WORKER_THREADS_NAME);
+            MetricRegistry.getLongGauge(ACTIVE_WORKER_THREADS_NAME);
 
         /*
          * Proxy data operation charged metrics
          */
-        dataResponseReadSize = MetricRegistry.getSizeQuantile(
+        dataResponseReadSize = MetricRegistry.getCounter(
             DATA_RESPONSE_READ_SIZE_NAME);
-        dataResponseWriteSize = MetricRegistry.getSizeQuantile(
+        dataResponseWriteSize = MetricRegistry.getCounter(
             DATA_RESPONSE_WRITE_SIZE_NAME);
 
         if (isKVHandleStatsEnabled) {
@@ -260,17 +259,17 @@ public class MonitorStats {
         }
         incrementDriverRequestTotal(dLang, dProto);
         if (readKB > 0) {
-            dataResponseReadSize.observe(readKB);
+            dataResponseReadSize.incrValue(readKB);
         }
         if (writeKB > 0) {
-            dataResponseWriteSize.observe(writeKB);
+            dataResponseWriteSize.incrValue(writeKB);
         }
         trackOpPerf(startTime, dataOpCount, requestLatency,
                     requestServerFailed, opLabelValues);
     }
 
     public void markOpActiveWorkerThreads(int threads) {
-        activeWorkerThreads.observe(threads);
+        activeWorkerThreads.setValue(threads);
     }
 
     /**

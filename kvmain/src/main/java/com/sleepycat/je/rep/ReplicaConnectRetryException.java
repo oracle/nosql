@@ -15,13 +15,46 @@ package com.sleepycat.je.rep;
 
 import com.sleepycat.je.utilint.NotSerializable;
 
+/**
+ * Thrown to indicate that the Replica must retry connecting to the same
+ * master, after some period of time.
+ */
 @SuppressWarnings("serial")
-public class ReplicaConnectRetryException extends ReplicaRetryException
-implements NotSerializable {
+public class ReplicaConnectRetryException extends Exception
+        implements NotSerializable {
+
+    final int nRetries;
+    final int retrySleepMs;
 
     public ReplicaConnectRetryException(String message,
-            int retries,
-            int retrySleepMs) {
-        super(message, retries, retrySleepMs);
+                                 int nRetries,
+                                 int retrySleepMs) {
+        super(message);
+        this.nRetries = nRetries;
+        this.retrySleepMs = retrySleepMs;
+    }
+
+    /**
+     * Get thread sleep time before retry
+     *
+     * @return sleep time in ms
+     */
+    public long getRetrySleepMs() {
+        return retrySleepMs;
+    }
+
+    /**
+     * Get number of nRetries
+     *
+     * @return number of nRetries
+     */
+    public int getNRetries() {
+        return nRetries;
+    }
+
+    @Override
+    public String getMessage() {
+        return "Failed after nRetries: " + nRetries +
+                " with retry interval: " + retrySleepMs + "ms. with message " + super.getMessage();
     }
 }

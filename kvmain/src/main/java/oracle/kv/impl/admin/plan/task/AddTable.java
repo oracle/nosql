@@ -91,6 +91,9 @@ public class AddTable extends UpdateMetadata<TableMetadata> {
 
     private final Map<String, Type> jsonCollectionMRCounters;
 
+    private final int beforeImageTTL;
+    private final TimeUnit beforeImageTTLUnit;
+
     /**
      */
     public AddTable(MetadataPlan<TableMetadata> plan,
@@ -119,6 +122,14 @@ public class AddTable extends UpdateMetadata<TableMetadata> {
             this.ttl = 0;
             this.ttlUnit = null;
         }
+        if (table.getBeforeImageTTL() != null) {
+            this.beforeImageTTL = (int) table.getBeforeImageTTL().getValue();
+            this.beforeImageTTLUnit = table.getBeforeImageTTL().getUnit();
+        } else {
+            this.beforeImageTTL = 0;
+            this.beforeImageTTLUnit = null;
+        }
+
         limits = (parentName == null) ? table.getTableLimits() : null;
         this.fieldMap = table.getFieldMap();
         this.r2compat = table.isR2compatible();
@@ -216,6 +227,11 @@ public class AddTable extends UpdateMetadata<TableMetadata> {
         /* If the table does not exist, add it */
         final TableImpl existing =
                 md.getTable(namespace, tableName, parentName);
+
+        TimeToLive bittl = (beforeImageTTLUnit == null ?
+                            null :
+                            TimeToLive.createTimeToLive(beforeImageTTL,
+                                                        beforeImageTTLUnit));
         if (existing == null) {
             TableImpl table = md.addTable(namespace,
                                           tableName,
@@ -227,6 +243,7 @@ public class AddTable extends UpdateMetadata<TableMetadata> {
                                           (ttlUnit == null) ? null :
                                           TimeToLive.createTimeToLive(ttl,
                                                                       ttlUnit),
+                                          bittl,
                                           limits,
                                           r2compat,
                                           schemaId,

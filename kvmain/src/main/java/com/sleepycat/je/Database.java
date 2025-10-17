@@ -30,6 +30,7 @@ import com.sleepycat.je.dbi.DbTree;
 import com.sleepycat.je.dbi.EnvironmentImpl;
 import com.sleepycat.je.dbi.GetMode;
 import com.sleepycat.je.dbi.SearchMode;
+import com.sleepycat.je.dbi.TTL;
 import com.sleepycat.je.dbi.TriggerManager;
 import com.sleepycat.je.rep.DatabasePreemptedException;
 import com.sleepycat.je.txn.HandleLocker;
@@ -884,6 +885,7 @@ public class Database implements Closeable {
     public void populateSecondaries(final Transaction txn,
                                     final DatabaseEntry key,
                                     final DatabaseEntry data,
+                                    final long creationTime,
                                     final long modificationTime,
                                     final long expirationTime,
                                     final int storageSize,
@@ -918,6 +920,8 @@ public class Database implements Closeable {
                             null /*priCursor*/, key /*priKey*/,
                             null /*oldData*/, data /*newData*/,
                             cacheMode,
+                            creationTime,
+                            0,/*oldCreationTime*/
                             modificationTime,
                             0 /*oldModificationTime*/,
                             expirationTime,
@@ -989,7 +993,8 @@ public class Database implements Closeable {
             BeforeImageContext bImgCtx = null;
             if (options != null && options.getBeforeImageTTL() > 0) {
                 bImgCtx = new BeforeImageContext(
-                        options.getBeforeImageTTL(),
+                        TTL.ttlToExpiration(options.getBeforeImageTTL(),
+                            options.getBeforeImageTTLUnit()),
                         options.getBeforeImageTTLUnit() == TimeUnit.HOURS);
             }
 

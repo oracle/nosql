@@ -13,6 +13,9 @@
 
 package com.sleepycat.je;
 
+import java.io.IOException;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.Collection;
 import java.util.logging.Level;
@@ -36,6 +39,7 @@ import com.sleepycat.je.dbi.TTL;
 import com.sleepycat.je.dbi.TriggerManager;
 import com.sleepycat.je.dbi.WriteParams;
 import com.sleepycat.je.latch.LatchSupport;
+import com.sleepycat.je.log.ErasedException;
 import com.sleepycat.je.log.ReplicationContext;
 import com.sleepycat.je.log.entry.LNLogEntry;
 import com.sleepycat.je.tree.BIN;
@@ -44,11 +48,15 @@ import com.sleepycat.je.tree.Key;
 import com.sleepycat.je.tree.LN;
 import com.sleepycat.je.txn.LockType;
 import com.sleepycat.je.txn.Locker;
+import com.sleepycat.je.txn.Txn;
+import com.sleepycat.je.txn.WriteLockInfo;
 import com.sleepycat.je.txn.LockerFactory;
 import com.sleepycat.je.utilint.DatabaseUtil;
 import com.sleepycat.je.utilint.InternalException;
 import com.sleepycat.je.utilint.LoggerUtils;
 import com.sleepycat.je.utilint.NotSerializable;
+import com.sleepycat.je.utilint.TestHook;
+import com.sleepycat.je.utilint.TestHookExecute;
 
 /**
  * A database cursor. Cursors are used for operating on collections of records,
@@ -164,6 +172,8 @@ public class Cursor implements ForwardCursor {
      * The CursorConfig used to configure this cursor.
      */
     CursorConfig config;
+
+    public volatile TestHook<?> semaphoreHook;
 
     /* User Transacational, or null if none. */
     private Transaction transaction;
@@ -497,17 +507,6 @@ public class Cursor implements ForwardCursor {
                 key2Data, key2Off, key2Size) == 0;
     }
 
-    private boolean checkRangeConstraint(final DatabaseEntry key) {
-        assert key.getOffset() == 0;
-        assert key.getData().length == key.getSize();
-
-        if (rangeConstraint == null) {
-            return true;
-        }
-
-        return rangeConstraint.inBounds(key.getData());
-    }
-
     /**
      * Discards the cursor.
      *
@@ -631,7 +630,9 @@ public class Cursor implements ForwardCursor {
         BeforeImageContext bImgCtx = null;
         if (options != null && options.getBeforeImageTTL() > 0) {
             bImgCtx = new BeforeImageContext(
-                    options.getBeforeImageTTL(),
+            		 TTL.ttlToExpiration(
+                             options.getBeforeImageTTL(),
+                             options.getBeforeImageTTLUnit()),
                     options.getBeforeImageTTLUnit() == TimeUnit.HOURS);
         }
         return deleteInternal(dbImpl.getRepContext(), cacheMode, bImgCtx);
@@ -644,9 +645,31 @@ public class Cursor implements ForwardCursor {
                 throw new IllegalArgumentException(
                     "modificationTime must be zero for a delete op.");
             }
+            if (options.getCreationTime() != 0) {
+                throw new IllegalArgumentException(
+                    "CreationTime must be zero for a delete op.");
+            }
             if (options.isTombstone()) {
                 throw new IllegalArgumentException(
                     "Tombstone property must be false for a delete op.");
+            }
+        }
+    }
+
+    static void checkWriteOptions(final WriteOptions options) {
+        if (options != null) {
+            if (options.getModificationTime() != 0
+                && options.getCreationTime() != 0) {
+                if (options.getModificationTime() < options.getCreationTime()) {
+                    throw new IllegalArgumentException(
+                        "modification time cannot be less than creation time");
+                }
+            }
+            if (options.getCreationTime() != 0
+                && options.getModificationTime() == 0) {
+                throw new IllegalArgumentException(
+                    "creation time cannot be explicitly specified "
+                    + "without the modification time");
             }
         }
     }
@@ -829,6 +852,7 @@ public class Cursor implements ForwardCursor {
         final Put putType,
         WriteOptions options) {
 
+        checkWriteOptions(options);
         DatabaseUtil.checkForNullParam(putType, "putType");
 
         if (putType == Put.CURRENT) {
@@ -2391,6 +2415,7 @@ public class Cursor implements ForwardCursor {
 
             final OperationResult readResult;
             long oldModificationTime = 0;
+            long oldCreationTime = 0;
             int oldStorageSize = 0;
 
             if (needOldData || hasAssociations) {
@@ -2402,6 +2427,7 @@ public class Cursor implements ForwardCursor {
                     return null;
                 }
                 oldModificationTime = readResult.getModificationTime();
+                oldCreationTime = readResult.getCreationTime();
                 oldStorageSize = readResult.getStorageSize();
             } else {
                 readResult = null;
@@ -2441,6 +2467,8 @@ public class Cursor implements ForwardCursor {
                     nWrites += secDb.updateSecondary(
                         locker, null /*cursor*/, dbImpl, cursorImpl, key,
                         oldData, null /*newData*/, cacheMode,
+                        0 /*newCreationTime*/,
+                        oldCreationTime,
                         0 /*newModificationTime*/,
                         oldModificationTime,
                         0 /*expirationTime*/,
@@ -2539,6 +2567,7 @@ public class Cursor implements ForwardCursor {
             writeParams = new WriteParams(null /* cacheMode */, preprocessor,
               repContext, lnEntry.getExpiration(),
               lnEntry.isExpirationInHours(), true /* updateExpiration */,
+              lnEntry.getCreationTime(),
               lnEntry.getModificationTime(), lnEntry.isTombstone(), null,
               null, null, lnEntry.isBeforeImageEnabled(),
               ((BeforeImageLNLogEntry) lnEntry)
@@ -2549,6 +2578,7 @@ public class Cursor implements ForwardCursor {
             writeParams = new WriteParams(null /* cacheMode */, preprocessor,
               repContext, lnEntry.getExpiration(),
               lnEntry.isExpirationInHours(), true /* updateExpiration */,
+              lnEntry.getCreationTime(),
               lnEntry.getModificationTime(), lnEntry.isTombstone(),
               null/* allIndexDbNames */, null/* allIndexIds */,
               null/* indexesToUpdate */, lnEntry.isBeforeImageEnabled());
@@ -2625,6 +2655,10 @@ public class Cursor implements ForwardCursor {
         if (writeParams.modificationTime != 0) {
             throw new IllegalArgumentException(
                 "modificationTime must be zero for a put op.");
+        }
+        if (writeParams.creationTime != 0) {
+            throw new IllegalArgumentException(
+                "creationTime must be zero for a put op.");
         }
 
         switch (putMode) {
@@ -2907,6 +2941,8 @@ public class Cursor implements ForwardCursor {
                         nWrites += secDb.updateSecondary(
                             locker, null, dbImpl, cursorImpl, key,
                             oldData, newData, writeParams.cacheMode,
+                            result.getCreationTime(),
+                            result.getOldCreationTime(),
                             result.getModificationTime(),
                             result.getOldModificationTime(),
                             result.getExpirationTime(),
@@ -3073,6 +3109,12 @@ public class Cursor implements ForwardCursor {
 
         final OperationResult result = cursorImpl.updateCurrentRecord(
             key, data, writeParams, returnOldData, returnNewData);
+        
+        if (result != null && result.getBeforeImageDBEntry() != null) {
+            final EnvironmentImpl envImpl = dbImpl.getEnv();
+            envImpl.getBeforeImageIndex()
+                .put(result.getBeforeImageDBEntry());
+        }
 
         if (result != null && includeInOpStats) {
             dbImpl.getEnv().incUpdateOps(dbImpl);
@@ -4016,14 +4058,17 @@ public class Cursor implements ForwardCursor {
 
         beginMoveCursor(false /*samePosition*/, cacheMode);
 
+        LockStanding standing = null;
+
         try {
             /*
              * Search for a BIN slot whose key is == the search key. If such a
              * slot is found, lock it and check whether it is valid.
              */
-            if (cursorImpl.searchExact(
-                    key, preprocessor, lockType, excludeTombstones,
-                    dirtyReadAll, dataRequested) == null) {
+            standing = cursorImpl.searchExact(
+                key, preprocessor, lockType, excludeTombstones,
+                dirtyReadAll, dataRequested);
+            if (standing == null) {
                 success = true;
                 return null;
             }
@@ -4035,8 +4080,51 @@ public class Cursor implements ForwardCursor {
              * the found slot if a partial key comparator is used, since then
              * it may be different than the given key.
              */
-            result = cursorImpl.getCurrent(
-                dbImpl.allowsKeyUpdates() ? key : null, data);
+            if (standing.readCommittedData()) {
+                try {
+                    result = cursorImpl.readLastCommitted(
+                        standing.getLockResult().getWriteLockInfo(),
+                        dataRequested, dbImpl.allowsKeyUpdates() ? key : null,
+                        data);
+                } catch (ErasedException | IOException e) {
+                    /*
+                     * Optimistic read using abortLSN failed, retrying with
+                     * read-committed mode. A read lock will be added to the
+                     * cursor and the locker.
+                     */
+                    Txn tempLockerRef = (Txn) getCursorImpl().getLocker();
+                    tempLockerRef.setOptimisticReadIsolation(false);
+                    tempLockerRef.setReadCommittedIsolation(true);
+
+                    /*
+                     * searchExact() requires the cursor
+                     * must initially be uninitialized.
+                     */
+                    cursorImpl.releaseBIN();
+                    cursorImpl.reset();
+
+                    assert TestHookExecute.doHookIfSet(semaphoreHook);
+
+                    standing = cursorImpl.searchExact(
+                        key, preprocessor, lockType, excludeTombstones,
+                        dirtyReadAll, dataRequested);
+
+                    tempLockerRef.setOptimisticReadIsolation(true);
+                    tempLockerRef.setReadCommittedIsolation(false);
+
+                    if (standing == null) {
+                        success = true;
+                        return null;
+                    }
+
+                    result = cursorImpl.getCurrent(
+                        dbImpl.allowsKeyUpdates() ? key : null, data);
+                }
+            } else {
+                result = cursorImpl.getCurrent(
+                    dbImpl.allowsKeyUpdates() ? key : null, data);
+            }
+
 
             /* Check for data match, if asked so. */
             if (result != null &&
@@ -4048,6 +4136,8 @@ public class Cursor implements ForwardCursor {
             success = true;
 
         } finally {
+
+            cursorImpl.releaseLockForOptimisticRead(standing, lockType);
 
             if (success &&
                 !dbImpl.isInternalDb() &&
@@ -4475,7 +4565,7 @@ public class Cursor implements ForwardCursor {
      * avoid deadlocks (this is done when the user's isolation mode is
      * READ_COMMITTED or REPEATABLE_READ).
      *
-     * @param lockPrimaryOnly If false, then we are not using dirty-read for
+     * @param nonDirtyReadPrimary If false, then we are not using dirty-read for
      * secondary deadlock avoidance.  If true, this secondary cursor's
      * reference to the primary will be checked after the primary record has
      * been locked.
@@ -4514,7 +4604,7 @@ public class Cursor implements ForwardCursor {
         DatabaseEntry data,
         final LockMode lockMode,
         final boolean secDirtyRead,
-        final boolean lockPrimaryOnly,
+        final boolean nonDirtyReadPrimary,
         final boolean verifyPrimary,
         final Locker locker,
         final Database secDb,
@@ -4524,13 +4614,18 @@ public class Cursor implements ForwardCursor {
         final DatabaseImpl priDbImpl = priDb.getDbImpl();
 
         /*
-         * If we only lock the primary (and check the sec cursor), we must be
-         * using sec dirty-read for deadlock avoidance (whether or not the user
-         * requested dirty-read). Otherwise, we should be using sec dirty-read
+         * If we perform nonDirtyReadPrimary without OptimisticReadIsolation,
+         *  we must be using sec dirty-read for deadlock avoidance
+         *  (whether or not the user requested dirty-read).
+         * Otherwise, we should be using sec dirty-read
          * iff the user requested it.
          */
-        if (lockPrimaryOnly) {
-            assert secDirtyRead && !priDirtyRead;
+        if (nonDirtyReadPrimary) {
+            if (!cursorImpl.getLocker().isOptimisticReadIsolation()) {
+                assert secDirtyRead && !priDirtyRead;
+            } else {
+                assert !secDirtyRead && !priDirtyRead;
+            }
         } else {
             assert secDirtyRead == priDirtyRead;
         }
@@ -4550,6 +4645,8 @@ public class Cursor implements ForwardCursor {
             copyToPartialEntry = data;
             data = new DatabaseEntry();
         }
+
+        assert TestHookExecute.doHookIfSet(semaphoreHook);
 
         /*
          * Do not release non-transactional locks when reading the primary
@@ -4571,90 +4668,160 @@ public class Cursor implements ForwardCursor {
                 pKey, null, priLockType, true /*excludeTombstones*/,
                 dirtyReadAll, dataRequested);
 
+
+            assert TestHookExecute.doHookIfSet(semaphoreHook);
+
             OperationResult result = null;
             try {
                 if (priLockStanding != null) {
-                    result = priCursor.getCurrent(null, data);
-                    if (result == null) {
-                        priCursor.revertLock(priLockStanding);
-                        priLockStanding = null;
+                    if (priLockStanding.readCommittedData()) {
+                        try {
+                            result = priCursor.readLastCommitted(
+                                priLockStanding.getLockResult().getWriteLockInfo(),
+                                dataRequested, null, data);
+                            if (result == null) {
+                                priLockStanding = null;
+                            }
+                        } catch (ErasedException | IOException e) {
+
+                            /*
+                             * Optimistic read using abortLSN failed, retrying with
+                             * read-committed mode. A read lock will be added to the
+                             * cursor and the locker.
+                             */
+                            Txn tempLockerRef = (Txn) priCursor.getLocker();
+                            tempLockerRef.setOptimisticReadIsolation(false);
+                            tempLockerRef.setReadCommittedIsolation(true);
+
+                            /*
+                             * searchExact() requires the cursor
+                             * must initially be uninitialized.
+                             */
+                            priCursor.releaseBIN();
+                            priCursor.reset();
+
+                            priLockStanding = priCursor.searchExact(
+                                pKey, null, priLockType,
+                                true /*excludeTombstones*/,
+                                dirtyReadAll, dataRequested);
+
+                            tempLockerRef.setOptimisticReadIsolation(true);
+                            tempLockerRef.setReadCommittedIsolation(false);
+
+                            result = priCursor.getCurrent(null, data);
+                            if (result == null) {
+                                priCursor.revertLock(priLockStanding);
+                                priLockStanding = null;
+                            }
+                        }
+                    } else {
+                        result = priCursor.getCurrent(null, data);
+                        if (result == null) {
+                            priCursor.revertLock(priLockStanding);
+                            priLockStanding = null;
+                        }
                     }
                 }
             } finally {
                 priCursor.releaseBIN();
             }
 
-            if (priLockStanding != null && lockPrimaryOnly) {
-                if (!ensureReferenceToPrimary(pKey, priLockType)) {
-                    priCursor.revertLock(priLockStanding);
-                    priLockStanding = null;
-                }
-            }
-
+            /*
+             * If priLockStanding == null, which means the corresponding record
+             * in primaryDB is not found.
+             */
             if (priLockStanding == null) {
-                /*
-                 * If using read-uncommitted and the primary is deleted, the
-                 * primary must have been deleted after reading the secondary.
-                 * We cannot verify this by checking if the secondary is
-                 * deleted, because it may have been reinserted.  [#22603]
-                 *
-                 * If the secondary is expired (within TTL clock tolerance),
-                 * then the record must have expired after the secondary read.
-                 *
-                 * In either case, return false to skip this record.
-                 */
-                if (secDirtyRead || cursorImpl.isProbablyExpired()) {
-                    return null;
-                }
+                handlePrimaryRecordNotFound(secDirtyRead, secAssoc, priDb, secDb,
+                                            pKey, key, verifyPrimary, locker);
+                return null;
+            } else {
 
                 /*
-                 * TODO: whether we need to do the following check for all
-                 *       usage scenarios of readPrimaryAfterGet. If true, we
-                 *       may get the SecondaryAssociation by the secDb.
+                 * Post-validation phase to check consistency between primary
+                 * and secondary DB records.
                  *
-                 * If secDb has been removed from SecondaryAssociation, the
-                 * operations on the primary database after removing it
-                 * may cause an inconsistency between the secondary record and
-                 * the corresponding primary record. For this case, just return
-                 * false to skip this record.
+                 * The primary was found, there are two cases here, and we have
+                 * different ways to do the post validation.
+                 *
+                 * 1. If using dirtyRead on primaryDB(which also implies
+                 * dirtyRead is used on secondaryDB), check to
+                 * see if primary was updated so that it no longer contains the
+                 * secondary key. If it has been, return null to skip the record
+                 * This is checked by re-generating secondaryKey.
+                 * checkForPrimaryUpdate is not called for tombstones (excluded
+                 * above). We cannot pass a tombstone to a secondary key creator.
+                 *
+                 * 2. Non-dirty read is used on primaryDB(read-committed,
+                 * repeatable read, optimisticRead).
+                 * See ensureReferenceToPrimary for the validation rules.
+                 *
                  */
-                if (secAssoc != null) {
-                    boolean stillExist = false;
-                    for (SecondaryDatabase db : secAssoc.getSecondaries(pKey)) {
-                        if (db == secDb) {
-                            stillExist = true;
-                            break;
-                        }
-                    }
-                    if (!stillExist) {
+
+                if (priDirtyRead) {
+                    /* post-validation case 1, dirty-Read on primary */
+                    if (checkForPrimaryUpdate(key, pKey, data,
+                                              result.getCreationTime(),
+                                              result.getModificationTime(),
+                                              result.getExpirationTime(),
+                                              cursorImpl.getStorageSize())) {
                         return null;
                     }
+                } else {
+
+                    WriteLockInfo wli = null;
+                    boolean regenerateSecKey = false;
+                    if (priLockStanding.readCommittedData()) {
+
+                        wli = priLockStanding.getLockResult().
+                            getWriteLockInfo();
+                        regenerateSecKey = true;
+                    }
+
+                    /* post-validation case 2, non-dirty Read on primary. */
+                    boolean validationResult = ensureReferenceToPrimary(pKey,
+                        priLockType, data, key, (SecondaryDatabase) secDb,
+                        wli, regenerateSecKey);
+
+                    if (!validationResult) {
+
+                        /* validation failed, revert the lock if obtained previously */
+                        priCursor.revertLock(priLockStanding);
+
+                        handlePrimaryRecordNotFound(secDirtyRead, secAssoc,
+                            priDb, secDb, pKey, key, verifyPrimary, locker);
+                        return null;
+                    } else {
+                        /*
+                         * Normally, for optimisticRead, read lock should be
+                         * release right after getting the data, but here,
+                         * wait until the post-validation ends to release the
+                         * read lock to prevent any write operations from
+                         * happening between reading Primary and post-validation.
+                         *
+                         * Consider this case:
+                         * Initially (A, 1) is in primaryDB,
+                         * (1-A) is in secondaryDB. And we want to find record
+                         * with value == 1.
+                         *
+                         * a. optimisticRead read on secDB,  found 1-A,
+                         * next step is use A as the primaryKey to search
+                         * in primaryDB.
+                         * b. optimisticRead read on priDB got (A-1)
+                         * c. A writeTxn sneaks in, update (A-1) to (A-2),
+                         * writeTxn commits.
+                         * d. so now post-validation found nothing
+                         * since (1-A) is deleted in step c,
+                         * so a SecondaryIntegrityException will be thrown.
+                         *
+                         * A read lock is needed to guard between step b and
+                         * step d.
+                         * drop read lock for optimisticRead after
+                         * post-validation ends
+                         */
+                        priCursor.releaseLockForOptimisticRead(
+                            priLockStanding, priLockType);
+                    }
                 }
-
-                /*
-                 * When the primary is deleted, secondary keys are deleted
-                 * first.  So if the above check fails, we know the secondary
-                 * reference is corrupt.
-                 */
-                throw secDb.secondaryRefersToMissingPrimaryKey(
-                    !verifyPrimary, locker, priDb, key, pKey,
-                    cursorImpl.getExpirationTime());
-            }
-
-            /*
-             * If using read-uncommitted and the primary was found, check to
-             * see if primary was updated so that it no longer contains the
-             * secondary key. If it has been, return null to skip the record.
-             *
-             * checkForPrimaryUpdate is not called for tombstones (excluded
-             * above). We cannot pass a tombstone to a secondary key creator.
-             */
-            if (priDirtyRead &&
-                checkForPrimaryUpdate(key, pKey, data,
-                                      result.getModificationTime(),
-                                      result.getExpirationTime(),
-                                      cursorImpl.getStorageSize())) {
-                return null;
             }
 
             /*
@@ -4679,23 +4846,98 @@ public class Cursor implements ForwardCursor {
         }
     }
 
+    private void handlePrimaryRecordNotFound(final boolean secDirtyRead,
+                                             final SecondaryAssociation secAssoc,
+                                             final Database priDb,
+                                             final Database secDb,
+                                             final DatabaseEntry pKey,
+                                             final DatabaseEntry key,
+                                             final boolean verifyPrimary,
+                                             final Locker locker) {
+        /*
+         * If using read-uncommitted and the primary is deleted, the
+         * primary must have been deleted after reading the secondary.
+         * We cannot verify this by checking if the secondary is
+         * deleted, because it may have been reinserted.  [#22603]
+         *
+         * If using optimisticRead and the primary is deleted, since before
+         * read on primaryDB ,and after using optimisticRead read on
+         * secondaryDB, read lock on secondaryDB will be released, so what happens
+         * between is uncertain.
+         *
+         *
+         * If the secondary is expired (within TTL clock tolerance),
+         * then the record must have expired after the secondary read.
+         *
+         * In either case, return false to skip this record.
+         */
+        if (secDirtyRead || cursorImpl.isProbablyExpired() ||
+            cursorImpl.getLocker().isOptimisticReadIsolation()) {
+            return;
+        }
+
+        /*
+         * TODO: whether we need to do the following check for all
+         *       usage scenarios of readPrimaryAfterGet. If true, we
+         *       may get the SecondaryAssociation by the secDb.
+         *
+         * If secDb has been removed from SecondaryAssociation, the
+         * operations on the primary database after removing it
+         * may cause an inconsistency between the secondary record and
+         * the corresponding primary record. For this case, just return
+         * false to skip this record.
+         */
+        if (secAssoc != null) {
+            boolean stillExist = false;
+            for (SecondaryDatabase db : secAssoc.getSecondaries(pKey)) {
+                if (db == secDb) {
+                    stillExist = true;
+                    break;
+                }
+            }
+            if (!stillExist) {
+                return;
+            }
+        }
+
+        /*
+         * When the primary is deleted, secondary keys are deleted
+         * first.  So if the above check fails, we know the secondary
+         * reference is corrupt.
+         */
+        throw secDb.secondaryRefersToMissingPrimaryKey(
+                !verifyPrimary, locker, priDb, key, pKey,
+                cursorImpl.getExpirationTime());
+    }
+
     /**
      * Checks whether this secondary cursor still refers to the primary key,
      * and locks the secondary record if necessary.
      *
      * This is used for deadlock avoidance with secondary DBs.  The initial
-     * secondary index read is done without locking.  After the primary has
-     * been locked, we check here to insure that the primary/secondary
-     * relationship is still in place. There are two cases:
+     * secondary index read is done without locking.
+     * After reading the primary, there are two cases:
      *
-     * 1. If the secondary DB has duplicates, the key contains the sec/pri
-     *    relationship and the presence of the secondary record (that is not
-     *    deleted) is sufficient to insure the sec/pri relationship.
+     * 1. primaryDB hasn't been locked only because optimisticRead is used
+     *    and got blocked when read the primaryDB, so the most recent committed
+     *    data is returned and no lock is obtained.
+     *    In this case, we regenerate the secKey using the most recent committed
+     *    primary data, compare it with the secKey passed in. regenerateSecKey
+     *    is an indicator of this case.
      *
-     * 2. If the secondary DB does not allow duplicates, then the primary key
-     *    (the data of the secondary record) must additionally be compared to
-     *    the original search key. This detects the case where the secondary
-     *    record was updated to refer to a different primary key.
+     * 2. primaryDB has been locked, we check here to ensure that
+     * the primary/secondary relationship is still in place.
+     * There are two cases:
+     *
+     *     (1). If the secondary DB has duplicates, the key contains the sec/pri
+     *          relationship and the presence of the secondary record (that is
+     *          not deleted) is sufficient to insure the sec/pri relationship.
+     *
+     *     (2). If the secondary DB does not allow duplicates, then the primary
+     *          key (the data of the secondary record) must additionally be
+     *          compared to the original search key. This detects the case
+     *          where the secondary record was updated to refer to a different
+     *          primary key.
      *
      * In addition, this method locks the secondary record if it would expire
      * within {@link EnvironmentParams#ENV_TTL_MAX_TXN_TIME}. This is needed to
@@ -4703,7 +4945,12 @@ public class Cursor implements ForwardCursor {
      */
     private boolean ensureReferenceToPrimary(
         final DatabaseEntry matchPriKey,
-        final LockType lockType) {
+        final LockType lockType,
+        final DatabaseEntry primaryData,
+        final DatabaseEntry secKey,
+        SecondaryDatabase secDB,
+        final WriteLockInfo wli,
+        boolean regenerateSecKey) {
 
         assert lockType != LockType.NONE;
 
@@ -4719,8 +4966,19 @@ public class Cursor implements ForwardCursor {
             final BIN bin = cursorImpl.getBIN();
             final int index = cursorImpl.getIndex();
 
+            /*
+             * If regenerateSecKey == true, read lock is not obtained
+             * on primaryDB, so it's possible there is a writeTxn deleting
+             * current record, and bin.isDeleted(index) == true.
+             * But we regenerate the secKey using the most recent committed
+             * primary data, compare it with the secKey passed in, so no need to
+             * return false here.
+             */
+
             if (bin.isDeleted(index)) {
-                return false;
+                if (!regenerateSecKey) {
+                    return false;
+                }
             }
 
             final EnvironmentImpl envImpl = dbImpl.getEnv();
@@ -4730,7 +4988,16 @@ public class Cursor implements ForwardCursor {
                 bin.getExpiration(index), bin.isExpirationInHours());
 
             if (envImpl.expiresWithin(
-                expirationTime, envImpl.getTtlMaxTxnTime())) {
+                expirationTime, envImpl.getTtlMaxTxnTime())
+                && !cursorImpl.getLocker().isOptimisticReadIsolation()) {
+
+                /*
+                 * For optimisticRead, lock is not required here,
+                 * to ensure the lock is indeed acquired.
+                 * Since lockLN() is needed to support repeatable-read.
+                 * The lock prevents expiration of the secondary.
+                 * See comment above ensureReferenceToPrimary().
+                 */
                 cursorImpl.lockLN(
                     lockType, false /*excludeTombstones*/,
                     false /*allowUncontended*/, false /*noWait*/);
@@ -4739,22 +5006,76 @@ public class Cursor implements ForwardCursor {
             cursorImpl.releaseBIN();
         }
 
+
         /*
-         * If there are no duplicates, check the secondary data (primary key).
-         * No need to actually lock (use LockType.NONE) since the primary lock
-         * protects the secondary from changes.
+         * Also ensure that the key in the secondaryDB matches the data
+         * in the primaryDB. This is necessary because we use
+         * READ_UNCOMMITTED_ALL when reading from the
+         * secondaryDB, but a read-committed isolation level(can it be RMW?)
+         * when reading from the primaryDB.
+         * As a result, it's possible that the primaryDB returns the
+         * latest committed data, which may not correspond to the secondary
+         * key used in the search.
          */
-        if (!cursorImpl.hasDuplicates()) {
-            final DatabaseEntry secData = new DatabaseEntry();
 
-            if (cursorImpl.lockAndGetCurrent(
-                null, secData, LockType.NONE,
-                false /*excludeTombstones*/) == null) {
-                return false;
+        if (regenerateSecKey) {
+            SecondaryConfig secConfig = secDB.getPrivateSecondaryConfig();
+            SecondaryKeyCreator keyCreator = secConfig.getKeyCreator();
+            SecondaryMultiKeyCreator multiKeyCreator = secConfig.getMultiKeyCreator();
+
+            long priModificationTime = wli.getAbortModificationTime();
+            long priCreationTime = wli.getAbortCreationTime();
+            long priExpirationTime = wli.getAbortExpiration();
+            int priStorageSize = wli.getAbortLogSize();
+
+            assert keyCreator != null || multiKeyCreator != null;
+
+            if (keyCreator != null) {
+
+                DatabaseEntry newSecKey = new DatabaseEntry();
+
+                if (!keyCreator.createSecondaryKey(secDB, matchPriKey,
+                        primaryData,
+                        priCreationTime,
+                        priModificationTime,
+                        priExpirationTime,
+                        priStorageSize,
+                        newSecKey) || !newSecKey.equals(secKey)) {
+                    return false;
+                }
+            } else {
+                Set<DatabaseEntry> newSecKeys = new HashSet<>();
+                multiKeyCreator.createSecondaryKeys(secDB, matchPriKey,
+                                                    primaryData,
+                                                    priCreationTime,
+                                                    priModificationTime,
+                                                    priExpirationTime,
+                                                    priStorageSize,
+                                                    newSecKeys);
+                return newSecKeys.contains(secKey);
             }
+        } else {
+            /*
+             * Also ensure that the key in the secondaryDB matches the data
+             * in the primaryDB. This is necessary because we use
+             * READ_UNCOMMITTED_ALL when reading from the
+             * secondaryDB, but a read-committed isolation level(can it be RMW?)
+             * when reading from the primaryDB.
+             *
+             * If there are no duplicates, check the secondary data (primary key).
+             * No need to actually lock (use LockType.NONE) since the primary lock
+             * protects the secondary from changes.
+             */
+            if (!cursorImpl.hasDuplicates()) {
+                final DatabaseEntry secData = new DatabaseEntry();
 
-            if (!secData.equals(matchPriKey)) {
-                return false;
+                if (cursorImpl.lockAndGetCurrent(
+                        null, secData, LockType.NONE,
+                        false /*excludeTombstones*/) == null) {
+                    return false;
+                }
+
+                return secData.equals(matchPriKey);
             }
         }
 
@@ -4774,6 +5095,7 @@ public class Cursor implements ForwardCursor {
         final DatabaseEntry key,
         final DatabaseEntry pKey,
         final DatabaseEntry data,
+        final long creationTime,
         final long modificationTime,
         final long expirationTime,
         final int storageSize) {
@@ -4908,7 +5230,7 @@ public class Cursor implements ForwardCursor {
         } else if (lockMode == null || lockMode == LockMode.DEFAULT) {
             return LockType.READ;
         } else if (lockMode == LockMode.RMW) {
-            return LockType.WRITE;
+            return LockType.WRITE_RMW;
         } else {
             assert false : lockMode;
             return LockType.NONE;
@@ -5012,6 +5334,10 @@ public class Cursor implements ForwardCursor {
         if (dbHandle != null) {
             dbHandle.checkOpen();
         }
+    }
+
+    public void setSemaphoreHook(TestHook<?> hook) {
+        this.semaphoreHook = hook;
     }
 
     /**

@@ -367,7 +367,9 @@ public class GetCommand extends CommandWithSubs {
                     if (value.getFormat() == Value.Format.NONE ||
                         value.getFormat() == Value.Format.TABLE ||
                         value.getFormat() == Value.Format.TABLE_V1 ||
-                        value.getFormat() == Value.Format.MULTI_REGION_TABLE) {
+                        value.getFormat() == Value.Format.MULTI_REGION_TABLE ||
+                        value.getFormat() == Value.Format.TABLE_V5
+                    ) {
                         record += printableString(value.getValue());
                     } else {
                         // report unsupported error

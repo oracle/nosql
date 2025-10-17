@@ -97,6 +97,11 @@ import com.sleepycat.je.rep.utilint.ServiceDispatcher.Response;
  */
 public class MigrationManager implements Localizer {
 
+    /**
+     * Overrides the min delay between migration start for testing.
+     */
+    public static volatile long MINIMUM_DELAY_OVERRIDE = -1;
+
     private final Logger logger;
 
     private static final int NUM_DB_OP_RETRIES = 100;
@@ -2114,8 +2119,8 @@ public class MigrationManager implements Localizer {
              * is available (delay == 0).
              */
             if (target.getSource().equals(lastSource)) {
-                delay = MINIMUM_DELAY + adjustment;
-                adjustment += MINIMUM_DELAY;
+                delay = getMinimumDelay() + adjustment;
+                adjustment += getMinimumDelay();
             } else {
                 lastSource = target.getSource();
                 adjustment = 0;
@@ -2180,8 +2185,8 @@ public class MigrationManager implements Localizer {
              * because the configuration parameters may have been set with
              * a time < the minimum.
              */
-            if (delay < MINIMUM_DELAY) {
-                delay = MINIMUM_DELAY;
+            if (delay < getMinimumDelay()) {
+                delay = getMinimumDelay();
             }
 
             /*
@@ -2417,5 +2422,41 @@ public class MigrationManager implements Localizer {
                         "local generation table");
             pgt.refreshTableFromDB();
         }
+    }
+
+    /**
+     * Returns the target executor. Creates the executor if necessary. Currently
+     * only used for testing.
+     */
+    public synchronized TargetExecutor getTargetExecutor() {
+        if ((targetExecutor == null) || targetExecutor.isTerminated()) {
+            targetExecutor = new TargetExecutor();
+        }
+        return targetExecutor;
+    }
+
+    /**
+     * Returns the target monitor executor. Creates the executor if necessary.
+     * Currently only used for testing.
+     */
+    public synchronized TargetMonitorExecutor getTargetMonitorExecutor() {
+        if (targetMonitorExecutor == null) {
+            targetMonitorExecutor =
+                new TargetMonitorExecutor(this, repNode, logger);
+        }
+        return targetMonitorExecutor;
+    }
+
+    /**
+     * Returns the mininum delay based on MINIMUM_DELAY_OVERRIDE. If not
+     * overriden, then MINIMUM_DELAY will be used. Currently only used for
+     * testing.
+     */
+    public long getMinimumDelay() {
+        final long override = MINIMUM_DELAY_OVERRIDE;
+        if (override != -1) {
+            return override;
+        }
+        return MINIMUM_DELAY;
     }
 }

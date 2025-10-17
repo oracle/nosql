@@ -11,7 +11,7 @@
 
   <groupId>com.oracle.nosql</groupId>
   <artifactId>kv</artifactId>
-  <version>25.1.13</version>
+  <version>25.3.21</version>
   <packaging>pom</packaging>
 
   <name>Oracle NoSQL Database</name>

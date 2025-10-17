@@ -38,7 +38,7 @@ public class DeleteIfVersion extends Delete {
                            ReturnValueVersion.Choice prevValChoice,
                            Version matchVersion) {
         this(keyBytes, prevValChoice, matchVersion, 0 /* tableId */,
-             false /* doTombstone */);
+             false /* doTombstone */, null /* rowMetadata */);
     }
 
     /**
@@ -49,9 +49,10 @@ public class DeleteIfVersion extends Delete {
                            ReturnValueVersion.Choice prevValChoice,
                            Version matchVersion,
                            long tableId,
-                           boolean doTombstone) {
+                           boolean doTombstone,
+                           String rowMetadata) {
         super(OpCode.DELETE_IF_VERSION, keyBytes, prevValChoice, tableId,
-              doTombstone);
+              doTombstone, rowMetadata);
         checkNull("matchVersion", matchVersion);
         this.matchVersion = matchVersion;
     }

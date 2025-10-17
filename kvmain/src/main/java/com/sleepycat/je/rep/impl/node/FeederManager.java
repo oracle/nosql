@@ -1106,6 +1106,9 @@ final public class FeederManager {
             LoggerUtils.warning(logger, repNode.getRepImpl(),
                                 "Feeder manager unexpected interrupt");
         } finally {
+            LoggerUtils.info(logger, repNode.getRepImpl(),
+                             "Start shutting down feeder manager" +
+                             ", reason=" + feederShutdownException);
             repNode.resetReadyLatch(feederShutdownException);
             repNode.getServiceDispatcher().cancel(FEEDER_SERVICE);
             shutdownFeeders(feederShutdownException);
@@ -1142,8 +1145,10 @@ final public class FeederManager {
 
             LoggerUtils.info(logger, repNode.getRepImpl(),
                              "Feeder Manager shutting down feeders." +
-                             " Active and nascent feeders:" + feederSet.size() +
-                             " Managed feeders:" + managedFeederCount.get());
+                             " Active and nascent feeders=" + feederSet.size() +
+                             " Managed feeders=" + managedFeederCount.get() +
+                             (feederShutdownException == null ? "" :
+                                  ", reason=" + feederShutdownException));
 
             feederSet.forEach((feeder) -> {
                 nFeedersShutdown.increment();
@@ -1492,7 +1497,7 @@ final public class FeederManager {
                 }
                 final RepImpl repImpl = repNode.getRepImpl();
                 final MasterTxn nullTxn =
-                    MasterTxn.createNullTxn(repImpl);
+                    MasterTxn.createNullTxn(repImpl, false);
                 /*
                  * We don't want to wait for any reason, if the txn fails,
                  * we can try later.
@@ -1524,4 +1529,36 @@ final public class FeederManager {
         managedFeederCount.getAndDecrement();
     }
 
+    /**
+     * As a way to ensure that any inflight non-durable txns at the time of
+     * failure in the preceding term are made durable in a new term without
+     * having to wait for the application itself to create a durable txn. That
+     * is, it speeds up the final state of these non-durable txns, since the
+     * ack of the null txn advances the dtvlsn.
+     *
+     * This satisfies the one described in Section 5.4.2 and Figure 8 in the
+     * <a href="https://raft.github.io/raft.pdf">Raft manuscript</a>
+     */
+    void sendNullTxnWhenNodeBecomesMaster() {
+        /* It is created a sync NullTxn to ensure durability. */
+        final MasterTxn nullTxn =
+                MasterTxn.createNullTxn(repNode.getRepImpl(), true);
+        nullTxn.setTxnTimeout(1);
+        try {
+            nullTxn.commit();
+            LoggerUtils.fine(logger, repNode.getRepImpl(),
+                    "Success to write null txn when "
+                            + repNode.getNodeName()
+                            + " was elected as master. "
+                            + nullTxn.logString());
+        } catch (Exception e) {
+            nullTxn.abort();
+            LoggerUtils.warning(logger, repNode.getRepImpl(),
+                    "Failed to write null txn when "
+                            + repNode.getNodeName()
+                            + " was elected as master. "
+                            + nullTxn.logString() + " Reason:"
+                            + e.getMessage());
+        }
+    }
 }

@@ -11,32 +11,31 @@ where partition($f) = $p
 ################
 ext_part04.q
 ################
-declare $p1 integer; // 2
+declare $p1 integer; // 3
 select id
 from foo $f
-where partition($f) = $p1 and id = 3
+where partition($f) = $p1 and id = 1
 
 
 
 ################
 ext_part06.q
 ################
-declare $p1 integer; // 2
+declare $p1 integer; // 3
 select id
 from foo $f
-where $p1 <= partition($f) and partition($f) < 5
+where $p1 <= partition($f) and partition($f) < 7
 
 
 
 ################
 ext_part07.q
 ################
-declare $p1 integer; // 2
+declare $p1 integer; // 3
         $p2 long; // 15
 select id
 from foo $f
 where $p1 <= partition($f) and partition($f) < $p2
-
 
 
 
@@ -87,14 +86,13 @@ ext_shard02.q
 declare $s1 integer; // = 1
 select id, partition($f) as part
 from foo $f
-where shard($f) = $s1 and partition($f) = 2
+where shard($f) = $s1 and partition($f) = 3
 
 
 
 ################
 ext_shard03.q
 ################
-
 declare $s1 integer; // = 1
 select id,  partition($f) as part
 from foo $f
@@ -112,11 +110,10 @@ from foo $f
 
 
 
-
 ################
 isize02.q
 ################
-select id, 
+select id,
        170 <= row_storage_size($f) and row_storage_size($f) <= 185 as row_size,
        index_storage_size($f, "idx_state_city_age") as index_size
 from foo $f
@@ -150,7 +147,6 @@ select id,
        index_storage_size($f, "idx_state_city_age") as index_size
 from foo $f
 where $f.children.Anna.iage < 10
-
 
 
 
@@ -211,7 +207,7 @@ from foo $f
 ################
 isize12.q
 ################
-select shard($f) as shard, 
+select shard($f) as shard,
        sum(index_storage_size($f, "idx_state_city_age")) as index_size
 from foo $f
 group by shard($f)
@@ -221,7 +217,7 @@ group by shard($f)
 ################
 isize13.q
 ################
-select shard($f) as shard, 
+select shard($f) as shard,
        sum(index_storage_size($f, "idx_city_phones")) as index_size
 from foo $f
 group by shard($f)
@@ -232,7 +228,7 @@ group by shard($f)
 isize14.q
 ################
 select /*+ FORCE_PRIMARY_INDEX(foo) */
-       shard($f) as shard, 
+       shard($f) as shard,
        sum(index_storage_size($f, "idx_city_phones")) as index_size
 from foo $f
 group by shard($f)
@@ -243,7 +239,7 @@ group by shard($f)
 isize15.q
 ################
 select partition($f) as part,
-       count(*) as cnt, 
+       count(*) as cnt,
        avg(index_storage_size($f, "idx_city_phones")) as index_size
 from foo $f
 group by partition($f)
@@ -255,6 +251,446 @@ isize16.q
 ################
 select sum(index_storage_size($f, "idx_city_phones")) as index_size
 from foo $f
+
+
+
+################
+isize17.q
+################
+select index_storage_size($f, "idx_city_phones") as index_size
+from foo $f
+
+
+
+################
+isize18.q
+################
+select row_storage_size($t) as Row_Storage_Size,
+       index_storage_size($t,"idx_t_user1") as IDX_SIZE
+from t_user1 $t
+
+
+
+################
+jc_ct01.q
+################
+select id,
+       year(creation_time($f)) >= 2020,
+       creation_time_millis($f) > 1700000000
+from boo $f
+where $f.address.state = "MA"
+
+
+
+################
+jc_isize01.q
+################
+select id,
+       32 <= index_storage_size($f, "idx_state_city_age") and
+       index_storage_size($f, "idx_state_city_age") <= 39 as index_size
+from boo $f
+
+
+
+################
+jc_isize02.q
+################
+select id,
+       330 <= row_storage_size($f) and row_storage_size($f) <= 450 as row_size,
+       index_storage_size($f, "idx_state_city_age") as index_size
+from boo $f
+
+
+
+################
+jc_isize03.q
+################
+select id,
+       40 <= index_storage_size($f, "idx_state_city_age") and
+       index_storage_size($f, "idx_state_city_age") <= 43 as index_size
+from boo $f
+where index_storage_size($f, "idx_state_city_age") > 38
+
+
+
+################
+jc_isize04.q
+################
+select id, firstName,
+       index_storage_size($f, "idx_state_city_age") as index_size
+from boo $f
+
+
+
+################
+jc_isize05.q
+################
+select id,
+       index_storage_size($f, "idx_state_city_age") as index_size
+from boo $f
+where $f.children.Anna.iage < 10
+
+
+
+################
+jc_isize06.q
+################
+select id, index_storage_size($f, "idx_city_phones") as isize
+from boo $f
+
+
+
+################
+jc_isize07.q
+################
+select /*+ force_primary_index(boo) */
+  id, index_storage_size($f, "idx_city_phones") as isize
+from boo $f
+
+
+
+################
+jc_isize08.q
+################
+select id, index_storage_size($f, "idx_city_phones") as isize, firstName
+from boo $f
+order by firstName
+
+
+
+################
+jc_isize09.q
+################
+select id, index_storage_size($f, "idx_city_phones") as isize, firstName
+from boo $f
+order by firstName
+limit 3
+offset 2
+
+
+
+################
+jc_isize10.q
+################
+select id, index_storage_size($f, "idx_city_phones") as isize
+from boo $f
+where index_storage_size($f, "idx_city_phones") > 40
+
+
+
+################
+jc_isize11.q
+################
+select id, 2 * index_storage_size($f, "idx_city_phones") as isize
+from boo $f
+
+
+
+################
+jc_isize12.q
+################
+select shard($f) as shard,
+       sum(index_storage_size($f, "idx_state_city_age")) as index_size
+from boo $f
+group by shard($f)
+
+
+
+################
+jc_isize13.q
+################
+select shard($f) as shard,
+       sum(index_storage_size($f, "idx_city_phones")) as index_size
+from boo $f
+group by shard($f)
+
+
+
+################
+jc_isize14.q
+################
+select /*+ FORCE_PRIMARY_INDEX(boo) */
+       shard($f) as shard,
+       sum(index_storage_size($f, "idx_city_phones")) as index_size
+from boo $f
+group by shard($f)
+
+
+
+################
+jc_isize15.q
+################
+select partition($f) as part,
+       count(*) as cnt,
+       avg(index_storage_size($f, "idx_city_phones")) as index_size
+from boo $f
+group by partition($f)
+
+
+
+################
+jc_isize16.q
+################
+select sum(index_storage_size($f, "idx_city_phones")) as index_size
+from boo $f
+
+
+
+################
+jc_isize17.q
+################
+select index_storage_size($f, "idx_city_phones") as index_size
+from boo $f
+
+
+
+################
+jc_mod01.q
+################
+select id,
+       year(modification_time($f)) >= 2020
+from boo $f
+where $f.address.state = "MA"
+
+
+
+################
+jc_mod02.q
+################
+select id, modification_time($f) > current_time()
+from boo $f
+
+
+
+################
+jc_part01.q
+################
+select id, partition($f) as part
+from boo $f
+where $f.address.state = "MA"
+
+
+
+################
+jc_part02.q
+################
+select id, partition($f) as part
+from boo $f
+
+
+
+################
+jc_part03.q
+################
+select id, partition($f) as part
+from boo $f
+where partition($f) = 1
+
+
+
+################
+jc_part04.q
+################
+select id
+from boo $f
+where partition($f) = 2 and id = 3
+
+
+
+################
+jc_part05.q
+################
+declare $ext2 integer; // 3
+select id
+from boo $f
+where partition($f) = 2 and id = $ext2
+
+
+
+################
+jc_part06.q
+################
+select id
+from boo $f
+where 2 <= partition($f) and partition($f) < 5
+
+
+
+################
+jc_part07.q
+################
+select id
+from boo $f
+where 2 <= partition($f) and partition($f) < 15
+
+
+
+################
+jc_part08.q
+################
+select id
+from boo $f
+where 10 < partition($f)
+
+
+
+################
+jc_part09.q
+################
+select id
+from boo $f
+where 10 <= partition($f)
+
+
+
+################
+jc_shard01.q
+################
+select id, shard($f) as shard, partition($f) as part
+from boo $f
+
+
+
+################
+jc_ttl01.q
+################
+select id, remaining_days($f)
+from boo $f
+where $f.address.state = "CA"
+
+
+
+################
+jc_ttl02.q
+################
+select id, 2 * remaining_days($f) as days, remaining_hours($f) < 15 as hours
+from boo $f
+where $f.address.state = "MA" and 2 * remaining_days($f) > 3
+
+
+
+################
+jc_ttl03.q
+################
+select id, year(expiration_time($f)) >= 2020
+from boo $f
+where $f.address.state = "CA"
+
+
+
+################
+jc_ttl04.q
+################
+select id, remaining_days($f)
+from boo $f
+
+
+
+################
+jc_xins01.q
+################
+insert into boo $f values (
+  100,
+  {
+    "firstName" : "first100",
+    "lastName" : "last100",
+    "age" : 33,
+    "address" :
+      {
+        "city": "San Fransisco",
+        "state"  : "CA",
+        "phones" : [ { "work" : 504,  "home" : 50 },
+                     { "work" : 518,  "home" : 51 },
+                     { "work" : 528,  "home" : 52 },
+                     { "work" : 538,  "home" : 53 },
+                     { "work" : 548,  "home" : 54 } ]
+      }
+   }
+)
+returning row_storage_size($f) as row_size,
+          index_storage_size($f, "idx_state_city_age") as sca_size
+
+
+
+################
+jc_xins02.q
+################
+insert into boo $f values (
+  100,
+  {
+    "firstName" : "first100",
+    "lastName" : "last100",
+    "age" : 33,
+    "address" :
+      {
+        "city": "San Fransisco",
+        "state"  : "CA",
+        "phones" : [ { "work" : 504,  "home" : 50 },
+                     { "work" : 518,  "home" : 51 },
+                     { "work" : 528,  "home" : 52 },
+                     { "work" : 538,  "home" : 53 },
+                     { "work" : 548,  "home" : 54 } ]
+      }
+   }
+)
+returning (abs(row_storage_size($f) - 320) <= 1) as row_size,
+          partition($f) as part,
+          shard($f) as shard,
+          remaining_days($f) as expiration,
+          modification_time($f) > current_time() as mod_time
+
+
+
+################
+jc_xupd01.q
+################
+update boo $f
+set age = $ + 3,
+add $f.address.phones seq_concat({ "work" : 3445, "home" : 1231423 },
+                                 { "work" : 3446, "home" : 1231423 },
+                                 { "work" : 3447, "home" : 1231423 })
+where id = 3
+returning age,
+          $f.address,
+          (abs(row_storage_size($f) - 335) <= 1) as row_size,
+          index_storage_size($f, "idx_city_phones") as isize_cp,
+          index_storage_size($f, "idx_state_city_age") as isize_sca,
+          partition($f) as part,
+          shard($f) as shard,
+          remaining_days($f) as expiration,
+          modification_time($f) > current_time() as mod_time
+
+
+
+################
+jc_xxdel01.q
+################
+delete from boo $f
+where index_storage_size($f, "idx_city_phones") < 40
+returning id,
+          (abs(row_storage_size($f) - 382) <= 1) as row_size,
+          index_storage_size($f, "idx_city_phones") as isize_cp,
+          index_storage_size($f, "idx_state_city_age") as isize_sca,
+          partition($f) as part,
+          shard($f) as shard,
+          remaining_days($f) as expiration,
+          modification_time($f) > current_time() as mod_time
+
+
+
+################
+jc_xxdel02.q
+################
+delete from boo $f
+where index_storage_size($f, "idx_state_city_age") > 40
+returning id,
+          (row_storage_size($f) >= 319 and row_storage_size($f) <= 457) as row_size,
+          index_storage_size($f, "idx_state_city_age") as isize_sca,
+          index_storage_size($f, "idx_city_phones") as isize_cp,
+          partition($f) as part,
+          shard($f) as shard,
+          remaining_days($f) as expiration,
+          modification_time($f) > current_time() as mod_time
 
 
 
@@ -271,9 +707,7 @@ where $f.address.state = "MA"
 ################
 mod02.q
 ################
-select id,
-       year(modification_time($f)) >= 2020 and
-       month(modification_time($f)) >= 6
+select id, modification_time($f) > current_time()
 from foo $f
 
 
@@ -387,6 +821,24 @@ where partition($f) <= 10
 
 
 ################
+part13.q
+################
+select id, partition($f) as part
+from foo $f
+where $f.address.state = "MA" and partition($f) = 3
+
+
+
+################
+part14.q
+################
+select id, partition($f) as part
+from foo $f
+where $f.address.state = "MA" and 2 <= partition($f) and partition($f) <= 3
+
+
+
+################
 rsize01.q
 ################
 select id, row_storage_size($f) >= 190
@@ -417,7 +869,7 @@ shard02.q
 ################
 select id, partition($f) as part
 from foo $f
-where shard($f) = 1 and partition($f) = 2
+where shard($f) = 1 and partition($f) = 3
 
 
 
@@ -511,7 +963,6 @@ where $f.address.state = "MA" and 2 * remaining_days($f) > 3
 
 
 
-
 ################
 ttl03.q
 ################
@@ -530,10 +981,17 @@ from foo $f
 
 
 ################
+vers01.q
+################
+select id, version($f) = row_version($f)
+from foo $f
+
+
+
+################
 xins01.q
 ################
 insert into foo $f values (100, "first100", "last100", 33, "lastName",
-
   {
     "city": "San Fransisco",
     "state"  : "CA",
@@ -555,7 +1013,6 @@ returning row_storage_size($f) as row_size,
 xins02.q
 ################
 insert into foo $f values (100, "first100", "last100", 33, "lastName",
-
   {
     "city": "San Fransisco",
     "state"  : "CA",
@@ -568,12 +1025,13 @@ insert into foo $f values (100, "first100", "last100", 33, "lastName",
   },
   {}
 )
-returning row_storage_size($f) as row_size,
+returning (abs(row_storage_size($f) - 166) <= 1) as row_size,
           partition($f) as part,
           shard($f) as shard,
           remaining_days($f) as expiration,
-          year(modification_time($f)) >= 2020 and
-          month(modification_time($f)) >= 9  as mod_time
+          creation_time($f) >= "2020-9-1" as creation_time,
+          creation_time_millis($f) > 1700000000 as creation_ms,
+          modification_time($f) >= '2020-9-1'  as mod_time
 
 
 
@@ -588,14 +1046,15 @@ add $f.address.phones seq_concat({ "work" : 3445, "home" : 1231423 },
 where id = 3
 returning age,
           $f.address,
-          row_storage_size($f) as row_size,
+          (abs(row_storage_size($f) - 172) <= 1) as row_size,
           index_storage_size($f, "idx_city_phones") as isize_cp,
           index_storage_size($f, "idx_state_city_age") as isize_sca,
           partition($f) as part,
           shard($f) as shard,
           remaining_days($f) as expiration,
-          year(modification_time($f)) >= 2020 and
-          month(modification_time($f)) >= 9  as mod_time
+          creation_time($f) >= '2020-9-1'  as creation_time,
+          creation_time_millis($f) > 1700000000 as creation_ms,
+          modification_time($f) >= '2020-9-1' as mod_time
 
 
 
@@ -605,14 +1064,15 @@ xxdel01.q
 delete from foo $f
 where index_storage_size($f, "idx_city_phones") < 40
 returning id,
-          row_storage_size($f) as row_size,
+          (abs(row_storage_size($f) - 182) <= 1) as row_size,
           index_storage_size($f, "idx_city_phones") as isize_cp,
           index_storage_size($f, "idx_state_city_age") as isize_sca,
           partition($f) as part,
           shard($f) as shard,
           remaining_days($f) as expiration,
-          year(modification_time($f)) >= 2020 and
-          month(modification_time($f)) >= 9  as mod_time
+          creation_time($f) >= '2020-9-1' as creation_time,
+          creation_time_millis($f) > 1700000000 as creation_ms,
+          modification_time($f) >= '2020-9-1' as mod_time
 
 
 
@@ -622,14 +1082,15 @@ xxdel02.q
 delete from foo $f
 where index_storage_size($f, "idx_state_city_age") > 40
 returning id,
-          row_storage_size($f) as row_size,
+          (row_storage_size($f) >=165 and row_storage_size($f) <= 206) as row_size,
           index_storage_size($f, "idx_state_city_age") as isize_sca,
           index_storage_size($f, "idx_city_phones") as isize_cp,
           partition($f) as part,
           shard($f) as shard,
           remaining_days($f) as expiration,
-          year(modification_time($f)) >= 2020 and
-          month(modification_time($f)) >= 9  as mod_time
+          creation_time($f) >= '2020-9-1'  as creation_time,
+          creation_time_millis($f) > 1700000000 as creation_ms,
+          modification_time($f) >= '2020-9-1' as mod_time
 
 
 

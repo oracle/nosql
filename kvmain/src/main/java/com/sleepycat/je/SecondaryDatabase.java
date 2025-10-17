@@ -332,6 +332,8 @@ public class SecondaryDatabase extends Database {
                     priCursor.getCursorImpl(), key /*priKey*/,
                     null /*oldData*/, data /*newData*/,
                     null /*cacheMode*/,
+                    result.getCreationTime(),
+                    0, /*old creation time*/
                     result.getModificationTime(),
                     0, /*old modification time*/
                     result.getExpirationTime(),
@@ -601,6 +603,7 @@ public class SecondaryDatabase extends Database {
     public void populateSecondaries(final Transaction txn,
                                     final DatabaseEntry key,
                                     final DatabaseEntry data,
+                                    final long creationTime,
                                     final long modificationTime,
                                     final long expirationTime,
                                     final int storageSize,
@@ -1229,6 +1232,8 @@ public class SecondaryDatabase extends Database {
                         final DatabaseEntry oldData,
                         final DatabaseEntry newData,
                         final CacheMode cacheMode,
+                        final long newCreationTime,
+                        final long oldCreationTime,
                         final long newModificationTime,
                         final long oldModificationTime,
                         final long expirationTime,
@@ -1272,6 +1277,7 @@ public class SecondaryDatabase extends Database {
             if ((oldData != null || newData == null) && !oldTombstone) {
                 oldSecKey = new DatabaseEntry();
                 if (!keyCreator.createSecondaryKey(this, priKey, oldData,
+                                                   oldCreationTime,
                                                    oldModificationTime,
                                                    oldExpirationTime,
                                                    oldStorageSize,
@@ -1283,6 +1289,7 @@ public class SecondaryDatabase extends Database {
             if (newData != null && !newTombstone) {
                 newSecKey = new DatabaseEntry();
                 if (!keyCreator.createSecondaryKey(this, priKey, newData,
+                                                   newCreationTime,
                                                    newModificationTime,
                                                    expirationTime,
                                                    storageSize,
@@ -1397,6 +1404,7 @@ public class SecondaryDatabase extends Database {
                 oldKeys = new HashSet<>();
                 multiKeyCreator.createSecondaryKeys(
                     this, priKey, oldData,
+                    newCreationTime,
                     oldModificationTime,
                     oldExpirationTime,
                     oldStorageSize,
@@ -1409,6 +1417,7 @@ public class SecondaryDatabase extends Database {
                 newKeys = new HashSet<>();
                 multiKeyCreator.createSecondaryKeys(
                     this, priKey, newData,
+                    newCreationTime,
                     newModificationTime,
                     expirationTime,
                     storageSize,

@@ -23,13 +23,17 @@ import static oracle.kv.impl.util.SerializationUtil.writePackedInt;
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
-
-import oracle.kv.impl.api.table.Region;
-import oracle.kv.impl.util.FastExternalizable;
-import oracle.kv.impl.util.SerializationUtil;
+import java.util.BitSet;
 
 import com.sleepycat.util.PackedInteger;
+import oracle.kv.impl.api.table.Region;
+import oracle.kv.impl.api.table.RowImpl;
+import oracle.kv.impl.api.table.TableJsonUtils;
+import oracle.kv.impl.util.FastExternalizable;
+import oracle.kv.impl.util.SerialVersion;
+import oracle.kv.impl.util.SerializationUtil;
 
 /**
  * The Value in a Key/Value store.
@@ -117,7 +121,21 @@ public class Value implements FastExternalizable {
          * information for multi-region table, including region id and
          * tombstone.
          */
-        MULTI_REGION_TABLE(4);
+        MULTI_REGION_TABLE(4),
+
+        /**
+         * Format that contains:
+         *  - 1st byte: format version
+         *  - 2nd byte: bitset
+         *      - bit 0: 1 if row has regionId, 0 otherwise
+         *      - bit 1: 1 if row has row-metadata, 0 otherwise
+         *      - bits 2-7: unused
+         *  - if it has regionId next bytes are a packed int
+         *  - if it has metadata next bytes are the metadata string length and string
+         *  - rest bytes are the row data
+         */
+        TABLE_V5(5);
+
 
         private static final Format[] VALUES = values();
         public static Format valueOf(int ordinal) {
@@ -181,15 +199,20 @@ public class Value implements FastExternalizable {
         public static boolean isTableFormat(Format format) {
             int ordinal = format.ordinal();
             return ordinal >= Format.TABLE.ordinal() &&
-                   ordinal <= Format.MULTI_REGION_TABLE.ordinal();
+            ordinal <= Format.TABLE_V5.ordinal();
         }
 
         public static boolean isTableFormat(int firstByte) {
             int ordinal = firstByte + 1;
             return ordinal >= Format.TABLE.ordinal() &&
-                   ordinal <= Format.MULTI_REGION_TABLE.ordinal();
+            ordinal <= Format.TABLE_V5.ordinal();
         }
     }
+
+    private static int TABLEV5_REGIONID_BIT = 0;
+    private static int TABLEV5_ROWMETADATA_BIT = 1;
+    // private static int TABLEV5_EXTRABYTE_BIT = 7;
+    /* NOTE: When adding the 8th new property, must add another byte !!! */
 
     /**
      * An instance that represents an empty value for key-only records.
@@ -199,14 +222,16 @@ public class Value implements FastExternalizable {
     private final byte[] val;
     private final Format format;
     private final int regionId;
+    private final String rowMetadata;
 
     private Value(byte[] val, Format format) {
-        this(val, format, Region.NULL_REGION_ID);
+        this(val, format, Region.NULL_REGION_ID, null);
     }
 
     private Value(byte[] val,
                   Format format,
-                  int regionId) {
+                  int regionId,
+                  String rowMetadata) {
         checkNull("val", val);
         checkNull("format", format);
         if ((format == Format.MULTI_REGION_TABLE) &&
@@ -215,7 +240,7 @@ public class Value implements FastExternalizable {
                 "The region id cannot be " + Region.NULL_REGION_ID +
                 " for multi-region table");
         }
-        if ((format != Format.MULTI_REGION_TABLE) &&
+        if ((format.ordinal() < Format.MULTI_REGION_TABLE.ordinal()) &&
             (regionId != Region.NULL_REGION_ID)) {
             throw new IllegalArgumentException(
                 "The region id must be " + Region.NULL_REGION_ID +
@@ -225,9 +250,17 @@ public class Value implements FastExternalizable {
             throw new IllegalArgumentException(
                 "Illegal region ID: " + regionId);
         }
+        if (rowMetadata != null && format != Format.TABLE_V5) {
+            throw new IllegalArgumentException("Format must be " +
+                Format.TABLE_V5 + " for non-null metadata. Format: " + format + " rmtd: " + rowMetadata);
+        }
         this.val = val;
         this.format = format;
         this.regionId = regionId;
+        if (rowMetadata != null) {
+            TableJsonUtils.validateJsonConstruct(rowMetadata);
+        }
+        this.rowMetadata = rowMetadata;
     }
 
     /**
@@ -254,16 +287,46 @@ public class Value implements FastExternalizable {
          * Both NONE and TABLE formats skip the first byte.
          */
         if (format == Format.NONE || Format.isTableFormat(format)) {
-            if (format == Format.MULTI_REGION_TABLE) {
+            if (format == Format.TABLE_V5) {
+                byte bitsetByte = in.readByte();
+                BitSet options = BitSet.valueOf(new byte[] { bitsetByte });
+                int alreadyRead = 2;
+
+                if (options.get(TABLEV5_REGIONID_BIT)) { // contains multi-region
+                    regionId = readPackedInt(in);
+                    alreadyRead += PackedInteger.getWriteIntLength(regionId);
+                } else {
+                    regionId = Region.NULL_REGION_ID;
+                }
+
+                if (options.get(TABLEV5_ROWMETADATA_BIT)) { // contains metadata
+                    int metadataLen = readPackedInt(in);
+                    byte[] mdba = new byte[metadataLen];
+                    in.readFully(mdba, 0, metadataLen);
+                    rowMetadata = new String(mdba, StandardCharsets.UTF_8);
+                    // rowMetadata should have been checked before serialization
+                    // it is valid JSON Object
+                    // assert TableJsonUtils.validateJsonObject(rowMetadata);
+                    alreadyRead += PackedInteger.getWriteIntLength(metadataLen) + metadataLen;
+                } else {
+                    rowMetadata = null;
+                }
+
+                val = new byte[len - (alreadyRead)];
+
+            } else if (format == Format.MULTI_REGION_TABLE) {
                 /* read compressed region id. */
                 regionId = readPackedInt(in);
                 final int regionIdLen =
                     PackedInteger.getWriteIntLength(regionId);
                 val = new byte[len - (regionIdLen + 1)];
+                rowMetadata = null;
             } else {
-                this.regionId = 0;
+                this.regionId = Region.NULL_REGION_ID;
+                rowMetadata = null;
                 val = new byte[len - 1];
             }
+
             in.readFully(val);
             return;
         }
@@ -273,6 +336,8 @@ public class Value implements FastExternalizable {
          * record's schema ID.
          */
         regionId = Region.NULL_REGION_ID;
+        // null value means there is no row-metadata set for this Value
+        rowMetadata = null;
         val = new byte[len];
         val[0] = (byte) firstByte;
         in.readFully(val, 1, len - 1);
@@ -317,7 +382,7 @@ public class Value implements FastExternalizable {
     @Override
     public void writeFastExternal(DataOutput out, short serialVersion)
         throws IOException {
-        final int prefixLength;
+        int prefixLength;
         switch (format) {
         case AVRO:
             prefixLength = 0;
@@ -331,6 +396,25 @@ public class Value implements FastExternalizable {
             final int regionIdLen = PackedInteger.getWriteIntLength(regionId);
             prefixLength = regionIdLen + 1;
             break;
+        case TABLE_V5:
+            if (serialVersion < SerialVersion.ROW_METADATA_VERSION) {
+                throw new IllegalArgumentException("Serial version " +
+                    serialVersion + " does not support setting row metadata, " +
+                    "must be " + SerialVersion.ROW_METADATA_VERSION + " or greater");
+            }
+            prefixLength = 2;  // format and bitset
+
+            if (regionId != Region.NULL_REGION_ID) {
+                final int regionIdLen2 = PackedInteger.getWriteIntLength(regionId);
+                prefixLength += regionIdLen2;
+            }
+            if (rowMetadata != null) {
+                byte[] mdba = rowMetadata.getBytes(StandardCharsets.UTF_8);
+                final int metadataLenLen = PackedInteger.getWriteIntLength(
+                    rowMetadata.length());
+                prefixLength += metadataLenLen + mdba.length;
+            }
+            break;
         default:
             throw new AssertionError();
         }
@@ -342,6 +426,19 @@ public class Value implements FastExternalizable {
             if (format == Format.MULTI_REGION_TABLE) {
                 /* write the compressed region id. */
                 writePackedInt(out, regionId);
+            } else if (format == Format.TABLE_V5) {
+                BitSet options = new BitSet(8);
+                options.set(TABLEV5_REGIONID_BIT, regionId != Region.NULL_REGION_ID);      // has regionId
+                options.set(TABLEV5_ROWMETADATA_BIT, rowMetadata != null);   // has metadata
+                out.write(options.isEmpty() ? new byte[]{0} : options.toByteArray());
+                if (regionId != Region.NULL_REGION_ID) {
+                    writePackedInt(out, regionId);
+                }
+                if (rowMetadata != null) {
+                    byte[] mdba = rowMetadata.getBytes(StandardCharsets.UTF_8);
+                    writePackedInt(out, mdba.length);
+                    out.write(mdba);
+                }
             }
         }
         out.write(val);
@@ -398,7 +495,46 @@ public class Value implements FastExternalizable {
 
         if (format == Format.NONE || Format.isTableFormat(format)) {
             final byte[] bytes;
-            if (format == Format.MULTI_REGION_TABLE) {
+            if (format == Format.TABLE_V5) {
+
+                int prefixLength = 2;  // format and bitset
+
+                if (regionId != Region.NULL_REGION_ID) {
+                    final int regionIdLen2 = PackedInteger.getWriteIntLength(regionId);
+                    prefixLength += regionIdLen2;
+                }
+                if (rowMetadata != null) {
+                    byte[] mdba = rowMetadata.getBytes(StandardCharsets.UTF_8);
+                    final int metadataLenLen = PackedInteger.getWriteIntLength(
+                        rowMetadata.length());
+                    prefixLength += metadataLenLen + mdba.length;
+                }
+
+                bytes = new byte[prefixLength + val.length];
+
+                bytes[0] = (byte)(format.ordinal() - 1);
+                int alreadyWritten = 1;
+
+                BitSet options = new BitSet(8);
+                options.set(TABLEV5_REGIONID_BIT, regionId != Region.NULL_REGION_ID);      // has regionId
+                options.set(TABLEV5_ROWMETADATA_BIT, rowMetadata != null);   // has metadata
+                byte[] bitsetBytes = options.isEmpty() ? new byte[]{0} : options.toByteArray();
+                System.arraycopy(bitsetBytes, 0, bytes, 1, bitsetBytes.length);
+                alreadyWritten += bitsetBytes.length;
+                if (regionId != Region.NULL_REGION_ID) {
+                    PackedInteger.writeInt(bytes, alreadyWritten, regionId);
+                    alreadyWritten += PackedInteger.getWriteIntLength(regionId);
+                }
+                if (rowMetadata != null) {
+                    byte[] mdba = rowMetadata.getBytes(StandardCharsets.UTF_8);
+                    PackedInteger.writeInt(bytes, alreadyWritten, mdba.length);
+                    alreadyWritten += PackedInteger.getWriteIntLength(mdba.length);
+                    System.arraycopy(mdba, 0, bytes, alreadyWritten, mdba.length);
+                    alreadyWritten += mdba.length;
+                }
+                System.arraycopy(val, 0, bytes, alreadyWritten, val.length);
+
+            } else if (format == Format.MULTI_REGION_TABLE) {
                 final int regionIdLen =
                     PackedInteger.getWriteIntLength(regionId);
                 bytes = new byte[val.length + regionIdLen + 1];
@@ -448,22 +584,48 @@ public class Value implements FastExternalizable {
 
         final Format format = Format.fromFirstByte(bytes[0]);
 
-        if (format == Format.MULTI_REGION_TABLE) {
-            final int regionIdLen = PackedInteger.getReadIntLength(bytes, 1);
-            final int regionId = PackedInteger.readInt(bytes, 1);
-            final byte[] val = new byte[bytes.length - regionIdLen - 1];
-            System.arraycopy(bytes, regionIdLen + 1, val, 0, val.length);
-            return new Value(val, format, regionId);
+        if (format == Format.AVRO) {
+            return new Value(bytes, format);
         }
 
-        if (format == Format.NONE || Format.isTableFormat(format)) {
+        if (format == Format.NONE || Format.MULTI_REGION_TABLE.compareTo(format) > 0) {
             final byte[] val = new byte[bytes.length - 1];
             System.arraycopy(bytes, 1, val, 0, val.length);
             return new Value(val, format);
         }
 
-        final byte[] val = bytes;
-        return new Value(val, format);
+        if (format == Format.MULTI_REGION_TABLE) {
+            final int regionIdLen = PackedInteger.getReadIntLength(bytes, 1);
+            final int regionId = PackedInteger.readInt(bytes, 1);
+            final byte[] val = new byte[bytes.length - regionIdLen - 1];
+            System.arraycopy(bytes, regionIdLen + 1, val, 0, val.length);
+            return new Value(val, format, regionId, null);
+        }
+
+        if (format == Format.TABLE_V5) {
+            int regionId = Region.NULL_REGION_ID;
+            String metadata = null;
+            BitSet options = BitSet.valueOf(new byte[] {bytes[1]});
+            int alreadyRead = 2;
+
+            if (options.get(TABLEV5_REGIONID_BIT)) { // contains multi-region
+                regionId = PackedInteger.readInt(bytes, alreadyRead);
+                alreadyRead += PackedInteger.getWriteIntLength(regionId);
+            }
+
+            if (options.get(TABLEV5_ROWMETADATA_BIT)) { // contains metadata
+                int metadataLen = PackedInteger.readInt(bytes, alreadyRead);
+                alreadyRead += PackedInteger.getWriteIntLength(metadataLen);
+                metadata = new String(bytes, alreadyRead, metadataLen, StandardCharsets.UTF_8);
+                alreadyRead += metadataLen;
+            }
+            final byte[] val = new byte[bytes.length - alreadyRead];
+            System.arraycopy(bytes, alreadyRead, val, 0, val.length);
+            return new Value(val, format, regionId, metadata);
+        }
+
+
+        throw new IllegalStateException("Unknown format: " + format);
     }
 
     /**
@@ -479,28 +641,25 @@ public class Value implements FastExternalizable {
      * For internal use only.
      * @hidden
      *
-     * Creates a value with a given format.
+     * Creates a value with a given format and region
      */
-    public static Value internalCreateValue(byte[] val, Format format) {
-        /*
-         * Create a value with local region id for multi_region tables, or
-         * null region id for local tables. */
-        if (format == Format.MULTI_REGION_TABLE) {
-            return new Value(val, format, Region.LOCAL_REGION_ID);
-        }
-        return new Value(val, format);
+    public static Value internalCreateValue(byte[] val,
+                                            Format format,
+                                            int regionId) {
+        return new Value(val, format, regionId, null);
     }
 
     /**
      * For internal use only.
      * @hidden
      *
-     * Creates a value with a given format and region
+     * Creates a value with a given format, region and rowMetadata
      */
     public static Value internalCreateValue(byte[] val,
-                                            Format format,
-                                            int regionId) {
-        return new Value(val, format, regionId);
+        Format format,
+        int regionId,
+        String rowMetadata) {
+        return new Value(val, format, regionId, rowMetadata);
     }
 
     /**
@@ -525,6 +684,14 @@ public class Value implements FastExternalizable {
      */
     public int getRegionId() {
         return regionId;
+    }
+
+    /**
+     * Returns the row metadata of this value.
+     * @hidden For internal use only
+     */
+    public String getRowMetadata() {
+        return rowMetadata;
     }
 
     @Override
@@ -553,6 +720,12 @@ public class Value implements FastExternalizable {
         if (format == Format.MULTI_REGION_TABLE) {
             sb.append(" region ID:");
             sb.append(regionId);
+        } else if (format == Format.TABLE_V5) {
+            sb.append(" region ID:");
+            sb.append(regionId);
+            sb.append(" metadata:'");
+            sb.append(rowMetadata);
+            sb.append("'");
         }
         sb.append(" bytes:");
         for (int i = 0; i < 100 && i < val.length; i += 1) {
@@ -567,23 +740,200 @@ public class Value implements FastExternalizable {
     }
 
     /**
-     * Create a tombstone value with Format.NONE
-     *
-     * @hidden For internal cloud use only
-     */
-    public static Value createTombstoneNoneValue() {
-        return internalCreateValue(new byte[0], Format.NONE);
-    }
-
-    /**
-     * Create a tombstone value which only contains the format, region id
-     * and an empty byte array.
+     * Create a tombstone value which only contains the format, region id,
+     * row metadata and an empty byte array.
      *
      * @hidden For internal use only
      */
-    public static Value createTombstoneValue(int regionId) {
-        return internalCreateValue(new byte[0],
-                                   Format.MULTI_REGION_TABLE,
-                                   regionId);
+    public static Value createTombstoneValue(int regionId, String rowMetadata) {
+        if (regionId == Region.NULL_REGION_ID && rowMetadata == null) {
+            return internalCreateValue(new byte[0], Format.NONE,
+                Region.NULL_REGION_ID, null /* rowMetadata */);
+        }
+        if (rowMetadata == null) {
+            return internalCreateValue(new byte[0], Format.MULTI_REGION_TABLE,
+                regionId, null /* rowMetadata */);
+        }
+        return internalCreateValue(new byte[0], Format.TABLE_V5, regionId,
+            rowMetadata);
+    }
+
+    /**
+     * Returns true if tombstone, i.e. it can contain regionId or rowMetadata
+     * but payload (row data) is empty.
+     */
+    public static boolean isTombstone(byte[] bytes) {
+        return getValueOffset(bytes) == bytes.length;
+    }
+
+    /**
+     * Returns true if there is a regionId in the entire encoded row, otherwise false.
+     */
+    public static boolean hasRegionId(byte[] bytes) {
+        if (bytes == null || bytes.length == 0) {
+            return false;
+        }
+
+        final Value.Format format = Value.Format.fromFirstByte(bytes[0]);
+
+        if (Value.Format.MULTI_REGION_TABLE.compareTo(format) > 0) {
+            return false;
+        }
+
+        if (format == Value.Format.MULTI_REGION_TABLE) {
+            return true;
+        }
+
+        if (format == Format.TABLE_V5) {
+            BitSet options = BitSet.valueOf(new byte[]{bytes[1]});
+
+            return options.get(TABLEV5_REGIONID_BIT);
+        }
+
+        throw new IllegalStateException("Invalid format: " + format);
+    }
+
+    /**
+     * Returns true if there is a regionId in the entire encoded row, otherwise false.
+     */
+    public static boolean hasRowMetadata(byte[] bytes) {
+        if (bytes == null || bytes.length == 0) {
+            return false;
+        }
+        final Value.Format format = Value.Format.fromFirstByte(bytes[0]);
+
+        if (Format.TABLE_V5.compareTo(format) > 0) {
+            return false;
+        }
+
+        if (format == Format.TABLE_V5) {
+            BitSet options = BitSet.valueOf(new byte[]{bytes[1]});
+
+            return options.get(TABLEV5_ROWMETADATA_BIT);
+        }
+
+        throw new IllegalStateException("Invalid format: " + format);
+    }
+
+    /**
+     * Returns the regionId given the entire encoded row or
+     * {@link Region#NULL_REGION_ID} if not present.
+     */
+    public static int getRegionIdFromByteArray(byte[] bytes) {
+        if (bytes == null || bytes.length == 0) {
+            return Region.NULL_REGION_ID;
+        }
+
+        final Value.Format format = Value.Format.fromFirstByte(bytes[0]);
+
+        // all formats before MULTI_REGION_FORMAT
+        if (Value.Format.MULTI_REGION_TABLE.compareTo(format) > 0) {
+            return Region.NULL_REGION_ID;
+        }
+
+        if (format == Value.Format.MULTI_REGION_TABLE) {
+            final int regionId = PackedInteger.readInt(bytes, 1);
+            return regionId;
+        }
+
+        if (format == Format.TABLE_V5) {
+            int regionId = Region.NULL_REGION_ID;
+            BitSet options = BitSet.valueOf(new byte[] {bytes[1]});
+            int alreadyRead = 2;
+
+            if (options.get(TABLEV5_REGIONID_BIT)) { // contains regionId
+                regionId = PackedInteger.readInt(bytes, alreadyRead);
+            }
+            return regionId;
+        }
+
+        throw new IllegalStateException("Invalid format: " + format);
+    }
+
+    /**
+     * Returns the offset index (starts with 0) of the row value given the
+     * entire encoded row.
+     */
+    public static int getValueOffset(byte[] bytes) {
+        if (bytes == null || bytes.length == 0) {
+            throw new IllegalStateException("Invalid bytes value: " + Arrays.toString(bytes));
+        }
+
+        final Value.Format format = Value.Format.fromFirstByte(bytes[0]);
+
+        // all formats before MULTI_REGION_FORMAT
+        if (Value.Format.MULTI_REGION_TABLE.compareTo(format) > 0) {
+            return 1;
+        }
+
+        if (format == Value.Format.MULTI_REGION_TABLE) {
+            /* skip bytes of region id */
+            final int regionIdLen = PackedInteger.getReadIntLength(bytes, 1);
+            return regionIdLen + 1;
+        }
+
+        if (format == Format.TABLE_V5) {
+            BitSet options = BitSet.valueOf(new byte[] {bytes[1]});
+            int offset = 2;
+
+            if (options.get(TABLEV5_REGIONID_BIT)) { // contains regionId
+                int regionId = PackedInteger.readInt(bytes, offset);
+                offset += PackedInteger.getWriteIntLength(regionId);
+            }
+
+            if (options.get(TABLEV5_ROWMETADATA_BIT)) { // contains metadata
+                int metadataLen = PackedInteger.readInt(bytes, offset);
+                offset += PackedInteger.getWriteIntLength(metadataLen);
+                offset += metadataLen;
+            }
+            return offset;
+        }
+
+        throw new IllegalStateException("Invalid format: " + format);
+    }
+
+    /**
+     * Sets regionId and rowMetadata if available and returns the offset of row data.
+     */
+    public static int setRegionIdAndRowMetadata(byte[] bytes, RowImpl row) {
+        if (bytes == null || bytes.length == 0) {
+            throw new IllegalStateException("Invalid bytes value: " + Arrays.toString(bytes));
+        }
+
+        final Value.Format format = Value.Format.fromFirstByte(bytes[0]);
+
+        // all formats before MULTI_REGION_FORMAT
+        if (Value.Format.MULTI_REGION_TABLE.compareTo(format) > 0) {
+            return 1;
+        }
+
+        if (format == Value.Format.MULTI_REGION_TABLE) {
+            final int regionIdLen = PackedInteger.getReadIntLength(bytes, 1);
+            final int regionId = PackedInteger.readInt(bytes, 1);
+            row.setRegionId(regionId);
+            return regionIdLen + 1;
+        }
+
+        if (format == Format.TABLE_V5) {
+            BitSet options = BitSet.valueOf(new byte[] {bytes[1]});
+            int offset = 2; /* 1 format, 1 bitset */
+
+            if (options.get(TABLEV5_REGIONID_BIT)) { // contains regionId
+                int regionId = PackedInteger.readInt(bytes, offset);
+                row.setRegionId(regionId);
+                offset += PackedInteger.getWriteIntLength(regionId);
+            }
+
+            if (options.get(TABLEV5_ROWMETADATA_BIT)) { // contains metadata
+                int metadataLen = PackedInteger.readInt(bytes, offset);
+                offset += PackedInteger.getWriteIntLength(metadataLen);
+                String metadata = new String(bytes, offset, metadataLen, StandardCharsets.UTF_8);
+                row.setRowMetadata(metadata);
+                offset += metadataLen;
+            }
+            return offset;
+        }
+
+        throw new IllegalStateException("Invalid format: " + format);
     }
 }

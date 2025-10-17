@@ -297,7 +297,7 @@ public class AsyncRequestHandlerTest extends AsyncVersionedRemoteTestBase {
                 final ResultValueVersion rvv =
                     new ResultValueVersion(new byte[] { 0, 3 },
                                            new Version(new UUID(4, 5), 6, rnId, 7),
-                                           8, 0, -1);
+                                           8, 0, 0,-1);
                 final Result result =
                     new Result.GetResult(OpCode.GET, 9, 10, rvv);
                 final Response response = new Response(

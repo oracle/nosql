@@ -40,6 +40,8 @@ import oracle.kv.impl.rep.migration.generation.PartitionGenNum;
 import oracle.kv.impl.rep.migration.generation.PartitionGeneration;
 import oracle.kv.impl.rep.migration.generation.PartitionGenerationTable;
 import oracle.kv.impl.rep.migration.generation.PartitionMDException;
+import oracle.kv.impl.test.TestHook;
+import oracle.kv.impl.test.TestHookExecute;
 import oracle.kv.impl.topo.PartitionId;
 import oracle.kv.impl.topo.RepGroupId;
 import oracle.kv.impl.topo.Topology;
@@ -139,7 +141,12 @@ import com.sleepycat.je.rep.utilint.ServiceDispatcher.ServiceConnectFailedExcept
  * Case 4 - EoD sent after 3 is the usual steady state while the DB copy is
  *          in progress.
  */
-class MigrationTarget implements Callable<MigrationTarget> {
+public class MigrationTarget implements Callable<MigrationTarget> {
+
+    /**
+     * Test hook executed before persist migration record durable.
+     */
+    public static volatile TestHook<MigrationTarget> PERSIST_HOOK = null;
 
     private final Logger logger;
     private final RateLimitingLogger<String> rateLimitingLogger;
@@ -1017,6 +1024,9 @@ class MigrationTarget implements Callable<MigrationTarget> {
      */
     private boolean persistTargetDurable(Reader.EoD eod) {
         assert !Thread.holdsLock(this);
+
+        assert TestHookExecute.doHookIfSet(PERSIST_HOOK, MigrationTarget.this);
+
         final TransactionConfig txnConfig = new TransactionConfig();
         txnConfig.setConsistencyPolicy(
                                  NoConsistencyRequiredPolicy.NO_CONSISTENCY);
@@ -1177,12 +1187,16 @@ class MigrationTarget implements Callable<MigrationTarget> {
 
         private final DataInputStream stream;
 
+        /* The last record marker from the source*/
+        private volatile boolean lastRecordMarker;
+
         /* For general use to avoid constructing DatabaseEntrys in the OPS */
         private final DatabaseEntry keyEntry = new DatabaseEntry();
         private final DatabaseEntry valueEntry = new DatabaseEntry();
 
         Reader(DataInputStream stream) {
             this.stream = stream;
+            lastRecordMarker = false;
         }
 
         @Override
@@ -1196,6 +1210,25 @@ class MigrationTarget implements Callable<MigrationTarget> {
                     logger.log(Level.INFO,
                                "Exception processing migration stream for " +
                                partitionId, ex);
+
+                    /* If we do not cancel the migration when the EOD is not
+                     * received and last record marker from source has been
+                     * received, it returns the migration state as PENDING
+                     * rather than ERROR, which is not correct and may lead to
+                     * issues. For instance, in the case of a migration failure,
+                     * it may leave a partition unavailable for an extended
+                     * period of time (several minutes).
+                     * PM state flow :
+                     * PENDING --> RUNNING --> ERROR
+                     */
+                    if (!eodReceived && lastRecordMarker) {
+                        logger.log(Level.WARNING,
+                                   String.format(
+                                       "EOD not received from source %s. " +
+                                       "Migration cancelled for partition %s.",
+                                       sourceName, partitionId));
+                        cancel(false);
+                    }
                 }
 
                 /*
@@ -1203,6 +1236,11 @@ class MigrationTarget implements Callable<MigrationTarget> {
                  * to exit so that the target thread can handle the issue.
                  */
                 setStopped();
+                logger.log(Level.INFO,
+                           String.format(
+                               "Migration stopped for partition %s. " +
+                               "Current migration state is %s.",
+                               partitionId, getState().toString()));
             }
         }
 
@@ -1232,6 +1270,7 @@ class MigrationTarget implements Callable<MigrationTarget> {
                         copyOps++;
                         insert(new CopyOp(readDbEntry(),
                                           readDbEntry(),
+                                          readCreationTime(),
                                           readModificationTime(),
                                           readExpirationTime(),
                                           readTombstoneFlag()));
@@ -1241,6 +1280,7 @@ class MigrationTarget implements Callable<MigrationTarget> {
                         insert(new PutOp(readTxnId(),
                                          readDbEntry(),
                                          readDbEntry(),
+                                         readCreationTime(),
                                          readModificationTime(),
                                          readExpirationTime(),
                                          readTombstoneFlag()));
@@ -1260,6 +1300,13 @@ class MigrationTarget implements Callable<MigrationTarget> {
                     }
                     case ABORT: {
                         resolve(readTxnId(), false);
+                        break;
+                    }
+                    case LAST_RECORD_MARKER: {
+                        logger.log(Level.INFO,
+                                   "Received last record marker for {0}",
+                                   partitionId);
+                        lastRecordMarker = true;
                         break;
                     }
                     case EOD : {
@@ -1329,6 +1376,10 @@ class MigrationTarget implements Callable<MigrationTarget> {
          * Reads a transaction ID from the migration stream.
          */
         private long readTxnId() throws IOException {
+            return stream.readLong();
+        }
+
+        private long readCreationTime() throws IOException {
             return stream.readLong();
         }
 
@@ -1498,15 +1549,18 @@ class MigrationTarget implements Callable<MigrationTarget> {
         private class CopyOp extends Op {
             final byte[] key;
             final byte[] value;
+            final long rowCreationTime;
             final long modificationTime;
             final long expirationTime;
             final boolean isTombstone;
 
             CopyOp(byte[] key, byte[] value,
+                   long rowCreationTime,
                    long modificationTime,
                    long expirationTime, boolean isTombstone) {
                 this.key = key;
                 this.value = value;
+                this.rowCreationTime = rowCreationTime;
                 this.modificationTime = modificationTime;
                 this.expirationTime = expirationTime;
                 this.isTombstone = isTombstone;
@@ -1522,7 +1576,8 @@ class MigrationTarget implements Callable<MigrationTarget> {
                 valueEntry.setData(value);
                 partitionDb.put(getBatchTxn(), keyEntry, valueEntry,
                                 Put.OVERWRITE,
-                                getWriteOptions(modificationTime,
+                                getWriteOptions(rowCreationTime,
+                                                modificationTime,
                                                 expirationTime,
                                                 isTombstone));
                 tracker.addWriteBytes(key.length + value.length, 0);
@@ -1570,16 +1625,19 @@ class MigrationTarget implements Callable<MigrationTarget> {
         private class PutOp extends TxnOp {
             final byte[] key;
             final byte[] value;
+            final long rowCreationTime;
             final long modificationTime;
             final long expirationTime;
             final boolean isTombstone;
 
             PutOp(long txnId, byte[] key, byte[] value,
+                  long rowCreationTime,
                   long modificationTime,
                   long expirationTime, boolean isTombstone) {
                 super(txnId);
                 this.key = key;
                 this.value = value;
+                this.rowCreationTime = rowCreationTime;
                 this.modificationTime = modificationTime;
                 this.expirationTime = expirationTime;
                 this.isTombstone = isTombstone;
@@ -1595,7 +1653,8 @@ class MigrationTarget implements Callable<MigrationTarget> {
                 valueEntry.setData(value);
                 partitionDb.put(getTransaction(), keyEntry, valueEntry,
                                 Put.OVERWRITE,
-                                getWriteOptions(modificationTime,
+                                getWriteOptions(rowCreationTime,
+                                                modificationTime,
                                                 expirationTime,
                                                 isTombstone));
                 tracker.addWriteBytes(key.length + value.length, 0);
@@ -1820,11 +1879,13 @@ class MigrationTarget implements Callable<MigrationTarget> {
      * Returns a JE WriteOptions object set with the specified expirationTime
      * and tombstone flag. The instance returned is a singleton.
      */
-    private WriteOptions getWriteOptions(long modificationTime,
+    private WriteOptions getWriteOptions(long rowCreationTime,
+                                         long modificationTime,
                                          long expirationTime,
                                          boolean isTombstone) {
         /* writeOptions is already initialized with setUpdateTTL(true) */
-        return writeOptions.setModificationTime(modificationTime).
+        return writeOptions.setCreationTime(rowCreationTime).
+                            setModificationTime(modificationTime).
                             setExpirationTime(expirationTime, null).
                             setTombstone(isTombstone);
     }

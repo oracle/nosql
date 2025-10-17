@@ -217,8 +217,8 @@ public class ExtinctionScanner implements EnvConfigObserver {
         threadPool = envImpl.isReadOnly() ?
             null :
             new ThreadPoolExecutor(
-                1 /*corePoolSize*/, 1 /*maxPoolThreads*/,
-                0 /*keepAliveTime*/, TimeUnit.MILLISECONDS,
+                2 /*corePoolSize*/, 4 /*maxPoolThreads*/,
+                2000 /*keepAliveTime*/, TimeUnit.MILLISECONDS,
                 new LinkedBlockingQueue<>(),
                 new StoppableThreadFactory(
                     envImpl, "JEExtinctRecordScanner", logger,
@@ -1998,6 +1998,7 @@ public class ExtinctionScanner implements EnvConfigObserver {
             return dbId.equals(this.dbId);
         }
 
+        @SuppressWarnings("deprecation")
         @Override
         public void run() {
             assert TestHookExecute.doHookIfSet(dbBeforeExecTaskHook);
@@ -2066,7 +2067,7 @@ public class ExtinctionScanner implements EnvConfigObserver {
                         logger, envImpl,
                         "Start DB remove/truncate scan, id=" + id +
                             " dbId=" + dbImpl.getId() +
-                            " dbName=" + dbImpl.getName());
+                            " dbName=" + dbImpl.getName() + Thread.currentThread().getId());
 
                     /*
                      * At this point, it's possible for the evictor to find
@@ -2191,7 +2192,9 @@ public class ExtinctionScanner implements EnvConfigObserver {
              * FUTURE: Set mem limit to remainder of JE cache size during
              * recovery. For now, use a smallish value (50 MB).
              */
-            setInternalMemoryLimit(50L * 1024L * 1024L);
+            long freeMemory = (int)Runtime.getRuntime().freeMemory() / 10; //todo make configurable or is this too much 
+            
+            setInternalMemoryLimit(Math.max(50L * 1024L * 1024L, freeMemory));
         }
 
         @Override

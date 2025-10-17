@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2011, 2024 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011, 2025 Oracle and/or its affiliates. All rights reserved.
  *
  * This file was distributed by Oracle as part of a version of Oracle NoSQL
  * Database made available at:
@@ -234,12 +234,12 @@ public enum ErrorCode {
     SECURITY_INFO_UNAVAILABLE {
         @Override
         public HttpResponseStatus getHttpStatusCode() {
-            return HttpResponseStatus.NOT_FOUND;
+            return HttpResponseStatus.SERVICE_UNAVAILABLE;
         }
 
         @Override
         public String getErrorCode() {
-            return TYPE_NOT_AUTHORIZED_OR_NOT_FOUND;
+            return TYPE_SERVICE_AVAILABLE;
         }
     },
     CANNOT_CANCEL_WORK_REQUEST {

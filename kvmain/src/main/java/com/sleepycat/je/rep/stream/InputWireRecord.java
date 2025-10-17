@@ -42,7 +42,7 @@ public class InputWireRecord extends WireRecord {
     private boolean hasBeforeImage;
     private boolean enabledBeforeImage;
     private BeforeImageIndex.BeforeImagePayLoad beforeImage;
-    private int beforeImageExp;
+    private long beforeImageExp;
 
 
     /**
@@ -77,7 +77,7 @@ public class InputWireRecord extends WireRecord {
 
             if (entry instanceof BeforeImageLNLogEntry) {
                 beforeImageExp = ((BeforeImageLNLogEntry) entry)
-                    .getBeforeImageExpiration();
+                    .getBeforeImageExpirationTime();
             }
 
             if (msgBuffer.hasRemaining()) {

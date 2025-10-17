@@ -516,7 +516,7 @@ public class ReplicationStreamConsumer {
      *
      * @return  the statistics of the consumer
      */
-    ReplicationStreamConsumerStat getRSCStat() {
+    public ReplicationStreamConsumerStat getRSCStat() {
         return stat;
     }
 
@@ -527,6 +527,14 @@ public class ReplicationStreamConsumer {
                "source shard=" + master.getShardId() + "\n" +
                "source HA addr=" + master.getMasterHostPort() + "\n" +
                stat.dumpStat();
+    }
+
+    /**
+     * Unit test only
+     * @return JE subscription config
+     */
+    public SubscriptionConfig getSubscriptionConfig() {
+        return subscriptionConfig;
     }
 
     /* for test use only */

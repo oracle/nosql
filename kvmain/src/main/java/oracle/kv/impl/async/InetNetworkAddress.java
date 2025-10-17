@@ -121,8 +121,7 @@ public class InetNetworkAddress extends NetworkAddress {
                 }
                 return new InetNetworkAddress(hostname, port);
             },
-            AsyncRegistryUtils.getEndpointGroup()
-            .getBackupSchedExecService());
+            AsyncRegistryUtils.getEndpointGroup().getBackupExecService());
     }
 
     static CompletableFuture<NetworkAddress>
@@ -142,8 +141,7 @@ public class InetNetworkAddress extends NetworkAddress {
                 }
                 return new InetNetworkAddress(hostname, address.getPort());
             },
-            AsyncRegistryUtils.getEndpointGroup()
-            .getBackupSchedExecService());
+            AsyncRegistryUtils.getEndpointGroup().getBackupExecService());
     }
 
     /**
@@ -212,8 +210,7 @@ public class InetNetworkAddress extends NetworkAddress {
          */
         return CompletableFuture.supplyAsync(
             () -> new InetSocketAddress(hostname, port),
-            AsyncRegistryUtils.getEndpointGroup()
-            .getBackupSchedExecService());
+            AsyncRegistryUtils.getEndpointGroup().getBackupExecService());
     }
 
     @Override

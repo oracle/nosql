@@ -15,6 +15,7 @@ import static oracle.kv.impl.util.TestUtils.checkSerialize;
 import static oracle.kv.util.TestUtils.checkAll;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -37,6 +38,8 @@ import oracle.kv.impl.security.ExecutionContext.PrivilegeCollection;
 import oracle.kv.impl.security.login.LoginToken;
 import oracle.kv.impl.security.login.SessionId;
 import oracle.kv.impl.util.RateLimitingLogger;
+import oracle.kv.table.TableAPI;
+
 import org.junit.Test;
 
 public class PrivilegeTest extends TestBase {
@@ -221,6 +224,30 @@ public class PrivilegeTest extends TestBase {
 
         checkPrivImplication("DELETE_ANY_TABLE", deleteAnyTablePriv,
                              privsImpliedByDeleteAnyTable);
+    }
+
+    /*
+     * Tests that all table privilege label has an implying namespace privilege
+     * label defined and the implying privileges of corresponding table
+     * privilege have all implying privileges of the namespace privilege.
+     */
+    @Test
+    public void testTableNamespacePrivsImplication() {
+        for (KVStorePrivilegeLabel label : KVStorePrivilegeLabel.values()) {
+            if (label.getType() == KVStorePrivilege.PrivilegeType.TABLE) {
+                KVStorePrivilegeLabel nsLabel =
+                    TablePrivilege.implyingNamespacePrivLabel(label);
+                assertNotNull(nsLabel);
+                TablePrivilege tbPriv = TablePrivilege.get(
+                    label, 0, TableAPI.SYSDEFAULT_NAMESPACE_NAME, "foo");
+                NamespacePrivilege nsPriv = NamespacePrivilege.get(
+                    nsLabel, TableAPI.SYSDEFAULT_NAMESPACE_NAME);
+
+                assertTrue(Arrays.asList(tbPriv.implyingPrivileges())
+                                 .containsAll(Arrays.asList(
+                                     nsPriv.implyingPrivileges())));
+            }
+        }
     }
 
     /*

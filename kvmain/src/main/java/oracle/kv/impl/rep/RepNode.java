@@ -69,6 +69,8 @@ import oracle.kv.impl.security.metadata.SecurityMetadata.KerberosInstance;
 import oracle.kv.impl.security.metadata.SecurityMetadataInfo;
 import oracle.kv.impl.security.util.KerberosPrincipals;
 import oracle.kv.impl.security.util.SNKrbInstance;
+import oracle.kv.impl.test.TestHook;
+import oracle.kv.impl.test.TestHookExecute;
 import oracle.kv.impl.test.TestStatus;
 import oracle.kv.impl.tif.TextIndexFeederManager;
 import oracle.kv.impl.tif.TextIndexFeederTopoTracker;
@@ -134,6 +136,13 @@ import com.sleepycat.je.utilint.TaskCoordinator;
  */
 public class RepNode implements TopologyManager.PostUpdateListener,
                                 TopologyManager.PreUpdateListener {
+
+    /**
+     * Test hook executed before sending NOP to a node in a specified rep group.
+     * A use case is to decide which node to send the NOP to in a test avoiding
+     * sending the NOP to a random node.
+     */
+    public static volatile TestHook<RepNode> SEND_RG_NOP_HOOK = null;
 
     /* Number of retries for DB operations. */
     private static final int NUM_DB_OP_RETRIES = 100;
@@ -448,15 +457,7 @@ public class RepNode implements TopologyManager.PostUpdateListener,
     public void preUpdate(Topology newTopology) {
         /* Don't wait, we just care about the state: master or not */
         final ReplicatedEnvironment env = envManager.getEnv(0);
-        try {
-            if ((env == null) || !env.getState().isMaster()) {
-                return;
-            }
-        } catch (EnvironmentFailureException e) {
-            /* It's in the process of being re-established. */
-            return;
-        } catch (IllegalStateException iae) {
-            /* A closed environment. */
+        if (!isMaster(env)) {
             return;
         }
 
@@ -465,9 +466,42 @@ public class RepNode implements TopologyManager.PostUpdateListener,
                 checkPartitionChanges(new RepGroupId(repNodeId.getGroupId()),
                                       newTopology);
         } catch (IllegalStateException ise) {
+            if (!isAuthoritativeMaster(env)) {
+                getLogger().log(Level.INFO,
+                    () -> String.format("Non-authoratitive master "
+                        + "failed partition change check: %s", ise));
+                throw new OperationFaultException("not authoritative master");
+            }
             /* The Topology checks failed, force a shutdown. */
             getExceptionHandler().
                 uncaughtException(Thread.currentThread(), ise);
+        }
+    }
+
+    private boolean isMaster(ReplicatedEnvironment env) {
+        try {
+            if ((env == null) || !env.getState().isMaster()) {
+                return false;
+            }
+        } catch (EnvironmentFailureException e) {
+            /* It's in the process of being re-established. */
+            return false;
+        } catch (IllegalStateException iae) {
+            /* A closed environment. */
+            return false;
+        }
+        return true;
+    }
+
+    private boolean isAuthoritativeMaster(ReplicatedEnvironment env) {
+        try {
+            return getIsAuthoritativeMaster(env);
+        } catch (EnvironmentFailureException e) {
+            /* It's in the process of being re-established. */
+            return false;
+        } catch (IllegalStateException iae) {
+            /* A closed environment. */
+            return false;
         }
     }
 
@@ -667,6 +701,8 @@ public class RepNode implements TopologyManager.PostUpdateListener,
      * @return true if the operation was successful
      */
     public boolean sendNOP(RepGroupId groupId) {
+        assert TestHookExecute.doHookIfSet(SEND_RG_NOP_HOOK, this);
+
         final RepGroupState rgs = requestDispatcher.getRepGroupStateTable().
                                                         getGroupState(groupId);
         final LoginManager lm =
@@ -733,7 +769,6 @@ public class RepNode implements TopologyManager.PostUpdateListener,
                        ex);
         }
         return false;
-
     }
 
     /**
@@ -744,8 +779,8 @@ public class RepNode implements TopologyManager.PostUpdateListener,
      * @return the rep node state
      */
     public RepNodeState getMaster(RepGroupId groupId) {
-        return requestDispatcher.getRepGroupStateTable().
-                                            getGroupState(groupId).getMaster();
+        return requestDispatcher.getRepGroupStateTable().getGroupState(groupId)
+            .getMaster();
     }
 
     /**
@@ -753,7 +788,7 @@ public class RepNode implements TopologyManager.PostUpdateListener,
      */
     public RepGroupState getRepGroupState(RepGroupId groupId) {
         return requestDispatcher.getRepGroupStateTable().getGroupState(groupId);
-     }
+    }
 
     /**
      * Invoked when the replicated environment has been invalidated due to an
@@ -823,7 +858,14 @@ public class RepNode implements TopologyManager.PostUpdateListener,
      * authoritative master, without waiting for the environment.
      */
     public boolean getIsAuthoritativeMaster() {
-        final RepImpl repImpl = getEnvImpl(0);
+        return getIsAuthoritativeMaster(getEnv(0));
+    }
+
+    public boolean getIsAuthoritativeMaster(ReplicatedEnvironment env) {
+        if (env == null) {
+            return false;
+        }
+        final RepImpl repImpl = RepInternal.getRepImpl(env);
         if (repImpl == null) {
             return false;
         }

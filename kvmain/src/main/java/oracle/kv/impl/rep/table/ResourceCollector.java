@@ -48,6 +48,12 @@ import oracle.kv.impl.topo.Topology;
  */
 public abstract class ResourceCollector implements ResourceTracker {
 
+    /**
+     * Scaling the partition size limit for unit testing to avoid creating a
+     * huge amount of partitions.
+     */
+    public static volatile int partitionSizeLimitScaling = 1;
+
     /*
      * The amount of time that a throughout cap is valid. After
      * this time, the cap should be re-calculated.
@@ -55,7 +61,7 @@ public abstract class ResourceCollector implements ResourceTracker {
      * Public for unit test.
      */
     public static final int CAP_TIME_SEC = 7;
-    
+
      /**
      * Map of counters to keep track of table size based on operations.
      * There is a counter per-partition. Entries are added as needed and
@@ -86,13 +92,13 @@ public abstract class ResourceCollector implements ResourceTracker {
         }
         return addWriteBytes(bytes, nIndexWrites);
     }
-    
+
     /*
      * Called when write bytes are added to a partition on any table in
      * a hierarchy . Subclass can use this call to total the deltas.
      */
     protected abstract void totalDelta(int pid, int deltaBytes);
-    
+
     /**
      * Gets the size delta for the specified partition.
      */
@@ -108,7 +114,7 @@ public abstract class ResourceCollector implements ResourceTracker {
         }
         return ret;
     }
-    
+
     /**
      * Gets and resets the size delta for the specified partition.
      */
@@ -124,7 +130,7 @@ public abstract class ResourceCollector implements ResourceTracker {
         }
         return ret;
     }
-    
+
     /**
      * Checks if the operation is permitted on the specified partition.
      * Checks if accessed is permitted and whether a size or throughput limit
@@ -134,7 +140,7 @@ public abstract class ResourceCollector implements ResourceTracker {
      */
     public abstract void checkOperation(InternalOperation internalOp,
                                         PartitionId partitionId);
-    
+
     /**
      * Returns true if there is read or write throttling at this time. If
      * checkAccess is true, access is checked and an exception is thrown if
@@ -143,7 +149,7 @@ public abstract class ResourceCollector implements ResourceTracker {
      */
     public abstract boolean isThrottled(boolean checkAccess,
                                         PartitionId partitionId);
-        
+
     /**
      * Records table size and throughput rates.
      */
@@ -173,13 +179,13 @@ public abstract class ResourceCollector implements ResourceTracker {
      */
     public static class TopCollector extends ResourceCollector {
         private static final int KB = 1024;
-        
+
         /* Use to convert bytes to MB */
         private static final long MB = KB * KB;
 
         /* Use to convert bytes to GB */
         private static final long GB = MB * KB;
-    
+
         /* Array size must be power of 2 */
         private static final int ARRAY_SIZE = 8;
 
@@ -191,7 +197,7 @@ public abstract class ResourceCollector implements ResourceTracker {
 
         /* Minimum cap to allow some progress. */
         private static final int MIN_THROUGHPUT_CAP = 2;
-    
+
         private final RepNode repNode;
 
         /*
@@ -375,7 +381,7 @@ public abstract class ResourceCollector implements ResourceTracker {
             nNodes = (nodes == 0) ? 1 : nodes;
             nPartitions = topo.getNumPartitions();
         }
-        
+
         /*
          * Updates the partition size limit.
          */
@@ -390,10 +396,10 @@ public abstract class ResourceCollector implements ResourceTracker {
             int newLimitMB = getPartitionSizeLimitMB(limits.getSizeLimit(),
                                                     defaultPartitionSizePercent,
                                                     nPartitions);
-            
+
             final boolean increased = newLimitMB > partitionSizeLimitMB;
             partitionSizeLimitMB = newLimitMB;
-            
+
             /*
              * If the partition limit increased, clear out any overages to
              * re-enable writes. Note that the size may still be over the
@@ -403,11 +409,11 @@ public abstract class ResourceCollector implements ResourceTracker {
                 partitionOverages.clear();
             }
         }
-        
+
         /**
          * Gets the per-partition size limit based on the input values.
          * Public access for unit test.
-         * 
+         *
          * @param tableLimitGB - table limit
          * @param percentOver - percent allowed over the limit
          * @param nPartitions - the number of partitions
@@ -419,13 +425,13 @@ public abstract class ResourceCollector implements ResourceTracker {
             long limit = tableLimitGB * GB;
             limit += (limit * percentOver) / 100;
             limit /= nPartitions;
- 
+
             /* Convert to MB, rounding up */
             int perPartLimitMB = (int)(limit / MB);
             if ((limit % MB) > 0) {
                 perPartLimitMB++;
             }
-            return perPartLimitMB;
+            return perPartLimitMB / partitionSizeLimitScaling;
         }
 
         /*
@@ -439,7 +445,7 @@ public abstract class ResourceCollector implements ResourceTracker {
                 return;
             }
             reportedTableSize = newSizeBytes;
-            
+
             final TableLimits limits = table.getTableLimits();
             if (limits.hasSizeLimit()) {
                 sizeLimitExceeded =
@@ -456,7 +462,7 @@ public abstract class ResourceCollector implements ResourceTracker {
                 sizeReported.set(true);
             }
         }
-        
+
         /**
          * Returns the set of partitions which have had some write activity
          * since the last reset.
@@ -465,7 +471,7 @@ public abstract class ResourceCollector implements ResourceTracker {
             final Map<Integer, AtomicLong> map = totalDeltaMap;
             return map.keySet();
         }
-        
+
         /**
          * Returns the total size delta for the given partition. This includes
          * deltas from writes to the top level and child tables.
@@ -482,7 +488,7 @@ public abstract class ResourceCollector implements ResourceTracker {
             }
             return ret;
         }
-        
+
         /**
          * Resets the total size delta for the specified partition. Note: This
          * will only reset the total delta map entry. It relies on a call to
@@ -508,7 +514,7 @@ public abstract class ResourceCollector implements ResourceTracker {
                         map.computeIfAbsent(pid, k -> new AtomicLong());
             counter.addAndGet(deltaBytes);
         }
-        
+
         @Override
         public int addReadBytes(int bytes, boolean isAbsolute) {
             /* Record aggregated RN throughput */
@@ -776,7 +782,7 @@ public abstract class ResourceCollector implements ResourceTracker {
                         table.getName(), limits.isReadAllowed(),
                         "Table " + table.getName() + " is read-only");
             }
-            
+
             if (!checkSize) {
                 return;
             }
@@ -799,7 +805,7 @@ public abstract class ResourceCollector implements ResourceTracker {
                                 ", size limit: " + limitGB +
                                 "GB, table size: " + sizeGB + "GB");
             }
-            
+
             if (partitionId == null) {
                 return;
             }
@@ -825,7 +831,7 @@ public abstract class ResourceCollector implements ResourceTracker {
                                         overageMB + "MB");
             }
         }
-        
+
         /**
          * Records whether a partition size is over the shard-key size limit.
          */
@@ -1148,7 +1154,7 @@ public abstract class ResourceCollector implements ResourceTracker {
             }
         }
     }
-    
+
     /**
      * Collector for child tables. For most operations this class defers to
      * to the top collector in the hierarchy. The primary use of this instance
@@ -1157,13 +1163,13 @@ public abstract class ResourceCollector implements ResourceTracker {
     static class ChildCollector extends ResourceCollector {
 
         private final TopCollector topCollector;
-        
+
         ChildCollector(ResourceTracker parent) {
             topCollector = (parent instanceof TopCollector) ?
                                         (TopCollector)parent :
                                         ((ChildCollector)parent).topCollector;
         }
-        
+
         @Override
         protected void totalDelta(int pid, int deltaBytes) {
             topCollector.totalDelta(pid, deltaBytes);
@@ -1188,24 +1194,24 @@ public abstract class ResourceCollector implements ResourceTracker {
         public void addReadUnits(int units) {
             topCollector.addReadUnits(units);
         }
-        
+
         @Override
         public void checkOperation(InternalOperation internalOp,
                                    PartitionId partitionId) {
             topCollector.checkOperation(internalOp, partitionId);
         }
-        
+
         @Override
         public boolean isThrottled(boolean checkAccess,
                                    PartitionId partitionId) {
             return topCollector.isThrottled(checkAccess, partitionId);
         }
-        
+
         @Override
         void report(UsageRecord ur, long reportTimeNanos) {
             topCollector.report(ur, reportTimeNanos);
         }
-        
+
         @Override
         public String toString() {
             return "ChildCollector[]";

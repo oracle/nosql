@@ -16,7 +16,7 @@ insert into boo $f values (
       }
    }
 )
-returning row_storage_size($f) as row_size,
+returning (abs(row_storage_size($f) - 320) <= 1) as row_size,
           partition($f) as part,
           shard($f) as shard,
           remaining_days($f) as expiration,

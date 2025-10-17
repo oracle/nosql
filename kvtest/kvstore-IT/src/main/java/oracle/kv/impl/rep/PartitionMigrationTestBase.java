@@ -12,6 +12,7 @@ import static org.junit.Assert.assertTrue;
 
 import java.util.Arrays;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Predicate;
 import java.util.logging.Logger;
 
@@ -115,10 +116,22 @@ public class PartitionMigrationTestBase extends RepNodeTestBase {
      * is thrown.
      */
     static public void
-    waitForMigrationState(final RepNode target,
-                          final PartitionId pId,
-                          final PartitionMigrationState... requiredStates) {
-        boolean success = new PollCondition(500, 20000) {
+        waitForMigrationState(final RepNode target,
+                              final PartitionId pId,
+                              final PartitionMigrationState... requiredStates)
+    {
+        waitForMigrationState(target, pId, 20000, requiredStates);
+    }
+
+    static public void
+        waitForMigrationState(final RepNode target,
+                              final PartitionId pId,
+                              final long timeoutMillis,
+                              final PartitionMigrationState... requiredStates)
+    {
+        final AtomicReference<PartitionMigrationStatus> observedStatus =
+            new AtomicReference<>(null);
+        boolean success = new PollCondition(500, timeoutMillis) {
 
             @Override
             protected boolean condition() {
@@ -131,6 +144,7 @@ public class PartitionMigrationTestBase extends RepNodeTestBase {
                  */
                 final PartitionMigrationStatus status =
                     target.getMigrationStatus(pId);
+                observedStatus.set(status);
                 if (status == null) {
                     return false;
                 }
@@ -143,9 +157,10 @@ public class PartitionMigrationTestBase extends RepNodeTestBase {
                 return false;
             }
         }.await();
-        assertTrue("wait failed for " + pId + " on " +
-                   target.getRepNodeId().getFullName() +
-                   ", state(s): " + Arrays.toString(requiredStates), success);
+        assertTrue("wait failed for " + pId + " on "
+            + target.getRepNodeId().getFullName() + ", state(s): "
+            + Arrays.toString(requiredStates) + ", last observed: "
+            + observedStatus.get(), success);
     }
 
     /*

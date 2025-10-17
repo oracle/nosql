@@ -844,17 +844,8 @@ public class SubscriptionThread extends StoppableThread {
              * as yet. For example, the transition to the master may not have
              * been completed.
              */
-            //TODO: The INVALID code may be caused by connection problems
-            //or authentication issues. The former should lead to a retry but
-            // the latter should not. Today the response code does not
-            // distinguish these two cases and we just retry for both.
-            // After [KVSTORE-224]/[#27504] is done, hopefully we will have
-            // better response code to tell if the failure is caused by
-            // security check for which case the ReplicationSecurityException
-            //  should be thrown instead of ConnectionException
             Response response = se.getResponse();
-            if (response == ServiceDispatcher.Response.UNKNOWN_SERVICE ||
-                response == ServiceDispatcher.Response.INVALID) {
+            if (response == ServiceDispatcher.Response.UNKNOWN_SERVICE) {
                 final long ts = config.getSleepBeforeRetryMs();
                 final String msg = "Fail to open channel to node=" +
                                    config.getFeederHostPort() +
@@ -864,6 +855,21 @@ public class SubscriptionThread extends StoppableThread {
                                    "(ms)=" + ts;
                 LoggerUtils.info(logger, repImpl, lm(msg));
                 throw new ConnectionException(msg, ts, se);
+            }
+
+            /*
+             * No retry since INVALID response is returned only on security
+             * check failure
+             */
+            if (response == ServiceDispatcher.Response.INVALID) {
+                final String msg = "Fail to open channel to node=" +
+                                   config.getFeederHostPort() +
+                                   ", fail to authenticate" +
+                                   ", dispatcher response=" + response.name() +
+                                   ", service exception=" + se;
+                LoggerUtils.info(logger, repImpl, lm(msg));
+                throw new ReplicationSecurityException(
+                    msg, config.getSubNodeName(), se);
             }
 
             final String msg = "Subscription=" + config.getSubNodeName() +

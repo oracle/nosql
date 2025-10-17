@@ -1903,6 +1903,7 @@ public class Cleaner implements DaemonRunner, EnvConfigObserver {
                 env, db, null /*locker*/, null /*writeLockInfo*/,
                 false /*newEmbeddedLN*/, bin.getKey(index),
                 bin.getExpiration(index), bin.isExpirationInHours(),
+                ln.getCreationTime(),
                 ln.getModificationTime(), bin.isTombstone(index),
                 false /*newBlindDeletion*/, false /*currEmbeddedLN*/,
                 treeLsn, bin.getLastLoggedSize(index),

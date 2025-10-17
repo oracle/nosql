@@ -7,7 +7,7 @@
   <parent>
     <groupId>com.oracle.nosql</groupId>
     <artifactId>proxy</artifactId>
-    <version>25.1.13</version>
+    <version>25.3.21</version>
   </parent>
 
   <artifactId>cloudsim</artifactId>

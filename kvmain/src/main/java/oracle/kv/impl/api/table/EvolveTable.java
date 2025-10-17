@@ -13,6 +13,7 @@
 
 package oracle.kv.impl.api.table;
 
+import static oracle.kv.impl.util.SerialVersion.BEFORE_IMAGE_VERSION;
 import static oracle.kv.impl.util.SerializationUtil.readCollection;
 import static oracle.kv.impl.util.SerializationUtil.readFastExternalOrNull;
 import static oracle.kv.impl.util.SerializationUtil.readPackedInt;
@@ -40,6 +41,7 @@ class EvolveTable extends TableChange {
     private final String namespace;
     private final FieldMap fields;
     private final TimeToLive ttl;
+    private final TimeToLive beforeImgTTL;
     private final String description;
     private final IdentityColumnInfo identityColumnInfo;
     private final Set<Integer> regions;
@@ -50,6 +52,7 @@ class EvolveTable extends TableChange {
         namespace = table.getInternalNamespace();
         fields = table.getFieldMap();
         ttl = table.getDefaultTTL();
+        beforeImgTTL = table.getBeforeImageTTL();
         description = table.getDescription();
         identityColumnInfo = table.getIdentityColumnInfo();
         regions = table.isChild() ? null : table.getRemoteRegions();
@@ -62,6 +65,12 @@ class EvolveTable extends TableChange {
         fields = new FieldMap(in, serialVersion);
         ttl = readFastExternalOrNull(in, serialVersion,
                                      TimeToLive::readFastExternal);
+        if (serialVersion >= BEFORE_IMAGE_VERSION) {
+            beforeImgTTL = readFastExternalOrNull(
+                in, serialVersion, TimeToLive::readFastExternal);
+        } else {
+            beforeImgTTL = null;
+        }
         description = readString(in, serialVersion);
         identityColumnInfo = readFastExternalOrNull(in, serialVersion,
                                                     IdentityColumnInfo::new);
@@ -78,6 +87,9 @@ class EvolveTable extends TableChange {
         writeString(out, serialVersion, namespace);
         fields.writeFastExternal(out, serialVersion);
         writeFastExternalOrNull(out, serialVersion, ttl);
+        if (serialVersion >= BEFORE_IMAGE_VERSION) {
+            writeFastExternalOrNull(out, serialVersion, beforeImgTTL);
+        }
         writeString(out, serialVersion, description);
         writeFastExternalOrNull(out, serialVersion, identityColumnInfo);
         writeCollection(out, serialVersion, regions,
@@ -86,7 +98,8 @@ class EvolveTable extends TableChange {
 
     @Override
     TableImpl apply(TableMetadata md) {
-        return md.evolveTable(namespace, tableName, fields, ttl, description,
+        return md.evolveTable(namespace, tableName, fields, ttl,
+                              beforeImgTTL, description,
                               identityColumnInfo, regions);
     }
 

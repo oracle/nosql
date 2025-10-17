@@ -37,16 +37,20 @@ import oracle.kv.UnauthorizedException;
 import oracle.kv.impl.api.KVStoreImpl;
 import oracle.kv.impl.param.DurationParameter;
 import oracle.kv.impl.pubsub.NoSQLSubscriptionImpl;
+import oracle.kv.impl.pubsub.PublishingUnit;
+import oracle.kv.impl.pubsub.ReplicationStreamConsumer;
 import oracle.kv.impl.util.KVThreadFactory;
 import oracle.kv.impl.util.ScheduleStart;
 import oracle.kv.impl.util.server.LoggerUtils;
 import oracle.kv.impl.xregion.agent.BaseRegionAgentMetrics;
 import oracle.kv.impl.xregion.agent.BaseRegionAgentSubscriber;
 import oracle.kv.impl.xregion.agent.RegionAgentThread;
+import oracle.kv.impl.xregion.agent.mrt.MRTSubscriber;
 import oracle.kv.impl.xregion.stat.JsonRegionStat;
 import oracle.kv.impl.xregion.stat.ReqRespStat;
 import oracle.kv.impl.xregion.stat.TableInitStat;
 import oracle.kv.pubsub.NoSQLSubscriberId;
+import oracle.kv.pubsub.StreamPosition;
 import oracle.kv.table.Row;
 import oracle.kv.table.Table;
 import oracle.kv.table.TableAPI;
@@ -230,7 +234,6 @@ public class StatsManager {
                                  "failed, error=" + ie));
         }
         executor.shutdown();
-
         logger.fine(() -> lm("Stats report manager shuts down"));
     }
 
@@ -282,6 +285,8 @@ public class StatsManager {
 
         /* build service aggregate stat */
         collectServiceAgentStat(ams, now);
+        /* log memory stat */
+        logMemStat();
         return now;
     }
 
@@ -351,6 +356,12 @@ public class StatsManager {
         sm.setDels(all.stream().mapToLong(MRTableMetrics::getDels).sum());
         sm.setWinPuts(all.stream().mapToLong(MRTableMetrics::getWinPuts).sum());
         sm.setWinDels(all.stream().mapToLong(MRTableMetrics::getWinDels).sum());
+        sm.setLoopbackPuts(all.stream()
+                              .mapToLong(MRTableMetrics::getLoopbackPuts)
+                              .sum());
+        sm.setLoopbackDels(all.stream()
+                              .mapToLong(MRTableMetrics::getLoopbackDels)
+                              .sum());
         sm.setStreamBytes(
             all.stream().mapToLong(MRTableMetrics::getStreamBytes)
                .sum());
@@ -595,5 +606,110 @@ public class StatsManager {
             return;
         }
         sysTable = sys;
+    }
+
+    private void logMemStat() {
+        final StringBuilder sb = new StringBuilder("Memory stat:\n");
+        sb.append(getHeapStat()).append("\n");
+        for (RegionAgentThread ra : parent.getAllAgents()) {
+            sb.append(getRegionStat(ra)).append("\n");
+        }
+        logger.info(lm(sb.toString()));
+    }
+
+    private String getHeapStat() {
+        final long heapSize = Runtime.getRuntime().totalMemory();
+        final long heapMaxSize = Runtime.getRuntime().maxMemory();
+        final long heapFreeSize = Runtime.getRuntime().freeMemory();
+        final float usage = (heapSize * 1.0f / heapMaxSize) * 100;
+        final int nproc = Runtime.getRuntime().availableProcessors();
+        return "[JVM] #processors=" + nproc +
+               ", heap size=" + heapSize +
+               ", max heap="+ heapMaxSize +
+               ", free heap=" + heapFreeSize +
+               ", usage percent=" + usage;
+    }
+
+    private String getRegionStat(RegionAgentThread ra) {
+        final String regionName = ra.getSourceRegion().getName();
+        final StringBuilder sb = new StringBuilder("Region=" + regionName);
+        final MRTSubscriber sub = ra.getSubscriber();
+        if (sub == null) {
+            return sb.append("No MR subscriber").toString();
+        }
+        final NoSQLSubscriptionImpl stream =
+            (NoSQLSubscriptionImpl) sub.getSubscription();
+        if (stream == null) {
+            return sb.append("Stream not created").toString();
+        }
+        final PublishingUnit pu = stream.getParentPU();
+        if (pu == null) {
+            return sb.append("Stream not initialized").toString();
+        }
+
+        /* output queue stat */
+        final PublishingUnit.BoundedOutputQueue queue = pu.getOutputQueue();
+        if (queue == null) {
+            return sb.append("Output queue not initialized").toString();
+        }
+        sb.append("\n").append("\t");
+        final long currSizeBytes = queue.getCurrSizeBytes();
+        final long maxSizeBytes = queue.getMaxSizeBytes();
+        final long queueOps =  queue.getBoundedQueue().size();
+        final float full = (currSizeBytes * 1.0f) / maxSizeBytes * 100;
+        sb.append("[OutputQueueStat] #queued ops=").append(queueOps)
+          .append(", curr size=").append(currSizeBytes)
+          .append(", max size=").append(maxSizeBytes)
+          .append(", fullness%=").append(full);
+
+        /* OTB stat */
+        sb.append("\n").append("\t");
+        sb.append("[OTB] total size bytes=").append(getOTBSize(pu))
+          .append(", #shards=").append(pu.getConsumers().size());
+
+        /* VLSN stat */
+        sb.append("\n").append("\t");
+        sb.append("[VLSN]").append(getVLSNStat(pu));
+        return sb.toString();
+    }
+
+    private long getOTBSize(PublishingUnit pu) {
+        if (pu == null) {
+            return 0;
+        }
+        return pu.getConsumers().values().stream()
+                        .mapToLong(rsc -> rsc.getTxnBuffer()
+                                             .computeSize())
+                        .sum();
+    }
+
+    private String getVLSNStat(PublishingUnit pu) {
+        if (pu == null) {
+            return "Stream not initialized";
+        }
+        final MRTSubscriber sub = (MRTSubscriber) pu.getSubscriber();
+        if (sub == null) {
+            return "No MR subscriber";
+        }
+        final NoSQLSubscriptionImpl subscription =
+            (NoSQLSubscriptionImpl) sub.getSubscription();
+        if (subscription == null) {
+            return "Stream not created";
+        }
+        final StringBuilder ret = new StringBuilder();
+        final StreamPosition curr = subscription.getCurrentPosition();
+        for (ReplicationStreamConsumer rsc : pu.getConsumers().values()) {
+            final int gid = rsc.getRepGroupId().getGroupId();
+            final long lastStreamVLSN = rsc.getRSCStat().getLastStreamedVLSN();
+            final StreamPosition.ShardPosition sp = curr.getShardPosition(gid);
+            final long lastDeliveredVLSN = (sp == null ? 0 : sp.getVLSN());
+            final long diff = lastStreamVLSN - lastDeliveredVLSN;
+            ret.append(" shard=").append(gid)
+               .append("[last streamed=").append(lastStreamVLSN)
+               .append(", last delivered=").append(lastDeliveredVLSN)
+               .append(", #buffered=").append(diff)
+               .append("]");
+        }
+        return ret.toString();
     }
 }

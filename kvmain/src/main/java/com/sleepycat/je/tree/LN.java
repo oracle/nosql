@@ -78,6 +78,7 @@ public class LN extends Node implements VersionedWriteLoggable {
      */
     private long vlsnSequence = NULL_VLSN;
     private long modificationTime = 0;
+    private long creationTime = 0;
 
     /**
      * Create an empty LN, to be filled in from the log.
@@ -251,6 +252,24 @@ public class LN extends Node implements VersionedWriteLoggable {
      */
     public void setModificationTime(long time) {
         modificationTime = time;
+    }
+
+    /**
+     * Returns the cached creation time that was copied from the
+     * LNLogEntry.
+     * @see #creationTime
+     */
+    public long getCreationTime() {
+        return creationTime;
+    }
+
+    /**
+     * Caches a copy of the creation time from the LNLogEntry after a read
+     * or write.
+     * @see #creationTime
+     */
+    public void setCreationTime(long time) {
+        creationTime = time;
     }
 
     /*
@@ -471,6 +490,7 @@ public class LN extends Node implements VersionedWriteLoggable {
         final byte[] newKey,
         final int newExpiration,
         final boolean newExpirationInHours,
+        final long creationTime,
         final long newModificationTime,
         final boolean newTombstone,
         final boolean newBlindDeletion,
@@ -573,6 +593,7 @@ public class LN extends Node implements VersionedWriteLoggable {
         int abortExpiration = 0;
         boolean abortExpirationInHours = false;
         long abortModificationTime = 0;
+        long abortCreationTime = 0;
         boolean abortTombstone = false;
 
         LogParams params = new LogParams();
@@ -592,6 +613,7 @@ public class LN extends Node implements VersionedWriteLoggable {
             abortExpiration = writeLockInfo.getAbortExpiration();
             abortExpirationInHours = writeLockInfo.isAbortExpirationInHours();
             abortModificationTime = writeLockInfo.getAbortModificationTime();
+            abortCreationTime = writeLockInfo.getAbortCreationTime();
             abortTombstone = writeLockInfo.getAbortTombstone();
 
             params.obsoleteDupsAllowed = locker.isRolledBack();
@@ -624,9 +646,9 @@ public class LN extends Node implements VersionedWriteLoggable {
             entryType, dbImpl, txn,
             abortLsn, abortKD, abortKey, abortData, abortVLSN,
             abortExpiration, abortExpirationInHours,
-            abortModificationTime, abortTombstone,
+            abortModificationTime, abortCreationTime, abortTombstone,
             newKey, newEmbeddedLN, newExpiration, newExpirationInHours,
-            newModificationTime, newTombstone, newBlindDeletion,
+            creationTime, newModificationTime, newTombstone, newBlindDeletion,
             priorSize, priorLsn, repContext, bImgCtx);
 
         /* LNs are never provisional. */
@@ -725,6 +747,7 @@ public class LN extends Node implements VersionedWriteLoggable {
         final byte[] newKey,
         final int newExpiration,
         final boolean newExpirationInHours,
+        final long creationTime,
         final long newModificationTime,
         final boolean newTombstone,
         final boolean newBlindDeletion,
@@ -736,7 +759,7 @@ public class LN extends Node implements VersionedWriteLoggable {
         ReplicationContext repContext)
         throws DatabaseException {
           return log(envImpl, dbImpl, locker, writeLockInfo, newEmbeddedLN, 
-                     newKey, newExpiration, newExpirationInHours, 
+                     newKey, newExpiration, newExpirationInHours, creationTime, 
                      newModificationTime, newTombstone, newBlindDeletion, 
                      currEmbeddedLN, currLsn, currSize, isInsertion, 
                      backgroundIO, repContext, null);
@@ -759,11 +782,13 @@ public class LN extends Node implements VersionedWriteLoggable {
         int abortExpiration,
         boolean abortExpirationInHours,
         long abortModificationTime,
+        long abortCreationTime,
         boolean abortTombstone,
         byte[] newKey,
         boolean newEmbeddedLN,
         int newExpiration,
         boolean newExpirationInHours,
+        long creationTime,
         long newModificationTime,
         boolean newTombstone,
         boolean newBlindDeletion,
@@ -776,8 +801,9 @@ public class LN extends Node implements VersionedWriteLoggable {
             entryType, dbImpl.getId(), txn,
             abortLsn, abortKD, abortKey, abortData, abortVLSN,
             abortExpiration, abortExpirationInHours, abortModificationTime,
+            abortCreationTime,
             abortTombstone, newKey, this, newEmbeddedLN,
-            newExpiration, newExpirationInHours,
+            newExpiration, newExpirationInHours, creationTime,
             newModificationTime, newTombstone, newBlindDeletion,
             priorSize, priorLsn, (bImgCtx != null));
     }

@@ -52,8 +52,12 @@ public class TransferProtocol {
      * times.
      *
      * Version 6 as of release 23.3, add target description.
+     *
+     * Version 7 as of release 25.3, add last record marker and support for
+     * creation time in row metadata.
+     *
      */
-    static final int VERSION = 6;
+    static final int VERSION = 7;
 
     /* Constant used to indicate a transfer only request */
     static final RepNodeId TRANSFER_ONLY_TARGET = new RepNodeId(0, 0);
@@ -355,7 +359,13 @@ public class TransferProtocol {
          * End of Data. The partition migration data transfer is complete and
          * no further messages will be sent from the source.
          */
-        EOD(6);
+        EOD(6),
+
+        /**
+         * Last record marker. This informs that source shard has sent the last
+         * record.
+         */
+        LAST_RECORD_MARKER(7);
 
         private static OP[] VALUES = values();
 

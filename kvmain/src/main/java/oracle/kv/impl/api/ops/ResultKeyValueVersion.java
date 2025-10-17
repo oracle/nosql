@@ -14,6 +14,7 @@
 package oracle.kv.impl.api.ops;
 
 import static oracle.kv.impl.util.ObjectUtil.checkNull;
+import static oracle.kv.impl.util.SerialVersion.CREATION_TIME_VER;
 import static oracle.kv.impl.util.SerialVersion.TABLE_ITERATOR_TOMBSTONES_VER;
 import static oracle.kv.impl.util.SerializationUtil.toDeserializedForm;
 import static oracle.kv.impl.util.SerializationUtil.readNonNullByteArray;
@@ -44,12 +45,14 @@ public class ResultKeyValueVersion implements FastExternalizable {
     private final Version version;
     private final long expirationTime;
     private final long modificationTime;
+    private final long creationTime;
     private final boolean isTombstone;
 
     public ResultKeyValueVersion(byte[] keyBytes,
                                  byte[] valueBytes,
                                  Version version,
                                  long expirationTime,
+                                 long creationTime,
                                  long modificationTime,
                                  boolean isTombstone) {
         checkNull("keyBytes", keyBytes);
@@ -58,6 +61,7 @@ public class ResultKeyValueVersion implements FastExternalizable {
         this.resultValue = new ResultValue(valueBytes);
         this.version = version;
         this.expirationTime = expirationTime;
+        this.creationTime = creationTime;
         this.modificationTime = modificationTime;
         this.isTombstone = isTombstone;
     }
@@ -68,6 +72,7 @@ public class ResultKeyValueVersion implements FastExternalizable {
         resultValue = toDeserializedForm(other.resultValue, serialVersion);
         version = other.version;
         expirationTime = other.expirationTime;
+        creationTime = other.creationTime;
         modificationTime = other.modificationTime;
         isTombstone = other.isTombstone;
     }
@@ -88,6 +93,11 @@ public class ResultKeyValueVersion implements FastExternalizable {
             isTombstone = in.readBoolean();
         } else {
             isTombstone = false;
+        }
+        if (serialVersion >= CREATION_TIME_VER) {
+            creationTime = in.readLong();
+        } else {
+            creationTime = 0;
         }
     }
 
@@ -124,11 +134,14 @@ public class ResultKeyValueVersion implements FastExternalizable {
         if (serialVersion >= TABLE_ITERATOR_TOMBSTONES_VER) {
             out.writeBoolean(isTombstone);
         } else if (isTombstone) {
-            throw new IllegalStateException("Result is a tombstone while its" +
+            throw new IllegalStateException("Result is a tombstone while its " +
                                             "serial version=" + serialVersion +
                                             " is less than the minimum " +
                                             "required version=" +
                                             TABLE_ITERATOR_TOMBSTONES_VER);
+        }
+        if (serialVersion >= CREATION_TIME_VER) {
+            out.writeLong(creationTime);
         }
     }
 
@@ -145,6 +158,7 @@ public class ResultKeyValueVersion implements FastExternalizable {
                resultValue.equals(other.resultValue) &&
                version.equals(other.version) &&
                (expirationTime == other.expirationTime) &&
+               (creationTime == other.creationTime) &&
                (modificationTime == other.modificationTime) &&
                (isTombstone == other.isTombstone);
     }
@@ -152,7 +166,7 @@ public class ResultKeyValueVersion implements FastExternalizable {
     @Override
     public int hashCode() {
         return Objects.hash(keyBytes, resultValue, version, expirationTime,
-                            modificationTime, isTombstone);
+            creationTime, modificationTime, isTombstone);
     }
 
     public byte[] getKeyBytes() {
@@ -173,6 +187,10 @@ public class ResultKeyValueVersion implements FastExternalizable {
 
     public long getExpirationTime() {
         return expirationTime;
+    }
+
+    public long getCreationTime() {
+        return creationTime;
     }
 
     public long getModificationTime() {

@@ -2490,11 +2490,17 @@ public class EnvironmentStats implements Serializable {
                 DbiStatDefinition.BACKUP_GROUP_DESC);
         }
         
-		if (bImgStats == null) {
-			bImgStats = new StatGroup(
-				BeforeImageIndexStatDefinition.GROUP_NAME,
-				BeforeImageIndexStatDefinition.GROUP_DESC);
-		}
+        if (dbVerifyStats == null) {
+            dbVerifyStats = new StatGroup(
+                DbVerifyStatDefinition.DB_VERIFY_GROUP_NAME,
+                DbVerifyStatDefinition.DB_VERIFY_GROUP_DESC);
+        }
+
+        if (bImgStats == null) {
+            bImgStats = new StatGroup(
+                BeforeImageIndexStatDefinition.GROUP_NAME,
+                BeforeImageIndexStatDefinition.GROUP_DESC);
+        }
 
         return Arrays.asList(
             logStats, cacheStats, cleanerStats, incompStats,

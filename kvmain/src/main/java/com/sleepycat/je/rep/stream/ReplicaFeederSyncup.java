@@ -406,51 +406,33 @@ public class ReplicaFeederSyncup {
 
         /*
          * We're planning on rolling back past a commit or abort, and we know
-         * that we have not passed a barrier checkpoint. See if we have
-         * exceeded the number of rolledback commits limit.
+         * that we have not passed a barrier checkpoint.
          */
-        EnvironmentImpl envImpl = repNode.getRepImpl();
-        DbConfigManager configMgr = envImpl.getConfigManager();
-        final int rollbackTxnLimit =
-            configMgr.getInt(RepParams.TXN_ROLLBACK_LIMIT);
-        final boolean rollbackDisabled =
-            configMgr.getBoolean(RepParams.TXN_ROLLBACK_DISABLED);
-
         final int numPassedDurableCommits =
             searchResults.getNumPassedDurableCommits();
         final int numPassedCommits =
             searchResults.getNumPassedCommits();
         final long dtvlsn = searchResults.getDTVLSN();
+
+        String str = "Rollback Message.\n Node " + repNode.getRepImpl().getName() +
+                " must rollback " + searchResults.getRollbackMsg() +
+                " in order to rejoin the replication group";
+        LoggerUtils.info(logger, repImpl, str);
+
         LoggerUtils.info(logger, repImpl,
-                         String.format("Rollback info. " +
-                                       "Number of passed commits:%,d. " +
-                                       "(durable commits:%,d). " +
-                                       "Durable commit VLSN:%,d " +
-                                       "matchpoint VLSN:%,d " +
-                                       "lastTxnEnd VLSN:%,d " +
-                                       "lastSync VLSN:%,d " +
-                                       "Rollback transaction limit:%,d",
-                                       numPassedCommits,
-                                       numPassedDurableCommits,
-                                       dtvlsn,
-                                       matchpointVLSN,
-                                       lastTxnEnd,
-                                       lastSync,
-                                       rollbackTxnLimit));
-
-        if (numPassedDurableCommits > rollbackTxnLimit || rollbackDisabled) {
-
-            LoggerUtils.severe(logger, repImpl,
-                               "Limited list of transactions that would " +
-                               " be truncated for hard recovery:\n" +
-                               searchResults.dumpPassedTxns());
-
-            throw new RollbackProhibitedException(repNode.getRepImpl(),
-                                                  rollbackTxnLimit,
-                                                  rollbackDisabled,
-                                                  matchpointVLSN,
-                                                  searchResults);
-        }
+                String.format("Rollback info. " +
+                                "Number of passed commits:%,d. " +
+                                "(durable commits:%,d). " +
+                                "Durable commit VLSN:%,d " +
+                                "matchpoint VLSN:%,d " +
+                                "lastTxnEnd VLSN:%,d " +
+                                "lastSync VLSN:%,d ",
+                                numPassedCommits,
+                                numPassedDurableCommits,
+                                dtvlsn,
+                                matchpointVLSN,
+                                lastTxnEnd,
+                                lastSync));
 
         /*
          * After passing all the earlier qualifications, do a truncation and
@@ -776,16 +758,26 @@ public class ReplicaFeederSyncup {
         RollbackException r = new RollbackException(repImpl,
                                                     matchpointVLSN,
                                                     searchResults);
-        Level level = Level.WARNING;
+        /*
+         * Rolling back over non-durable (vlsn greater than the dtvlsn)
+         * transactions should be logged as a normal event, at the info
+         * level.
+         */
+        Level level = Level.INFO;
         if (searchResults.getNumPassedDurableCommits() > 0) {
+            /*
+             * rolling back over the dtvlsn should be logged as a severe
+             * event
+             */
             level = Level.SEVERE;
         }
         final String passedTxn = searchResults.dumpPassedTxns();
-        if (passedTxn != null && passedTxn.length() > 0) {
+        if (passedTxn != null && !passedTxn.isEmpty()) {
             LoggerUtils.logMsg(logger, repImpl, level,
-                               "Limited list of transactions truncated for " +
-                               "hard recovery:\n" +
-                               searchResults.dumpPassedTxns());
+                               "Limited list of transactions " +
+                                       "truncated for hard recovery " +
+                                       "(only for debugging purpose):\n" +
+                                       searchResults.dumpPassedTxns());
         } else {
             LoggerUtils.info(logger, repImpl, r.getMessage());
         }

@@ -1241,6 +1241,10 @@ public class TestUtils {
             this.faultThreadName = threadName;
         }
 
+        public void resetCounter(int i) {
+            counter.set(i);
+        }
+
         @Override
         public void doHook(Integer unused) {
             if (faultThreadName != null) {
@@ -1250,7 +1254,7 @@ public class TestUtils {
                     return;
                 }
             }
-            if (counter.decrementAndGet() > 0) {
+            if (counter.decrementAndGet() >= 0) {
                 throw fault;
             }
         }

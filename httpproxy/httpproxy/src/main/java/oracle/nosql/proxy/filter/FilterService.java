@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2011, 2024 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011, 2025 Oracle and/or its affiliates. All rights reserved.
  *
  * This file was distributed by Oracle as part of a version of Oracle NoSQL
  * Database made available at:
@@ -25,15 +25,12 @@ import static oracle.nosql.proxy.protocol.Protocol.ILLEGAL_ARGUMENT;
 import static oracle.nosql.proxy.protocol.Protocol.RESOURCE_NOT_FOUND;
 import static oracle.nosql.proxy.protocol.Protocol.RESOURCE_EXISTS;
 import static oracle.nosql.proxy.protocol.Protocol.UNKNOWN_OPERATION;
-import static oracle.nosql.proxy.protocol.JsonProtocol.checkNotEmpty;
-import static oracle.nosql.proxy.protocol.JsonProtocol.checkNotNull;
 import static oracle.nosql.proxy.protocol.JsonProtocol.checkNotNullEmpty;
 
 import java.io.IOException;
-import java.util.ArrayList;
+import java.io.InputStream;
 import java.util.HashMap;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.logging.Level;
@@ -54,15 +51,23 @@ import oracle.nosql.proxy.RequestException;
 import oracle.nosql.proxy.filter.FilterHandler.PullRulesResult;
 import oracle.nosql.proxy.filter.FilterHandler.RuleWrapper;
 import oracle.nosql.util.filter.Rule;
-import oracle.nosql.util.filter.Rule.ActionType;
-import oracle.nosql.util.filter.Rule.OpType;
-import oracle.nosql.proxy.protocol.JsonProtocol.JsonPayload;
 import oracle.nosql.proxy.rest.RequestParams;
 import oracle.nosql.proxy.rest.UrlInfo;
-import oracle.nosql.proxy.protocol.JsonProtocol.JsonArray;
+import oracle.nosql.proxy.protocol.ByteInputStream;
 
 /**
- * Filter service provides rest API to manage the rules:
+ * The Filter Service is a way to manage which requests are accepted by the
+ * proxy.
+ *
+ * Some of the motivations for refusing requests are:
+ *  - Disabling certain types of requests in a denial of service attack
+ *  - Should the region be impaired in some way, this provides a method for
+ *    controlling what requests may be serviced
+ *  - Some request types are not universally enabled, and must be configured
+ *    for this proxy
+ *
+ * The following rest APIs are provided to manage the rules used to control
+ * which requests are accepted by the proxy:
  *
  *  POST /V0/tools/filters
  *    add or update a rule.
@@ -80,12 +85,7 @@ import oracle.nosql.proxy.protocol.JsonProtocol.JsonArray;
  *    reload persistent rules to cache
  */
 public class FilterService implements Service {
-    static final String NAME = "name";
-    static final String ACTION = "action";
-    static final String OPERATIONS = "operations";
-    static final String TENANT = "tenant";
-    static final String USER = "user";
-    static final String TABLE = "table";
+    private static final String NAME = "name";
 
     /*
      * Response buffer size, minimum. Consider adjusting this per-request,
@@ -215,83 +215,14 @@ public class FilterService implements Service {
                                RuleOp op,
                                LogContext lc) {
 
-        JsonPayload pl = null;
-        try {
-            pl = request.parsePayload();
-            if (pl == null) {
-                throw new RequestException(ILLEGAL_ARGUMENT,
-                    "The payload of " + op.name() +
-                    " request must not be empty");
-            }
-
-            Rule rule = parseRule(pl);
+        try (InputStream in = new ByteInputStream(request.getPayload())) {
+            Rule rule = Rule.fromJson(in);
             RuleWrapper ret = handler.addRule(rule);
-
-            /* build response */
             buildRuleResponse(response, ret);
         } catch (IOException ioe) {
             throw new RequestException(ILLEGAL_ARGUMENT,
                 "Invalid payload of " + op.name() + ": " + ioe.getMessage());
-        } finally {
-            if (pl != null) {
-                pl.close();
-            }
         }
-    }
-
-    /* Parses a rule object from JSON payload */
-    private Rule parseRule(JsonPayload pl) throws IOException {
-        ActionType action = null;
-        String name = null;
-        String tenant = null;
-        String user = null;
-        String table = null;
-        List<String> ops = null;
-
-        while (pl.hasNext()) {
-            if (pl.isField(NAME)) {
-                name = pl.readString();
-                checkNotEmpty(NAME, name);
-            } else if (pl.isField(ACTION)) {
-                String value = pl.readString();
-                checkNotEmpty(ACTION, value);
-                if (value != null) {
-                    action = ActionType.valueOf(value);
-                }
-            } else if (pl.isField(TENANT)) {
-                tenant = pl.readString();
-                checkNotEmpty(TENANT, tenant);
-            } else if (pl.isField(USER)) {
-                user = pl.readString();
-                checkNotEmpty(USER, user);
-            } else if (pl.isField(TABLE)) {
-                table = pl.readString();
-                checkNotEmpty(TABLE, table);
-            } else if (pl.isField(OPERATIONS)) {
-                ops = new ArrayList<>();
-                JsonArray ja = pl.readArray();
-                while(ja.hasNext()) {
-                    String op = ja.readString();
-                    checkNotNullEmpty("element of " + OPERATIONS, op);
-                    ops.add(op);
-                }
-            } else {
-                throw new IllegalArgumentException("Invalid field of Rule: " +
-                    pl.getCurrentField());
-            }
-        }
-
-        checkNotNull(NAME, name);
-
-        if (tenant == null && user == null && table == null && ops == null) {
-            throw new RequestException(ILLEGAL_ARGUMENT,
-                "One of properties must be specified: " + TENANT + ", " + USER +
-                ", " + TABLE + ", " + OPERATIONS);
-        }
-
-        return Rule.createRule(name, action, tenant, user, table,
-                (ops != null ? ops.toArray(new String[ops.size()]) : null),
-                System.currentTimeMillis());
     }
 
     /* Gets a rule */
@@ -327,9 +258,14 @@ public class FilterService implements Service {
         /* Build response */
         JsonBuilder jb = JsonBuilder.create(false);
         while (iter.hasNext()) {
-            jb.startObject(null);
-            appendRule(jb, iter.next(), all);
-            jb.endObject();
+            RuleWrapper rw = iter.next();
+            String json;
+            if (all) {
+                json = Rule.getGson().toJson(rw, RuleWrapper.class);
+            } else {
+                json = Rule.getGson().toJson(rw.getRule(), Rule.class);
+            }
+            jb.appendJson(null, json);
         }
         buildResponse(response, jb.toString());
     }
@@ -457,39 +393,7 @@ public class FilterService implements Service {
 
     private static void buildRuleResponse(FullHttpResponse response,
                                           RuleWrapper rw) {
-        final JsonBuilder jb = JsonBuilder.create();
-        appendRule(jb, rw, false);
-        buildResponse(response, jb.toString());
-    }
-
-    private static void appendRule(JsonBuilder jb,
-                                   RuleWrapper rw,
-                                   boolean showType) {
-        Rule r = rw.getRule();
-        String name = rw.getRuleName();
-        jb.append("name", name);
-        if (showType) {
-            jb.append("type", (rw.isTransient() ? "TRANSIENT" : "PERSISTENT"));
-        }
-        jb.append("action", r.getAction().name());
-        if (r.getTenant() != null) {
-            jb.append("tenant", r.getTenant());
-        }
-        if (r.getUser() != null) {
-            jb.append("user", r.getUser());
-        }
-        if (r.getTable() != null) {
-            jb.append("table", r.getTable());
-        }
-        jb.startArray("operations");
-        for (OpType e : r.getOpTypes()) {
-            jb.append(e.name());
-        }
-        jb.endArray();
-
-        if (r.getCreateTimeMs() > 0) {
-            jb.append("createTime", r.getCreateTime());
-        }
+        buildResponse(response, rw.getRule().toJson());
     }
 
     /*

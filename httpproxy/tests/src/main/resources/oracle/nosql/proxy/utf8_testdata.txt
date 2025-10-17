@@ -1,0 +1,16 @@
+﻿zh{
+ 中文姓名
+ 中文姓名2
+}
+
+fr{
+1: newnâme
+2:{"id":1,"name":"çé_myname"}
+3:{"id":2,"name":"çé_newname"}
+4:Perry's Union Street_çé
+}
+
+jp{
+ ネームの名
+ ネームの名2
+}

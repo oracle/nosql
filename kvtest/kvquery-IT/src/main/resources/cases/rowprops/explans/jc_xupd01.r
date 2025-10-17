@@ -1,5 +1,4 @@
 compiled-query-plan
-
 {
 "query file" : "rowprops/q/jc_xupd01.q",
 "plan" : 
@@ -12,7 +11,7 @@ compiled-query-plan
     "FROM" :
     {
       "iterator kind" : "UPDATE_ROW",
-      "indexes to update" : [ "idx_city_phones", "idx_mod_time", "idx_state_city_age" ],
+      "indexes to update" : [ "idx_city_phones", "idx_creation_time", "idx_creation_time_millis", "idx_mod_time", "idx_state_city_age" ],
       "update clauses" : [
         {
           "iterator kind" : "SET",
@@ -210,11 +209,42 @@ compiled-query-plan
         "field name" : "row_size",
         "field expression" : 
         {
-          "iterator kind" : "FUNC_ROW_STORAGE_SIZE",
-          "input iterator" :
+          "iterator kind" : "LESS_OR_EQUAL",
+          "left operand" :
           {
-            "iterator kind" : "VAR_REF",
-            "variable" : "$f"
+            "iterator kind" : "ABS",
+            "input iterators" : [
+              {
+                "iterator kind" : "ADD_SUBTRACT",
+                "operations and operands" : [
+                  {
+                    "operation" : "+",
+                    "operand" :
+                    {
+                      "iterator kind" : "FUNC_ROW_STORAGE_SIZE",
+                      "input iterator" :
+                      {
+                        "iterator kind" : "VAR_REF",
+                        "variable" : "$f"
+                      }
+                    }
+                  },
+                  {
+                    "operation" : "-",
+                    "operand" :
+                    {
+                      "iterator kind" : "CONST",
+                      "value" : 335
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          "right operand" :
+          {
+            "iterator kind" : "CONST",
+            "value" : 1
           }
         }
       },

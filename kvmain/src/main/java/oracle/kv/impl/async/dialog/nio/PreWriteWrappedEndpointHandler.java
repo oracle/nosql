@@ -17,6 +17,7 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.SocketChannel;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -44,7 +45,8 @@ class PreWriteWrappedEndpointHandler
                                    String perfName,
                                    NetworkAddress remoteAddress,
                                    NioChannelExecutor channelExecutor,
-                                   ScheduledExecutorService backupExecutor,
+                                   ExecutorService backupExecutor,
+                                   ScheduledExecutorService backupSchedExecutor,
                                    DialogHandlerFactoryMap
                                    dialogHandlerFactories,
                                    SocketChannel socketChannel) {
@@ -55,7 +57,7 @@ class PreWriteWrappedEndpointHandler
         this.innerEndpointHandler = new NioEndpointHandler(
             logger, this, endpointConfig, true,
             String.format("%s(%s)", perfName, remoteAddress.toString()),
-            remoteAddress, channelExecutor, backupExecutor,
+            remoteAddress, channelExecutor, backupExecutor, backupSchedExecutor,
             dialogHandlerFactories, socketChannel,
             creatorEndpoint.getEndpointGroup().getDialogResourceManager(),
             creatorEndpoint.getEndpointGroup().getEventTrackersManager());

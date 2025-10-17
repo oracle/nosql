@@ -26,6 +26,7 @@ public class KeyValueVersion {
     private final Key key;
     private final Value value;
     private final Version version;
+    private final long creationTime;
     private final long modificationTime;
 
     /**
@@ -42,6 +43,7 @@ public class KeyValueVersion {
         this.key = key;
         this.value = value;
         this.version = version;
+        this.creationTime = 0;
         this.modificationTime = 0;
     }
 
@@ -54,6 +56,7 @@ public class KeyValueVersion {
     public KeyValueVersion(final Key key,
                            final Value value,
                            final Version version,
+                           final long creationTime,
                            final long modificationTime) {
         assert key != null;
         assert value != null;
@@ -61,6 +64,7 @@ public class KeyValueVersion {
         this.key = key;
         this.value = value;
         this.version = version;
+        this.creationTime = creationTime;
         this.modificationTime = modificationTime;
     }
 
@@ -76,6 +80,7 @@ public class KeyValueVersion {
         this.key = key;
         this.value = value;
         this.version = null;
+        this.creationTime = 0;
         this.modificationTime = 0;
     }
 
@@ -110,6 +115,25 @@ public class KeyValueVersion {
      */
     public long getExpirationTime() {
         return 0L;
+    }
+
+    /**
+     * Returns the creation time of the record. This method throws an
+     * {@link UnsupportedOperationException} for records created when the store
+     * was running at a version earlier than version 25.2, or if the creation
+     * time is not available because the return value was not requested.
+     *
+     * @return the creation time
+     * @hidden make it public when this method is added to other non-java
+     * drivers.
+     * @since 25.3
+     */
+    public long getCreationTime() {
+        if (creationTime <= 0) {
+            throw new UnsupportedOperationException("Creation " +
+                "time is not available.");
+        }
+        return creationTime;
     }
 
     /**

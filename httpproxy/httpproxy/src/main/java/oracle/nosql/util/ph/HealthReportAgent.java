@@ -23,6 +23,7 @@ import java.util.logging.Level;
 
 import oracle.nosql.common.sklogger.ScheduleStart;
 import oracle.nosql.common.sklogger.SkLogger;
+import oracle.nosql.util.HostNameResolver;
 import oracle.nosql.util.HttpRequest;
 import oracle.nosql.util.HttpRequest.ConnectionHandler;
 import oracle.nosql.util.HttpResponse;
@@ -42,7 +43,6 @@ import com.google.gson.GsonBuilder;
 public class HealthReportAgent {
 
     private static long INTERVAL = 60_000;
-    private static String HOST_NAME_ENV = "HOST_NAME";
     private static String COMPONENT_NAME_ENV = "COMPONENT_NAME";
     private static String COMPONENT_ID_ENV = "COMPONENT_ID";
 
@@ -74,7 +74,7 @@ public class HealthReportAgent {
                              long interval,
                              SkLogger logger,
                              HealthSource source) {
-        this.hostName = System.getenv(HOST_NAME_ENV);
+        this.hostName = HostNameResolver.getHostName();
         this.componentName = System.getenv(COMPONENT_NAME_ENV);
         this.componentId = System.getenv(COMPONENT_ID_ENV);
         final String phUrl = URL.getPhUrl();

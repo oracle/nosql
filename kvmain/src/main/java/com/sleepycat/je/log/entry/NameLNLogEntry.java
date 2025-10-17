@@ -122,6 +122,7 @@ public class NameLNLogEntry extends LNLogEntry<NameLN> {
         long abortModificationTime,
         byte[] key,
         NameLN nameLN,
+        long creationTime,
         long modificationTime,
         int priorSize,
         long priorLsn,
@@ -133,9 +134,10 @@ public class NameLNLogEntry extends LNLogEntry<NameLN> {
             null/*abortKey*/, null/*abortData*/,
             NULL_VLSN/*abortVLSN*/,
             0 /*abortExpiration*/, false /*abortExpirationInHours*/,
-            abortModificationTime, false /*abortTombstone*/,
+            abortModificationTime, 0 /*abortCreationTime*/,
+            false /*abortTombstone*/,
             key, nameLN, false/*newEmbeddedLN*/,
-            0 /*expiration*/, false /*expirationInHours*/,
+            0 /*expiration*/, false /*expirationInHours*/, creationTime,
             modificationTime, false /*tombstone*/, false /*blindDeletion*/,
             priorSize, priorLsn, false);
 

@@ -16,13 +16,14 @@ package oracle.kv.impl.api.table;
 import oracle.nosql.nson.Nson;
 
 /**
- * NsonRow represents a Row along with row metadata but with the key and value
+ * NsonRow represents a Row along with extra row metadata but with the key and value
  * in NSON format. It is not really a "Row" in that it does not implement that
  * interface. It's primary use is for serialization/deserialization of rows
  * for streaming, replication and backup/restore
  */
 public class NsonRow {
 
+    private final long creationTime;
     private final long modificationTime;
     private final long expirationTime;
     private final int regionId;
@@ -36,7 +37,8 @@ public class NsonRow {
      */
     private final byte[] nsonValue;
 
-    public NsonRow(long modificationTime,
+    public NsonRow(long creationTime,
+                   long modificationTime,
                    long expirationTime,
                    int regionId,
                    byte[] nsonKey,
@@ -46,6 +48,7 @@ public class NsonRow {
         if (nsonKey == null) {
             throw new IllegalArgumentException("Primary key can not be null");
         }
+        this.creationTime = creationTime;
         this.modificationTime = modificationTime;
         this.expirationTime = expirationTime;
         this.regionId = regionId;
@@ -57,6 +60,10 @@ public class NsonRow {
 
     public TableImpl getTable() {
         return table;
+    }
+
+    public long getCreationTime() {
+        return creationTime;
     }
 
     public long getModificationTime() {

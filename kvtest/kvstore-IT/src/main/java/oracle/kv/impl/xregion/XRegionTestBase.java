@@ -96,7 +96,6 @@ import oracle.kv.pubsub.PubSubTestBase;
 import oracle.kv.stats.ServiceAgentMetrics;
 import oracle.kv.table.FieldDef.Type;
 import oracle.kv.table.FieldValue;
-import oracle.kv.table.PrimaryKey;
 import oracle.kv.table.Row;
 import oracle.kv.table.Table;
 import oracle.kv.table.TableAPI;
@@ -169,7 +168,7 @@ public abstract class XRegionTestBase extends PubSubTestBase {
     protected static final String PITR_1 =
         NameUtils.makeQualifiedName(NS1, "PITR1");
     /** table to advance table id */
-    protected static final String RANDOM_TABLE = "MyFoo";
+    private static final String RANDOM_TABLE = "MyFoo";
     /*---------------------*/
     /* Schema Evolution    */
     /*---------------------*/
@@ -755,10 +754,12 @@ public abstract class XRegionTestBase extends PubSubTestBase {
     protected Version upsertRow(TableAPI api, String tableName,
                                 String desc, int id, TimeToLive ttl) {
         final Row row = createRow(api.getTable(tableName), desc, id);
+        if (useRowMD) {
+            row.setRowMetadata(TEST_ROW_MD);
+        }
         if (ttl == null) {
             return api.put(row, null, null);
         }
-
         /* write and set TTL */
         final WriteOptions wo = new WriteOptions().setUpdateTTL(true);
         row.setTTL(ttl);
@@ -797,12 +798,6 @@ public abstract class XRegionTestBase extends PubSubTestBase {
                 counts++;
             }
         }
-    }
-
-    protected boolean deleteRow(TableAPI api, String tableName, int id) {
-        final PrimaryKey pkey = api.getTable(tableName).createPrimaryKey();
-        pkey.put("id", id);
-        return api.delete(pkey, null, null);
     }
 
     protected void initTestTable(KVStore storeHandle,

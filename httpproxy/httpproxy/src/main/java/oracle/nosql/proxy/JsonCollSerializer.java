@@ -74,7 +74,8 @@ class JsonCollSerializer {
      */
     static Value createValueFromNson(TableImpl table,
                                      PrimaryKey pkey,
-                                     ByteInputStream bis)
+                                     ByteInputStream bis,
+                                     String rowMetadata)
         throws IOException {
 
         /* get callbacks for primary key fields */
@@ -155,9 +156,12 @@ class JsonCollSerializer {
             format = Value.Format.MULTI_REGION_TABLE;
             regionId = Region.LOCAL_REGION_ID;
         }
+        if (rowMetadata != null) {
+            format = Value.Format.TABLE_V5;
+        }
 
         byte[] after = reserializer.getBytes();
-        return Value.internalCreateValue(after, format, regionId);
+        return Value.internalCreateValue(after, format, regionId, rowMetadata);
     }
 
     /*

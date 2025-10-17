@@ -93,6 +93,7 @@ class IndexIterateHandler extends IndexOperationHandler<IndexIterate> {
                              valBytes,
                              valVers.getVersion(),
                              valVers.getExpirationTime(),
+                             valVers.getCreationTime(),
                              valVers.getModificationTime()));
 
                 /*

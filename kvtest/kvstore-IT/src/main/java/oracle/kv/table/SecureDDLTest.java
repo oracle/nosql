@@ -7,7 +7,9 @@
 
 package oracle.kv.table;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -16,7 +18,9 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.function.Supplier;
 
+import oracle.kv.AuthenticationRequiredException;
 import oracle.kv.ExecutionFuture;
 import oracle.kv.KVSecurityConstants;
 import oracle.kv.KVSecurityException;
@@ -25,9 +29,15 @@ import oracle.kv.KVStoreConfig;
 import oracle.kv.KVStoreFactory;
 import oracle.kv.LoginCredentials;
 import oracle.kv.PasswordCredentials;
+import oracle.kv.ReauthenticateHandler;
 import oracle.kv.StatementResult;
 import oracle.kv.TestBase;
 import oracle.kv.impl.admin.plan.PlanExecutor;
+import oracle.kv.impl.api.KVStoreImpl;
+import oracle.kv.impl.api.table.TableLimits;
+import oracle.kv.impl.client.admin.DdlStatementExecutor;
+import oracle.kv.impl.security.login.LoginManager;
+import oracle.kv.impl.util.TestUtils;
 import oracle.kv.util.CreateStore;
 
 import org.junit.Test;
@@ -38,6 +48,8 @@ import org.junit.Test;
  * can create thread local related issues.
  */
 public class SecureDDLTest extends DdlExecutionBase {
+    private static final String adminUser = "ADMIN_USER";
+    private static final String adminUserPassword = "NoSql00__1234";
 
     /**
      * Test execution in a secure store
@@ -46,29 +58,17 @@ public class SecureDDLTest extends DdlExecutionBase {
     @SuppressWarnings("deprecation")
     @Test
     public void testSecureDdl() throws Exception {
-        createStore = new CreateStore(kvstoreName,
-                                      startPort,
-                                      1, /* Storage nodes */
-                                      1, /* RF */
-                                      2, /* Partitions */
-                                      1, /* Capacity */
-                                      CreateStore.MB_PER_SN, /* memory */
-                                      true, /* useThreads */ // tODO, change
-                                      null, /* mgmtImpl */
-                                      true, /* mgmtPortsShared */
-                                      true); /* secure */
+        createStoreWithAdmin();
 
         /* Make users with different roles, and login. */
-        String adminUser= "ADMIN_USER";
-        String adminUserPassword = "NoSql00__1234";
         String ddlOkUser = "DDL_OK";
         String ddlOkUserPassword = "NoSql00__5678";
         String noDdlUser = "NO_DDL_FOR_YOU";
         String noDdlUserPassword = "NoSql00__333";
-        createStore.addUser(adminUser, adminUserPassword, true /* admin */);
         createStore.addUser(ddlOkUser, ddlOkUserPassword, false /* admin */);
         createStore.addUser(noDdlUser, noDdlUserPassword, false /* admin */);
         createStore.start();
+
         createStore.grantRoles(ddlOkUser, "readwrite", "dbadmin",
                                "writesystable");
         createStore.grantRoles(noDdlUser, "readonly");
@@ -205,6 +205,74 @@ public class SecureDDLTest extends DdlExecutionBase {
         storeNoDdl.close();
     }
 
+    @Test
+    public void testReauthenticate() throws Exception {
+        createStoreWithAdmin();
+        createStore.start();
+        final LoginCredentials creds =
+            new PasswordCredentials(adminUser, adminUserPassword.toCharArray());
+        final Reauth reauth = new Reauth(creds);
+        final KVStore store = loginKVStoreUser(creds, reauth);
+        tearDowns.add(store::close);
+
+        final String tableName = "people";
+        final String statement = "CREATE TABLE IF NOT EXISTS " + tableName +
+                                 "(id INTEGER, name STRING, PRIMARY KEY (id))";
+
+        tearDowns.add(() -> DdlStatementExecutor.beforeExecuteHook = null);
+        TestUtils.CountDownFaultHook testHook = new TestUtils
+            .CountDownFaultHook(1 /* fault count */,
+                                new AuthenticationRequiredException("test",
+                                                                    true));
+        DdlStatementExecutor.beforeExecuteHook = testHook;
+
+        testExecuteOperation(
+            store, reauth, testHook,
+            () -> ((KVStoreImpl)store).execute(
+                statement.toCharArray(), null, new TableLimits(1, 1, 1)));
+
+        testExecuteOperation(
+            store, reauth, testHook, () -> store.execute(statement));
+
+        testExecuteOperation(
+            store, reauth, testHook,
+            () -> ((KVStoreImpl)store).setTableLimits(
+                null, tableName, new TableLimits(1, 2, 3)));
+    }
+
+    private void testExecuteOperation(KVStore store,
+                                      Reauth reauth,
+                                      TestUtils.CountDownFaultHook testHook,
+                                      Supplier<ExecutionFuture> op)
+        throws Exception {
+
+        reauth.completed = 0;
+        testHook.resetCounter(1);
+        LoginManager curLoginManager =
+            ((KVStoreImpl)store).getDdlStatementExecutor().getLoginManager();
+        ExecutionFuture future = op.get();
+        checkSuccess(future, future.get());
+        assertEquals(1, reauth.completed);
+        LoginManager renewedLoginManager =
+            ((KVStoreImpl)store).getDdlStatementExecutor().getLoginManager();
+        assertNotEquals(renewedLoginManager, curLoginManager);
+    }
+
+    private void createStoreWithAdmin() throws Exception {
+        createStore = new CreateStore(kvstoreName,
+                                      startPort,
+                                      1, /* Storage nodes */
+                                      1, /* RF */
+                                      2, /* Partitions */
+                                      1, /* Capacity */
+                                      CreateStore.MB_PER_SN, /* memory */
+                                      true, /* useThreads */ // tODO, change
+                                      null, /* mgmtImpl */
+                                      true, /* mgmtPortsShared */
+                                      true); /* secure */
+        createStore.addUser(adminUser, adminUserPassword, true /* admin */);
+    }
+
     /**
      * Run a code snippet and expect a KVSecurityException.
      */
@@ -223,12 +291,17 @@ public class SecureDDLTest extends DdlExecutionBase {
         abstract void doStatement() throws Exception;
     }
 
+    private KVStore loginKVStoreUser(String userName, String password) {
+        LoginCredentials creds =
+            new PasswordCredentials(userName, password.toCharArray());
+        return loginKVStoreUser(creds, null);
+    }
+
     /**
      * Log this user into a secured store.
      */
-    private KVStore loginKVStoreUser(String userName, String password) {
-        LoginCredentials creds =
-                new PasswordCredentials(userName, password.toCharArray());
+    private KVStore loginKVStoreUser(LoginCredentials creds,
+                                     ReauthenticateHandler reauthHandler) {
         KVStoreConfig kvConfig =
             new KVStoreConfig(createStore.getStoreName(),
                               createStore.getHostname() + ":" +
@@ -241,6 +314,21 @@ public class SecureDDLTest extends DdlExecutionBase {
                   createStore.getTrustStore().getPath());
         kvConfig.setSecurityProperties(props);
 
-        return KVStoreFactory.getStore(kvConfig, creds, null);
+        return KVStoreFactory.getStore(kvConfig, creds, reauthHandler);
+    }
+
+    private class Reauth implements ReauthenticateHandler {
+        private volatile int completed ;
+        private final LoginCredentials creds;
+
+        Reauth(LoginCredentials creds) {
+            this.creds = creds;
+        }
+
+        @Override
+        public void reauthenticate (KVStore store) {
+            store.login(creds);
+            completed++;
+        }
     }
 }

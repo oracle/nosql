@@ -224,7 +224,9 @@ public class Txn extends Locker implements VersionedWriteLoggable {
     private Durability commitDurability;
 
     /* Whether to use Read-Committed isolation. */
-    private final boolean readCommittedIsolation;
+    private volatile boolean readCommittedIsolation;
+
+    private volatile boolean optimisticReadIsolation;
 
     protected volatile boolean isGroupCommitted = false;
 
@@ -280,8 +282,9 @@ public class Txn extends Locker implements VersionedWriteLoggable {
 
     private final boolean readOnly;
 
-    private TestHook<RuntimeException> preCommitExceptionHook;
-    private TestHook<MasterTxn> masterTransferHook;
+    private volatile TestHook<RuntimeException> preCommitExceptionHook;
+    private volatile TestHook<MasterTxn> masterTransferHook;
+    private volatile TestHook<?> semaphoreHook;
 
     /**
      * Constructor for reading from log.
@@ -289,6 +292,7 @@ public class Txn extends Locker implements VersionedWriteLoggable {
     public Txn() {
         defaultDurability = null;
         readCommittedIsolation = false;
+        optimisticReadIsolation = false;
         repContext = null;
         readOnly = false;
     }
@@ -321,6 +325,7 @@ public class Txn extends Locker implements VersionedWriteLoggable {
         this.repContext = repContext;
 
         readCommittedIsolation = config.getReadCommitted();
+        optimisticReadIsolation = config.getOptimisticRead();
         if (config.getDurability() == null) {
             defaultDurability = config.getDefaultDurability(envImpl);
         } else {
@@ -520,6 +525,35 @@ public class Txn extends Locker implements VersionedWriteLoggable {
             (lsn, this, lockType, timeout, useNoWait, jumpAheadOfWaiters,
              database);
 
+        /* TestHook, release semB  and acquire semA */
+        assert(TestHookExecute.doHookIfSet(semaphoreHook));
+
+        /*
+         * DENIED and in optimisticRead mode, get the writeLockInfo from
+         * writeOwnerLocker.
+         */
+        if (grant == LockGrantType.DENIED &&
+            isOptimisticReadIsolation() &&
+            lockType.equals(LockType.READ)) {
+
+            Locker writeOwnerLocker = lockManager.getWriteOwnerLocker(lsn);
+            if (writeOwnerLocker != null) {
+                return new LockResult(grant,
+                                      writeOwnerLocker.getWriteLockInfo(lsn));
+            } else {
+                /*
+                 * The blocking writeTxn commits after lockManager.lock(),
+                 * before lockManager.getWriteOwnerLocker(),
+                 * So lockManager.getWriteOwnerLocker() will return null.
+                 * Return LockResult without the WriteLockInfo object, so that
+                 * in cursorImpl.lockLN(), the optimisticRead txn will request
+                 * a blocking lock.
+                 */
+                return new LockResult(grant, null);
+            }
+        }
+
+
         WriteLockInfo info = null;
         if (writeInfo != null && database != null) {
             if (grant != LockGrantType.DENIED && lockType.isWriteLock()) {
@@ -531,7 +565,7 @@ public class Txn extends Locker implements VersionedWriteLoggable {
             }
         }
 
-        if (readCommittedIsolation &&
+        if ((optimisticReadIsolation || readCommittedIsolation) &&
             grant != LockGrantType.DENIED &&
             !lockType.isWriteLock() &&
             cursor != null) {
@@ -545,7 +579,12 @@ public class Txn extends Locker implements VersionedWriteLoggable {
     public synchronized void releaseLock(long lsn, CursorImpl cursor)
         throws DatabaseException {
 
-        if (readCommittedIsolation && !removeCursorLock(lsn, cursor)) {
+        /*
+         * read lock obtained in optimisticReadIsolation
+         * will also have the cursor-lock association, see Txn.lockInternal().
+         */
+        if ((readCommittedIsolation || optimisticReadIsolation)
+            && !removeCursorLock(lsn, cursor)) {
             return;
         }
 
@@ -1177,7 +1216,8 @@ public class Txn extends Locker implements VersionedWriteLoggable {
                  ((info.getDb() != null) &&
                    info.getDb().isLNImmediatelyObsolete()) ||
                  /* Was already counted obsolete during logging. */
-                 (info.getAbortData() != null));
+                 (info.getAbortData() != null) ||
+                 !info.getObsolete());
     }
 
     /**
@@ -1687,7 +1727,12 @@ public class Txn extends Locker implements VersionedWriteLoggable {
         if (type.isWriteLock()) {
 
             ensureWriteInfo();
-            writeInfo.put(lsn, new WriteLockInfo());
+
+            WriteLockInfo info = new WriteLockInfo();
+            if (type.isRMW()) {
+                info.setObsolete(false);
+            }
+            writeInfo.put(lsn, info);
 
             int delta = WRITE_LOCK_OVERHEAD;
 
@@ -1827,6 +1872,19 @@ public class Txn extends Locker implements VersionedWriteLoggable {
     @Override
     public boolean isReadCommittedIsolation() {
         return readCommittedIsolation;
+    }
+
+    @Override
+    public boolean isOptimisticReadIsolation() {
+        return optimisticReadIsolation;
+    }
+
+    public void setReadCommittedIsolation(boolean readCommittedIsolation) {
+        this.readCommittedIsolation = readCommittedIsolation;
+    }
+
+    public void setOptimisticReadIsolation(boolean optimisticReadIsolation) {
+        this.optimisticReadIsolation = optimisticReadIsolation;
     }
 
     /**
@@ -2625,7 +2683,7 @@ public class Txn extends Locker implements VersionedWriteLoggable {
      */
     private synchronized void addCursorLock(final long lsn,
                                             final CursorImpl cursor) {
-        assert readCommittedIsolation;
+        assert readCommittedIsolation || optimisticReadIsolation;
         assert lsn != NULL_LSN;
         assert cursor != null;
 
@@ -2679,7 +2737,7 @@ public class Txn extends Locker implements VersionedWriteLoggable {
      */
     private synchronized boolean removeCursorLock(final long lsn,
                                                   final CursorImpl cursor) {
-        assert readCommittedIsolation;
+        assert readCommittedIsolation || optimisticReadIsolation;
         assert lsn != NULL_LSN;
 
         boolean noneRemaining = true;
@@ -2731,5 +2789,9 @@ public class Txn extends Locker implements VersionedWriteLoggable {
 
     public void setMasterTransferHook(TestHook<MasterTxn> hook) {
         masterTransferHook = hook;
+    }
+
+    public void setSemaphoreHook(TestHook<?> hook) {
+        semaphoreHook = hook;
     }
 }

@@ -32,6 +32,9 @@ import oracle.kv.impl.rep.admin.RepNodeAdmin.MigrationState;
 import oracle.kv.impl.rep.admin.RepNodeAdminAPI;
 import oracle.kv.impl.rep.migration.PartitionMigrations.MigrationRecord;
 import oracle.kv.impl.rep.migration.PartitionMigrations.TargetRecord;
+import oracle.kv.impl.test.TestHook;
+import oracle.kv.impl.test.TestHookExecute;
+import oracle.kv.impl.topo.PartitionId;
 import oracle.kv.impl.topo.RepGroupId;
 import oracle.kv.impl.util.KVThreadFactory;
 import oracle.kv.impl.util.registry.RegistryUtils;
@@ -45,7 +48,7 @@ import com.sleepycat.je.DatabaseException;
  */
 public class TargetMonitorExecutor extends ScheduledThreadPoolExecutor {
 
-    private final static long POLL_PERIOD = 2L;   /* 2 seconds */
+    public final static long POLL_PERIOD = 2L;   /* 2 seconds */
 
     /**
      * The core pool size of the executor. ScheduledThreadPoolExecutor acts as a
@@ -53,12 +56,19 @@ public class TargetMonitorExecutor extends ScheduledThreadPoolExecutor {
      * are changing the executor and maximum pool size, the getNonStaleMaster()
      * method needs to be re-considered.
      */
-    private final static int MONITOR_EXECUTOR_CONCURRENCY = 1;
+    public final static int MONITOR_EXECUTOR_CONCURRENCY = 1;
 
     private final MigrationManager manager;
     private final RepNode repNode;
     private final Logger logger;
     private final RepGroupId sourceRGId;
+
+    /**
+     * Test hook to check that the TargetMonitorExecutor#failed method is
+     * called in case the partition migration state is set to ERROR in case
+     * of migration failure.
+     */
+    public static TestHook<PartitionId> checkRemoveRecordHook = null;
 
     TargetMonitorExecutor(MigrationManager manager,
                           RepNode repNode,
@@ -517,6 +527,10 @@ public class TargetMonitorExecutor extends ScheduledThreadPoolExecutor {
                         "target returned {1}, removing completed record",
                         new Object[] {record, state});
             }
+
+            /* run test hook in unit test only */
+            assert TestHookExecute.doHookIfSet(checkRemoveRecordHook,
+                                               record.getPartitionId());
             manager.notifyPartitionMigrationRestore(record.getPartitionId());
             /* migration failed, will restart, and need to update PGT */
             manager.removeRecord(record.getPartitionId(), record.getId(),

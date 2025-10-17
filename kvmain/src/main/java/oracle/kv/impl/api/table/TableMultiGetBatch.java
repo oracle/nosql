@@ -223,6 +223,7 @@ class TableMultiGetBatch {
                             vv,
                             row,
                             entry.getExpirationTime(),
+                            entry.getCreationTime(),
                             entry.getModificationTime(),
                             false,
                             false);

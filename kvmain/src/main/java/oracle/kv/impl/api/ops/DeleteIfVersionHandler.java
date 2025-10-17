@@ -30,6 +30,7 @@ import com.sleepycat.je.LockMode;
 import com.sleepycat.je.OperationResult;
 import com.sleepycat.je.ReadOptions;
 import com.sleepycat.je.Transaction;
+import com.sleepycat.je.WriteOptions;
 
 /**
  * Server handler for {@link DeleteIfVersion}.
@@ -123,9 +124,13 @@ class DeleteIfVersionHandler extends BasicDeleteHandler<DeleteIfVersion> {
                     MultiDeleteTableHandler.insertTombstone(cursor,
                         operationHandler, keyEntry, getTombstoneTTL(),
                         op, oldRecordSize, partitionId,
-                        tbl.isMultiRegion());
+                        tbl.isMultiRegion(), op.getTableId(),
+                        op.getRowMetadata());
                 } else {
-                    cursor.delete(null);
+                    final WriteOptions jeOptions =
+                        makeOption(null, false, op.getTableId(),
+                                   operationHandler, false);
+                    cursor.delete(jeOptions);
                     MigrationStreamHandle.get().addDelete(keyEntry, cursor);
                     op.addReadBytes(MIN_READ);
                     op.addWriteBytes(oldRecordSize, getNIndexWrites(cursor),

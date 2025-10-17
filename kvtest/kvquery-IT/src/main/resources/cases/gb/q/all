@@ -47,7 +47,8 @@ group by f.xact.acctno
 collect04.q
 ################
 select f.xact.state,
-       array_collect(seq_transform(f.xact.items[], $.qty * $.price)) as amounts,
+       array_collect(seq_transform(f.xact.items[],
+                                   cast($.qty * $.price as integer))) as amounts,
        count(*) as cnt
 from bar f
 group by f.xact.state
@@ -62,6 +63,44 @@ select f.xact.state,
        count(*) as cnt
 from bar f
 group by f.xact.state
+
+
+
+################
+collect07.q
+################
+select array_collect({ "id1" : f.id1,
+                       "id2" : f.id2,
+                       "id3" : f.id3,
+                       "prodcat" : f.xact.prodcat,
+                       "year" : f.xact.year,
+                       "str1" : "1xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+                       "str2" : "2xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+                       "str3" : "3xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+                       "str4" : "4xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+                     }) as collect,
+       count(*) as cnt
+from Foo f
+
+
+
+################
+collect08.q
+################
+select f.xact.state,
+       array_collect({ "items" : f.xact.items, "acctno" : f.xact.acctno }) as collect
+from bar f
+group by f.xact.state
+
+
+
+################
+collect09.q
+################
+select b.xact.state, array_collect(b.xact.city) as cities
+from bar b
+group by b.xact.state
+order by b.xact.state desc
 
 
 
@@ -451,7 +490,8 @@ empty02.q
 select count(*) as cnt,
        sum(e.record.long) as sum,
        avg(e.record.long) as avg,
-       min(id2) as min
+       min(id2) as min,
+       array_collect(e.record.long) as collect
 from empty e
 
 
@@ -471,7 +511,8 @@ empty04.q
 ################
 select sum(f.xact.item.discount) as sum,
        count(*) as cnt,
-       avg(id3) as avg
+       avg(id3) as avg,
+       array_collect(f.xact.item.discount) as collect
 from Foo f
 where id1 < 0
 
@@ -732,6 +773,44 @@ where id1 < 1 and id2 < 2
 
 
 ################
+gb16.q
+################
+select count(b.j.i)
+from xyz b
+group by b.s
+
+
+
+################
+gb17.q
+################
+select acctno, count(b.xact.year)
+from boo b
+group by acctno
+
+
+
+################
+gb18.q
+################
+select b.xact.state, count(*) as count
+from bar b
+group by b.xact.state
+order by b.xact.state desc nulls last
+
+
+
+################
+gb19.q
+################
+select b.xact.state, count(*) as count
+from bar b
+group by b.xact.state
+order by b.xact.state nulls first
+
+
+
+################
 jgb01.q
 ################
 
@@ -899,6 +978,18 @@ jgb24.q
 select count(*)
 from Bar f
 where f.xact.year = 2000 and f.xact.items[].qty >any 2
+
+
+
+################
+jgb25.q
+################
+select f.xact.storeid, count(*)
+from Foo f
+group by f.xact.storeid
+order by f.xact.storeid
+limit 3
+offset 1
 
 
 
@@ -1183,6 +1274,20 @@ group by f.xact.year
 
 
 ################
+noidx_collect05.q
+################
+select array_collect({ "id1" : f.id1,
+                       "id2" : f.id2,
+                       "id3" : f.id3,
+                       "acctno" : f.xact.acctno,
+                       "amount" : f.xact.item.qty * f.xact.item.price
+                     }) as accounts,
+       count(*) as cnt
+from Foo f
+
+
+
+################
 noidx_collect_d01.q
 ################
 select f.xact.prodcat,
@@ -1440,12 +1545,22 @@ group by id1, id2
 
 
 ################
+onepart06.q
+################
+select f.xact.state, count(*) as cnt
+from Foo f
+where id1 = 0
+group by f.xact.state
+
+
+
+################
 seq_sort01.q
 ################
 select f.xact.acctno,
-       seq_sort(collect({ "prodcat" : f.xact.prodcat,
-                          "year" : f.xact.year 
-                        })[]) as collect,
+       seq_sort(array_collect({ "prodcat" : f.xact.prodcat,
+                                "year" : f.xact.year 
+                              })[]) as collect,
        count(*) as cnt
 from Foo f
 group by f.xact.acctno
@@ -1456,9 +1571,9 @@ group by f.xact.acctno
 seq_sort02.q
 ################
 select f.xact.acctno,
-       [seq_sort(collect({ "prodcat" : f.xact.prodcat,
-                           "qty" : f.xact.item.qty 
-                         })[])
+       [seq_sort(array_collect({ "prodcat" : f.xact.prodcat,
+                                 "qty" : f.xact.item.qty 
+                               })[])
        ] as collect,
        count(*) as cnt
 from Foo f
@@ -1471,7 +1586,7 @@ group by f.xact.acctno
 seq_sort03.q
 ################
 select f.xact.state,
-       seq_sort(collect(seq_transform(f.xact.items[], $.qty * $.price))[]) as amounts,
+       seq_sort(array_collect(seq_transform(f.xact.items[], $.qty * $.price))[]) as amounts,
        count(*) as cnt
 from bar f
 group by f.xact.state
@@ -1482,7 +1597,7 @@ group by f.xact.state
 seq_sort04.q
 ################
 select f.xact.state,
-       seq_sort(collect([seq_transform(f.xact.items[], $.qty * $.price)])[]) as amounts,
+       seq_sort(array_collect([seq_transform(f.xact.items[], $.qty * $.price)])[]) as amounts,
        count(*) as cnt
 from bar f
 group by f.xact.state
@@ -1493,7 +1608,7 @@ group by f.xact.state
 seq_sort05.q
 ################
 select f.xact.prodcat,
-       seq_sort(collect(f.xact.acctno)[]) as accounts,
+       seq_sort(array_collect(f.xact.acctno)[]) as accounts,
        count(*) as cnt
 from Foo f
 where f.xact.year = 2000
@@ -1505,9 +1620,9 @@ group by f.xact.prodcat
 seq_sort06.q
 ################
 select f.xact.prodcat,
-       seq_sort(collect({ "acctno" : f.xact.acctno,
-                        "amount" : f.xact.item.qty * f.xact.item.price
-                       })[]) as accounts,
+       seq_sort(array_collect({ "acctno" : f.xact.acctno,
+                                "amount" : f.xact.item.qty * f.xact.item.price
+                              })[]) as accounts,
        count(*) as cnt
 from Foo f
 where f.xact.year = 2000
@@ -1519,7 +1634,8 @@ group by f.xact.prodcat
 seq_sort07.q
 ################
 select f.xact.year,
-       seq_sort(collect(seq_transform(f.xact.items[], $.qty * $.price))[]) as amounts,
+       seq_sort(array_collect(seq_transform(f.xact.items[],
+                                            cast($.qty * $.price as integer)))[]) as amounts,
        count(*) as cnt
 from bar f
 group by f.xact.year

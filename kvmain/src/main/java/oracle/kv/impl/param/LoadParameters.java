@@ -178,7 +178,8 @@ public class LoadParameters implements Serializable {
             writer.printf("</config>\n");
         } catch (Exception e) {
             throw new IllegalStateException("Problem creating config file: " +
-                                            temp + ": " + e);
+                file + " (working dir: " + System.getProperty("user.dir") +
+                "): " + e);
         } finally {
             if (writer != null) {
                 writer.close();

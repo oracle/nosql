@@ -377,14 +377,15 @@ public class Execute extends InternalOperation {
                                       ReturnValueVersion.Choice prevReturn,
                                       boolean abortIfUnsuccessful) {
             return createDelete(key, prevReturn, abortIfUnsuccessful, 0L,
-                                false /* doTombstone */);
+                                false /* doTombstone */, null /* rowMetadata */);
         }
 
         public Operation createDelete(Key key,
                                       ReturnValueVersion.Choice prevReturn,
                                       boolean abortIfUnsuccessful,
                                       long tableId,
-                                      boolean doTombstone) {
+                                      boolean doTombstone,
+                                      String rowMetadata) {
             return new OperationImpl
                 (key, abortIfUnsuccessful,
                  new Delete(keySerializer.toByteArray(key),
@@ -392,7 +393,8 @@ public class Execute extends InternalOperation {
                             prevReturn :
                             ReturnValueVersion.Choice.NONE,
                             tableId,
-                            doTombstone));
+                            doTombstone,
+                            rowMetadata));
         }
 
         @Override
@@ -408,7 +410,8 @@ public class Execute extends InternalOperation {
                                   boolean abortIfUnsuccessful) {
             return createDeleteIfVersion(key, version, prevReturn,
                                          abortIfUnsuccessful, 0L,
-                                         false /* doTombstone */);
+                                         false /* doTombstone */,
+                                         null /* rowMetadata */);
         }
 
         public Operation
@@ -417,7 +420,8 @@ public class Execute extends InternalOperation {
                                   ReturnValueVersion.Choice prevReturn,
                                   boolean abortIfUnsuccessful,
                                   long tableId,
-                                  boolean doTombstone) {
+                                  boolean doTombstone,
+                                  String rowMetadata) {
             return new OperationImpl
                 (key, abortIfUnsuccessful,
                  new DeleteIfVersion(keySerializer.toByteArray(key),
@@ -426,7 +430,8 @@ public class Execute extends InternalOperation {
                                      ReturnValueVersion.Choice.NONE,
                                      version,
                                      tableId,
-                                     doTombstone));
+                                     doTombstone,
+                                     rowMetadata));
         }
     }
 }

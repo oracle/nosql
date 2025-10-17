@@ -16,7 +16,6 @@ package oracle.kv.impl.query.runtime;
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
-import java.util.Objects;
 
 import oracle.kv.impl.api.table.DisplayFormatter;
 import oracle.kv.impl.api.table.FieldDefImpl;
@@ -164,23 +163,5 @@ public class FuncCountIter extends PlanIter {
         DisplayFormatter formatter,
         boolean verbose) {
         displayInputIter(sb, formatter, verbose, theInput);
-    }
-
-    @Override
-    public boolean equals(Object obj) {
-        if (this == obj) {
-            return true;
-        }
-        if (!super.equals(obj) || !(obj instanceof FuncCountIter)) {
-            return false;
-        }
-        final FuncCountIter other = (FuncCountIter) obj;
-        return Objects.equals(theInput, other.theInput) &&
-            (theFuncCode == other.theFuncCode);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(super.hashCode(), theInput, theFuncCode);
     }
 }

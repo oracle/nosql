@@ -37,11 +37,13 @@ class ReturnResultValueVersion {
     void setValueVersion(byte[] valueBytes,
                          Version version,
                          long expirationTime,
+                         long creationTime,
                          long modificationTime,
                          int storageSize) {
         this.valueVersion = new ResultValueVersion(valueBytes,
                                                    version,
                                                    expirationTime,
+                                                   creationTime,
                                                    modificationTime,
                                                    storageSize);
     }

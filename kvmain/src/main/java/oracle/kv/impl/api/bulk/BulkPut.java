@@ -14,6 +14,7 @@
 package oracle.kv.impl.api.bulk;
 
 import static oracle.kv.impl.util.SerialVersion.BULK_PUT_RESOLVE;
+import static oracle.kv.impl.util.SerialVersion.CREATION_TIME_VER;
 import static oracle.kv.impl.util.SerializationUtil.readNonNullByteArray;
 import static oracle.kv.impl.util.SerializationUtil.readPackedLong;
 import static oracle.kv.impl.util.SerializationUtil.writeNonNullByteArray;
@@ -911,6 +912,7 @@ public abstract class BulkPut<T> {
                    final Key pk = getKey(e);
                    final Value value = getValue(e);
                    final long tableId = getTableId(e);
+                   final long creationTime = getCreationTime(e);
                    final long modTime = getModificationTime(e);
                    final boolean isTombstone = getIsTombstone(e);
                    final byte[] keyBytes = serializer.toByteArray(pk);
@@ -921,6 +923,7 @@ public abstract class BulkPut<T> {
                                                   streamId,
                                                   tableId,
                                                   ttl,
+                                                  creationTime,
                                                   modTime,
                                                   isTombstone);
                }
@@ -985,6 +988,17 @@ public abstract class BulkPut<T> {
          * override this method.
          */
         protected long getTableId(@SuppressWarnings("unused") E entry) {
+            return 0;
+        }
+
+        /**
+         * Returns the creation time of the entry if available (e.g. from
+         * a restore/migration), BulkPut for table should override this method.
+         * The value for creation time will only be used if the value of
+         * {@link BulkWriteOptions#setUsePutResolve} is true
+         */
+        protected long getCreationTime(
+            @SuppressWarnings("unused") E entry) {
             return 0;
         }
 
@@ -1065,13 +1079,12 @@ public abstract class BulkPut<T> {
         @SuppressWarnings("unchecked")
         synchronized void put(byte[] key, byte[] value,
                               int streamId, long tableId,
-                              TimeToLive ttl, long modTime,
+                              TimeToLive ttl, long creationTime, long modTime,
                               boolean isTombstone)
             throws InterruptedException {
 
-            final WrappedValue wv = new WrappedValue(value, streamId,
-                                                     tableId, ttl, modTime,
-                                                     isTombstone);
+            final WrappedValue wv = new WrappedValue(value, streamId, tableId,
+                ttl, creationTime, modTime, isTombstone);
             final Object old = kvPairs.put(key, wv);
             if (old != null) {
                 List<WrappedValue> list;
@@ -1166,7 +1179,7 @@ public abstract class BulkPut<T> {
         }
 
         /**
-         * Adds a entry to KVPair list, return the size of the entry.
+         * Adds an entry to KVPair list, return the size of the entry.
          */
         private int addEntry(byte[] key, WrappedValue wv,
                              List<KVPair> kvpairs, Set<Long> tableIds,
@@ -1179,6 +1192,7 @@ public abstract class BulkPut<T> {
                                    value,
                                    wv.getTTLVal(),
                                    wv.getTTLUnitOrdinal(),
+                                   wv.getCreationTime(),
                                    wv.getModificationTime(),
                                    wv.isTombstone(),
                                    streamId));
@@ -1214,15 +1228,18 @@ public abstract class BulkPut<T> {
         private final long tableId;
         private final int ttlVal;
         private final byte ttlUnitOrdinal;
+        private final long creationTime;
         private final long modificationTime;
         private final boolean isTombstone;
 
         WrappedValue(byte[] value, int streamId,
-                     long tableId, TimeToLive ttl, long modificationTime,
-                     boolean isTombstone) {
+            long tableId, TimeToLive ttl, long creationTime,
+            long modificationTime, boolean isTombstone) {
+
             this.value = value;
             this.streamId = streamId;
             this.tableId = tableId;
+            this.creationTime = creationTime;
             this.modificationTime = modificationTime;
             this.isTombstone = isTombstone;
             if (ttl != null) {
@@ -1240,6 +1257,10 @@ public abstract class BulkPut<T> {
 
         long getTableId() {
             return tableId;
+        }
+
+        long getCreationTime() {
+            return creationTime;
         }
 
         long getModificationTime() {
@@ -1284,17 +1305,20 @@ public abstract class BulkPut<T> {
         final int ttlVal;
         final TimeUnit ttlUnit;
         final int streamId;
+        final long creationTime;
         final long modificationTime;
         final boolean isTombstone;
 
         public KVPair(byte[] key, byte[] value, int ttlVal, byte ttlUnitOrdinal,
-                      long modificationTime, boolean isTombstone,
-                      int streamId) {
+            long creationTime, long modificationTime, boolean isTombstone,
+            int streamId) {
+
             this.key = key;
             this.value = value;
             this.ttlVal = ttlVal;
             ttlUnit = TimeToLive.convertTimeToLiveUnit(ttlVal, ttlUnitOrdinal);
             this.streamId = streamId;
+            this.creationTime = creationTime;
             this.modificationTime = modificationTime;
             this.isTombstone = isTombstone;
         }
@@ -1315,6 +1339,11 @@ public abstract class BulkPut<T> {
             } else {
                 modificationTime = 0L;
                 isTombstone = false;
+            }
+            if (serialVersion >= CREATION_TIME_VER) {
+                creationTime = readPackedLong(in);
+            } else {
+                creationTime = 0L;
             }
         }
 
@@ -1350,6 +1379,9 @@ public abstract class BulkPut<T> {
                     "Cannot use tombstones in BulkPut in serial version: " +
                     serialVersion);
             }
+            if (serialVersion >= CREATION_TIME_VER) {
+                writePackedLong(out, creationTime);
+            }
         }
 
         @Override
@@ -1365,6 +1397,7 @@ public abstract class BulkPut<T> {
                 Arrays.equals(value, other.value) &&
                 (ttlVal == other.ttlVal) &&
                 (ttlUnit == other.ttlUnit) &&
+                (creationTime == other.creationTime) &&
                 (modificationTime == other.modificationTime) &&
                 (isTombstone == other.isTombstone) &&
                 (streamId == other.streamId);
@@ -1373,7 +1406,7 @@ public abstract class BulkPut<T> {
         @Override
         public int hashCode() {
             return Objects.hash(key, value, ttlVal, ttlUnit, streamId,
-                                modificationTime, isTombstone);
+                                creationTime, modificationTime, isTombstone);
         }
 
         public byte[] getKey() {
@@ -1390,6 +1423,10 @@ public abstract class BulkPut<T> {
 
         public int getTTLVal() {
             return ttlVal;
+        }
+
+        public long getCreationTime() {
+            return creationTime;
         }
 
         public long getModificationTime() {

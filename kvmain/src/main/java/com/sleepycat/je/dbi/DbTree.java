@@ -1655,9 +1655,24 @@ public class DbTree implements Loggable {
             final DatabaseEntry keyDbt =
                 new DatabaseEntry(StringUtils.toUTF8(databaseName));
 
-            if (!nameCursor.searchExact(
-                keyDbt, writeLock ? LockType.WRITE : LockType.READ)) {
-                return null;
+            /*
+             * A read lock is needed here and will be hold until the
+             * nameLocker closes.
+             */
+            Txn tempLocker = null;
+            if (nameLocker.isOptimisticReadIsolation() && !writeLock) {
+                tempLocker = (Txn) nameLocker;
+                tempLocker.setOptimisticReadIsolation(false);
+            }
+            try {
+                if (!nameCursor.searchExact(
+                        keyDbt, writeLock ? LockType.WRITE : LockType.READ)) {
+                    return null;
+                }
+            } finally {
+                if (tempLocker != null) {
+                    tempLocker.setOptimisticReadIsolation(true);
+                }
             }
 
             final NameLN nameLN = (NameLN) nameCursor.getCurrentLN(

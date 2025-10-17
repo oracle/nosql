@@ -29,6 +29,7 @@ import com.sleepycat.je.DatabaseEntry;
 import com.sleepycat.je.DatabaseException;
 import com.sleepycat.je.EnvironmentFailureException;
 import com.sleepycat.je.VerifyError;
+import com.sleepycat.je.WriteOptions;
 import com.sleepycat.je.cleaner.PackedObsoleteInfo;
 import com.sleepycat.je.dbi.DatabaseId;
 import com.sleepycat.je.dbi.DatabaseImpl;
@@ -898,6 +899,7 @@ public class IN extends Node implements Comparable<IN>, LatchContext {
     /**
      * Sort based on equality key.
      */
+    @Override
     public final int compareTo(IN argIN) {
         long argNodeId = argIN.getNodeId();
         long myNodeId = getNodeId();
@@ -1928,7 +1930,7 @@ public class IN extends Node implements Comparable<IN>, LatchContext {
     }
 
     /**
-     * 
+     *
      * See KVSTORE-1323.
      */
     private void updateChildKeys() {
@@ -3633,6 +3635,7 @@ public class IN extends Node implements Comparable<IN>, LatchContext {
         byte[] newData,
         int expiration,
         boolean expirationInHours,
+        long creationTime,
         long modificationTime,
         boolean tombstone) {
 
@@ -3668,6 +3671,8 @@ public class IN extends Node implements Comparable<IN>, LatchContext {
 
         bin.setExpiration(idx, expiration, expirationInHours);
         bin.setModificationTime(idx, embeddedData ? modificationTime : 0);
+        bin.setCreationTime(idx, embeddedData ? creationTime : 0);
+
         bin.setTombstone(idx, tombstone);
 
         if (multiSlotChange) {
@@ -3721,6 +3726,7 @@ public class IN extends Node implements Comparable<IN>, LatchContext {
         byte[] newEmbData,
         int expiration,
         boolean expirationInHours,
+        long creationTime,
         long modificationTime,
         boolean tombstone) {
 
@@ -3752,6 +3758,9 @@ public class IN extends Node implements Comparable<IN>, LatchContext {
 
         bin.setModificationTime(
             idx, (newEmbData != null) ? modificationTime : 0);
+
+        bin.setCreationTime(
+            idx, (newEmbData != null) ? creationTime : 0);
 
         bin.setTombstone(idx, tombstone);
 
@@ -3812,6 +3821,7 @@ public class IN extends Node implements Comparable<IN>, LatchContext {
         }
 
         bin.setModificationTime(idx, 0);
+        bin.setCreationTime(idx, 0);
         bin.setTombstone(idx, false);
 
         Node newLN = entryTargets.get(idx);
@@ -3879,6 +3889,7 @@ public class IN extends Node implements Comparable<IN>, LatchContext {
         int logrecSize,
         int expiration,
         boolean expirationInHours,
+        long creationTime,
         long modificationTime,
         boolean tombstone) {
 
@@ -3975,6 +3986,7 @@ public class IN extends Node implements Comparable<IN>, LatchContext {
 
         bin.setExpiration(idx, expiration, expirationInHours);
         bin.setModificationTime(idx, (embData != null) ? modificationTime : 0);
+        bin.setCreationTime(idx, (embData != null) ? creationTime : 0);
         bin.setTombstone(idx, tombstone);
 
         if (multiSlotChange) {
@@ -5671,7 +5683,8 @@ public class IN extends Node implements Comparable<IN>, LatchContext {
             final int expBase = bin.getExpirationBase();
             haveExpiration = (expBase != -1);
             size += LogUtils.getPackedIntLogSize(expBase);
-
+            final long createTimesBase = bin.getCreationTimesBase();
+            size += LogUtils.getPackedLongLogSize(createTimesBase);
             final long modTimesBase = bin.getModificationTimesBase();
             size += LogUtils.getPackedLongLogSize(modTimesBase);
         }
@@ -5732,6 +5745,8 @@ public class IN extends Node implements Comparable<IN>, LatchContext {
 
             if (isEmbedded) {
                 size += LogUtils.getPackedLongLogSize(
+                    bin.getCreationTimeOffset(i));
+                size += LogUtils.getPackedLongLogSize(
                     bin.getModificationTimeOffset(i));
             }
         }
@@ -5777,7 +5792,8 @@ public class IN extends Node implements Comparable<IN>, LatchContext {
             final int expBase = bin.getExpirationBase();
             haveExpiration = (expBase != -1);
             LogUtils.writePackedInt(logBuffer, expBase);
-
+            LogUtils.writePackedLong(
+                logBuffer, bin.getCreationTimesBase());
             LogUtils.writePackedLong(
                 logBuffer, bin.getModificationTimesBase());
         } else {
@@ -5880,6 +5896,8 @@ public class IN extends Node implements Comparable<IN>, LatchContext {
 
             if (isEmbedded) {
                 LogUtils.writePackedLong(
+                    logBuffer, bin.getCreationTimeOffset(i));
+                LogUtils.writePackedLong(
                     logBuffer, bin.getModificationTimeOffset(i));
             }
         }
@@ -5974,8 +5992,15 @@ public class IN extends Node implements Comparable<IN>, LatchContext {
         }
 
         if (bin != null && entryVersion >= 19) {
+            if (entryVersion >= LogEntryType.LOG_VERSION_CREATION_TIME) {
+                long base = LogUtils.readPackedLong(itemBuffer);
+                bin.setCreationTimesBase(base);
+            }
             long base = LogUtils.readPackedLong(itemBuffer);
             bin.setModificationTimesBase(base);
+            if (entryVersion < LogEntryType.LOG_VERSION_CREATION_TIME) {
+                bin.setCreationTimesBase(base);
+            }
         }
 
         nodeId = LogUtils.readPackedLong(itemBuffer);
@@ -6086,8 +6111,16 @@ public class IN extends Node implements Comparable<IN>, LatchContext {
             }
 
             if (entryVersion >= 19 && isEmbedded) {
+            	if (entryVersion >= LogEntryType.LOG_VERSION_CREATION_TIME) {
+                    bin.setCreationTimeOffset(
+                        i, LogUtils.readPackedLong(itemBuffer));
+            	}
                 bin.setModificationTimeOffset(
                     i, LogUtils.readPackedLong(itemBuffer));
+                if (entryVersion < LogEntryType.LOG_VERSION_CREATION_TIME) {
+                    bin.setCreationTimeOffset(
+                        i , WriteOptions.CREATION_TIME_NOT_SET);
+                }
             }
         }
 
@@ -6163,6 +6196,10 @@ public class IN extends Node implements Comparable<IN>, LatchContext {
             sb.append(bin.getExpirationBase());
             sb.append("\" expirationIn=\"");
             sb.append(bin.isExpirationInHours() ? "hours" : "days");
+        }
+        if (bin != null && bin.getCreationTimesBase() != -1) {
+            sb.append("\" baseCreateTime=\"");
+            sb.append(bin.getCreationTimesBase());
         }
         if (bin != null && bin.getModificationTimesBase() != -1) {
             sb.append("\" baseModTime=\"");
@@ -6344,6 +6381,11 @@ public class IN extends Node implements Comparable<IN>, LatchContext {
                 sb.append(" off:").append(bin.getExpirationOffset(i));
             }
             sb.append("\" tombstone=\"").append(bin.isTombstone(i));
+            long createTime = bin.getCreationTime(i);
+            if (createTime != 0) {
+                sb.append("\" creationTime=\"")
+                  .append(StatUtils.getDate(createTime));
+            }
             long modTime = bin.getModificationTime(i);
             if (modTime != 0) {
                 sb.append("\" modTime=\"").append(StatUtils.getDate(modTime));

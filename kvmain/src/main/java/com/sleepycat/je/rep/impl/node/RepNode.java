@@ -17,10 +17,6 @@ import static com.sleepycat.je.rep.ReplicatedEnvironment.State.MASTER;
 import static com.sleepycat.je.rep.ReplicatedEnvironment.State.REPLICA;
 import static com.sleepycat.je.rep.ReplicatedEnvironment.State.UNKNOWN;
 import static com.sleepycat.je.rep.impl.RepImpl.CAPPED_DTVLSN;
-import static com.sleepycat.je.rep.impl.node.ChannelTimeoutStatDefinition.N_CHANNEL_TIMEOUT_MAP;
-import static com.sleepycat.je.rep.impl.node.MasterTransferStatDefinition.N_MASTER_TRANSFERS;
-import static com.sleepycat.je.rep.impl.node.MasterTransferStatDefinition.N_MASTER_TRANSFERS_SUCCESS;
-import static com.sleepycat.je.rep.impl.node.MasterTransferStatDefinition.N_MASTER_TRANSFERS_FAILURE;
 import static com.sleepycat.je.rep.impl.RepParams.DBTREE_CACHE_CLEAR_COUNT;
 import static com.sleepycat.je.rep.impl.RepParams.ENV_CONSISTENCY_TIMEOUT;
 import static com.sleepycat.je.rep.impl.RepParams.GROUP_NAME;
@@ -29,6 +25,10 @@ import static com.sleepycat.je.rep.impl.RepParams.IGNORE_SECONDARY_NODE_ID;
 import static com.sleepycat.je.rep.impl.RepParams.NODE_TYPE;
 import static com.sleepycat.je.rep.impl.RepParams.RESET_REP_GROUP_RETAIN_UUID;
 import static com.sleepycat.je.rep.impl.RepParams.SECURITY_CHECK_INTERVAL;
+import static com.sleepycat.je.rep.impl.node.ChannelTimeoutStatDefinition.N_CHANNEL_TIMEOUT_MAP;
+import static com.sleepycat.je.rep.impl.node.MasterTransferStatDefinition.N_MASTER_TRANSFERS;
+import static com.sleepycat.je.rep.impl.node.MasterTransferStatDefinition.N_MASTER_TRANSFERS_FAILURE;
+import static com.sleepycat.je.rep.impl.node.MasterTransferStatDefinition.N_MASTER_TRANSFERS_SUCCESS;
 import static com.sleepycat.je.utilint.VLSN.NULL_VLSN;
 import static com.sleepycat.je.utilint.VLSN.UNINITIALIZED_VLSN;
 
@@ -42,10 +42,12 @@ import java.util.Set;
 import java.util.Timer;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
 import java.util.logging.Logger;
 
-import com.sleepycat.je.rep.ReplicaConnectRetryException;
 import com.sleepycat.je.CheckpointConfig;
 import com.sleepycat.je.DatabaseException;
 import com.sleepycat.je.Durability.ReplicaAckPolicy;
@@ -70,6 +72,7 @@ import com.sleepycat.je.rep.MemberNotFoundException;
 import com.sleepycat.je.rep.NodeType;
 import com.sleepycat.je.rep.QuorumPolicy;
 import com.sleepycat.je.rep.RepInternal;
+import com.sleepycat.je.rep.ReplicaConnectRetryException;
 import com.sleepycat.je.rep.ReplicaConsistencyException;
 import com.sleepycat.je.rep.ReplicaStateException;
 import com.sleepycat.je.rep.ReplicatedEnvironment;
@@ -108,7 +111,6 @@ import com.sleepycat.je.rep.stream.FeederTxns;
 import com.sleepycat.je.rep.stream.MasterChangeListener;
 import com.sleepycat.je.rep.stream.MasterStatus;
 import com.sleepycat.je.rep.stream.MasterSuggestionGenerator;
-import com.sleepycat.je.rep.subscription.StreamAuthenticator;
 import com.sleepycat.je.rep.txn.ReplayTxn;
 import com.sleepycat.je.rep.util.AtomicLongMax;
 import com.sleepycat.je.rep.util.ldiff.LDiffService;
@@ -166,6 +168,9 @@ public class RepNode extends StoppableThread {
 
     /* Used when the node is a feeder. */
     private FeederManager feederManager;
+
+    /* For testing only. */
+    private volatile static boolean sendNullTxnWhenNodeBecomesMaster = true;
 
     /*
      * The status of the Master. Note that this is the leading state as
@@ -372,7 +377,8 @@ public class RepNode extends StoppableThread {
     private final AtomicLongMax localDurableVLSN = new AtomicLongMax(NULL_VLSN);
 
     /** latch to wait for a given VLSN to be durable */
-    private volatile VLSNIndex.VLSNAwaitLatch dtVLSNLatch = null;
+    private final Lock durableLock = new ReentrantLock();
+    private final Condition dtVLSNLatch =  durableLock.newCondition();
 
     /**
      * If not null, a test hook that is called with the name of the current
@@ -974,14 +980,6 @@ public class RepNode extends StoppableThread {
 
     int getSecurityCheckInterval() {
         return getConfigManager().getInt(SECURITY_CHECK_INTERVAL);
-    }
-
-    StreamAuthenticator getAuthenticator() {
-        if (repImpl == null) {
-            return null;
-        }
-
-        return repImpl.getAuthenticator();
     }
 
     /**
@@ -2272,8 +2270,19 @@ public class RepNode extends StoppableThread {
                         Thread.sleep(wait);
                         elections.incrementElectionsDelayed();
                     }
+
+                    /*
+                     * Just after a node becomes master, we immediately send
+                     * out a NullTxn to ensure that any inflight non-durable
+                     * txns at the time of failure in the preceding term are
+                     * made durable in a new term without having to wait for
+                     * the application itself to create a durable txn.
+                     */
+                    if (sendNullTxnWhenNodeBecomesMaster) {
+                        feederManager.sendNullTxnWhenNodeBecomesMaster();
+                    }
+
                     feederManager.runFeeders();
-                    prevTermEndVLSN = VLSN.NULL_VLSN;
 
                     /*
                      * At this point, the feeder manager has been shutdown.
@@ -2289,6 +2298,7 @@ public class RepNode extends StoppableThread {
                      * initialized for replica state, the node will NPE if it
                      * attempts execute replicated writes.
                      */
+                    prevTermEndVLSN = VLSN.NULL_VLSN;
                     nodeState.changeToUnknownAndNotify();
                     repImpl.getVLSNIndex().initAsReplica();
                     assert runConvertHooks();
@@ -3168,8 +3178,11 @@ public class RepNode extends StoppableThread {
 
     private synchronized long updateDTVLSNMax(long vlsn) {
         final long ret = dtvlsn.updateMax(vlsn);
-        if (dtVLSNLatch != null) {
-            dtVLSNLatch.countDown(vlsn);
+        durableLock.lock();
+        try {
+            dtVLSNLatch.signalAll();
+        } finally {
+            durableLock.unlock();
         }
         return ret;
     }
@@ -3181,26 +3194,18 @@ public class RepNode extends StoppableThread {
     public void waitForDTVLSN(long vlsn, long waitNs)
         throws InterruptedException, VLSNIndex.WaitTimeOutException {
 
-        synchronized (this) {
-            if (durable(vlsn)) {
-                /* already durable */
-                return;
-            }
-            if (dtVLSNLatch == null) {
-                dtVLSNLatch = new VLSNIndex.VLSNAwaitLatch(vlsn);
-            }
-        }
-
-        /*
-         * Do any waiting outside the synchronization section. If the
-         * waited-for VLSN has already arrived, the waitLatch will have been
-         * counted down, and we'll go through.
-         */
-        if (!dtVLSNLatch.await(waitNs, TimeUnit.NANOSECONDS) ||
-            dtVLSNLatch.isTerminated()) {
-            /* Timed out waiting for a durable VLSN, or was terminated. */
-            throw new VLSNIndex.WaitTimeOutException();
-        }
+        // dont sync this as the updatedtvlsnmax always gets the intrinsic locks
+		// in different ways might delay this
+		durableLock.lock();
+		try {
+			while (!durable(vlsn)) {
+				if (dtVLSNLatch.awaitNanos(waitNs) <= 0) {
+					throw new VLSNIndex.WaitTimeOutException();
+				}
+			}
+		} finally {
+			durableLock.unlock();
+		}
     }
 
     /**
@@ -3213,5 +3218,11 @@ public class RepNode extends StoppableThread {
     public boolean durable(long vlsn) {
         final long dtVLSN = dtvlsn.get();
         return (dtVLSN != NULL_VLSN) && (vlsn <= dtVLSN);
+    }
+
+    /* For testing only. */
+    public static void setSendNullTxnWhenNodeBecomesMaster(
+            boolean sendNullTxn) {
+        sendNullTxnWhenNodeBecomesMaster = sendNullTxn;
     }
 }

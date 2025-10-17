@@ -776,12 +776,12 @@ public class SubscriptionConfig implements Cloneable {
         }
 
         @Override
-        public void processCommit(long vlsn, long txnid) {
+        public void processCommit(long vlsn, long txnid, long ts) {
 
         }
 
         @Override
-        public void processAbort(long vlsn, long txnid) {
+        public void processAbort(long vlsn, long txnid, long ts) {
 
         }
 

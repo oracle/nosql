@@ -1,4 +1,5 @@
 compiled-query-plan
+
 {
 "query file" : "inner_joins/q/lq02.q",
 "plan" : 
@@ -84,7 +85,8 @@ compiled-query-plan
                 "target table" : "profile.messages",
                 "row variable" : "$$msgs1",
                 "index used" : "idx2_msgs_receivers",
-                "covering index" : false,
+                "covering index" : true,
+                "index row variable" : "$$msgs1_idx",
                 "index scans" : [
                   {
                     "equality conditions" : {"content.receivers[]":""},
@@ -102,18 +104,18 @@ compiled-query-plan
                 ],
                 "position in join" : 1
               },
-              "FROM variable" : "$$msgs1",
+              "FROM variable" : "$$msgs1_idx",
               "SELECT expressions" : [
                 {
                   "field name" : "outerJoinVal1",
                   "field expression" : 
                   {
                     "iterator kind" : "FIELD_STEP",
-                    "field name" : "uid",
+                    "field name" : "#uid",
                     "input iterator" :
                     {
                       "iterator kind" : "VAR_REF",
-                      "variable" : "$$msgs1"
+                      "variable" : "$$msgs1_idx"
                     }
                   }
                 }
@@ -210,11 +212,11 @@ compiled-query-plan
             "field expression" : 
             {
               "iterator kind" : "FIELD_STEP",
-              "field name" : "msgid",
+              "field name" : "#msgid",
               "input iterator" :
               {
                 "iterator kind" : "VAR_REF",
-                "variable" : "$$msgs1"
+                "variable" : "$$msgs1_idx"
               }
             }
           },

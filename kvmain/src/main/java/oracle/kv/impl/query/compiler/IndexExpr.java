@@ -591,17 +591,21 @@ class IndexExpr {
             switch (expr.getKind()) {
 
             case FUNC_CALL:
-                if (expr != epath.theExpr ||
-                    !epath.theFunction.isIndexable()) {
-                    return null;
-                }
-
                 ExprFuncCall fncall = (ExprFuncCall)expr;
 
-                for (int i = 1; i < fncall.getNumArgs(); ++i) {
-                    Expr arg = fncall.getArg(i);
-                    if (!ConstKind.isCompileConst(arg)) {
+                if (fncall.getFuncCode() == FuncCode.FN_ROW_METADATA) {
+                    epath.add(FuncRowMetadata.COL_NAME, StepKind.REC_FIELD, expr);
+                } else {
+                    if (expr != epath.theExpr ||
+                        !epath.theFunction.isIndexable()) {
                         return null;
+                    }
+
+                    for (int i = 1; i < fncall.getNumArgs(); ++i) {
+                        Expr arg = fncall.getArg(i);
+                        if (!ConstKind.isCompileConst(arg)) {
+                            return null;
+                        }
                     }
                 }
 
@@ -714,7 +718,8 @@ class IndexExpr {
                         if (varExpr.getIndex() == null &&
                             !epath.theSteps.isEmpty()) {
                             String colName = epath.theSteps.get(0).theName;
-                            if (!epath.theTable.isJsonCollection()) {
+                            if (!epath.theTable.isJsonCollection() &&
+                                !colName.equals(FuncRowMetadata.COL_NAME)) {
                                 StepKind skind = epath.theSteps.get(0).theKind;
                                 if (skind == StepKind.REC_FIELD) {
                                     epath.theColumnPos =
@@ -1407,6 +1412,18 @@ class IndexExpr {
                 expr = expr.getInput();
                 break;
             }
+            case FUNC_CALL:
+                ExprFuncCall fncall = (ExprFuncCall)expr;
+
+                if (fncall.getFuncCode() == FuncCode.FN_ROW_METADATA) {
+                    epath.add(FuncRowMetadata.COL_NAME, StepKind.REC_FIELD, expr);
+                    expr = fncall.getArg(0);
+                    break;
+                }
+
+                throw new QueryStateException(
+                   "Unexpected expression in unnest path for variable " +
+                   initUnnestVar.getName());
             case VAR: {
                 ExprVar var = (ExprVar)expr;
 
@@ -1430,8 +1447,8 @@ class IndexExpr {
             }
             default: {
                 throw new QueryStateException(
-                   "Unexpected expression in unnest path " +
-                   epath.getPathName());
+                   "Unexpected expression in unnest path for variable " +
+                   initUnnestVar.getName());
             }
             }
         }

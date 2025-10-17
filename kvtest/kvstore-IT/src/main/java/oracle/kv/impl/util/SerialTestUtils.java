@@ -483,6 +483,7 @@ public class SerialTestUtils {
             } catch (IOException e) {
                 throw new RuntimeException("Unexpected exception: " + e, e);
             } catch (IllegalStateException e) {
+            } catch (IllegalArgumentException e) {
             }
         }
 

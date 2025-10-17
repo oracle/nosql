@@ -118,6 +118,7 @@ public class FailureInjectionTest extends RepNodeTestBase {
                     USER_TABLE.getShardKey(),
                     USER_TABLE.getFieldMap(),
                     null, // TTL
+                    null, /*beforeImageTTL*/
                     null, // limits
                     false, 0,
                     null, null);

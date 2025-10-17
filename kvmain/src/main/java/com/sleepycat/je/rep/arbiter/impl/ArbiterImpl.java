@@ -493,7 +493,7 @@ public class ArbiterImpl extends StoppableThread {
         }
     }
 
-    RepGroupImpl refreshCachedGroup()
+    void refreshCachedGroup()
         throws DatabaseException {
         RepGroupImpl repGroupImpl;
         repGroupImpl = repGroupAdmin.getGroup().getRepGroupImpl();
@@ -510,7 +510,6 @@ public class ArbiterImpl extends StoppableThread {
         helpers.addAll(repGroupImpl.getAllHelperSockets());
         helperSockets = helpers;
         cachedRepGroupImpl = repGroupImpl;
-        return cachedRepGroupImpl;
     }
 
     void updateNameIdPair(NameIdPair other) {

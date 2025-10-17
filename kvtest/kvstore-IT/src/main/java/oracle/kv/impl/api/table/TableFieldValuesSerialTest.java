@@ -11,6 +11,7 @@ import static java.util.Collections.singleton;
 import static java.util.Collections.singletonList;
 import static java.util.Collections.singletonMap;
 import static oracle.kv.impl.util.SerialTestUtils.serialVersionChecker;
+import static oracle.kv.impl.util.SerialVersion.BEFORE_IMAGE_VERSION;
 import static oracle.kv.impl.util.SerialVersion.QUERY_VERSION_16;
 import static oracle.kv.impl.util.SerialVersion.JSON_COLLECTION_VERSION;
 import static oracle.kv.impl.util.SerialVersion.SCHEMALESS_TABLE_VERSION;
@@ -467,7 +468,8 @@ public class TableFieldValuesSerialTest extends BasicClientTestBase {
                      table,
                      SerialVersion.MINIMUM, 0x9f996711f7e27749L,
                      SCHEMALESS_TABLE_VERSION, 0x757204f05b7c954fL,
-                     JSON_COLLECTION_VERSION, 0xd4cd21e87d4b06a2L)
+                     JSON_COLLECTION_VERSION, 0xd4cd21e87d4b06a2L,
+                     BEFORE_IMAGE_VERSION, 0x97a989d91bde3426L)
                  .reader((in, sv) ->
                          new TableImpl(in, sv, null /* parent */)));
     }
@@ -495,6 +497,7 @@ public class TableFieldValuesSerialTest extends BasicClientTestBase {
                                 singletonList("id"),
                                 fieldMap,
                                 TimeToLive.ofHours(5),
+                                null, /*beforeImageTTL*/
                                 new TableLimits(1, 2, 3, 4, 5, 6, 7),
                                 false, /* r2compat */
                                 4, /* schemaId */
@@ -523,7 +526,8 @@ public class TableFieldValuesSerialTest extends BasicClientTestBase {
                      SerialVersion.MINIMUM, 0x2ce5a1bd36005028L,
                      SCHEMALESS_TABLE_VERSION, 0xdd84145d183a8efdL,
                      JSON_COLLECTION_VERSION, 0x85a8ea004f0a6fcaL,
-                     QUERY_VERSION_16, 0x221258a889bcf7d9L),
+                     QUERY_VERSION_16, 0x221258a889bcf7d9L,
+                     BEFORE_IMAGE_VERSION, 0x8a34b03d0f5fdd6fL),
                  serialVersionChecker(
                      new TableMetadata(false /* keepChanges */),
                      SerialVersion.MINIMUM, 0x237c6f38ef9b06a3L,
@@ -549,6 +553,7 @@ public class TableFieldValuesSerialTest extends BasicClientTestBase {
                                 singletonList("id"),
                                 jsonCollectionFieldMap,
                                 TimeToLive.ofHours(5),
+                                null, /*beforeImageTTL*/
                                 new TableLimits(1, 2, 3, 4, 5, 6, 7),
                                 false, /* r2compat */
                                 0, /* schemaId */
@@ -563,7 +568,8 @@ public class TableFieldValuesSerialTest extends BasicClientTestBase {
         checkAll(serialVersionChecker(
                      tableMetadata1,
                      JSON_COLLECTION_VERSION, 0x6e1320898e122560L,
-                     QUERY_VERSION_16, 0x9e9c33072fe00095L));
+                     QUERY_VERSION_16, 0x9e9c33072fe00095L,
+                     BEFORE_IMAGE_VERSION, 0x20aba3f03bad211fL));
     }
 
     @Test

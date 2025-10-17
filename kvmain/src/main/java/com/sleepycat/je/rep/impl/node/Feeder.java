@@ -206,9 +206,6 @@ final public class Feeder {
     /* The filter to be used for records written to the replication stream.*/
     private FeederFilter feederFilter;
 
-    /* feeder authenticator */
-    private final StreamAuthenticator authenticator;
-
     /* security check interval in ms */
     private final long securityChkIntvMs;
 
@@ -423,8 +420,12 @@ final public class Feeder {
         feederFilter = null;
 
         /* get authenticator from containing rn */
-        authenticator = repNode.getAuthenticator();
         securityChkIntvMs = repNode.getSecurityCheckInterval();
+        LoggerUtils.info(logger, repImpl,
+                         "Feeder created with nameId=" + nameIdPair +
+                         ", channel authenticator=" +
+                         dataChannel.getStreamAuthenticator() +
+                         ", security check interval ms=" + securityChkIntvMs);
     }
 
     void startFeederThreads() {
@@ -452,7 +453,6 @@ final public class Feeder {
         vlsnRate = null;
         writeMessageHook = initialWriteMessageHook;
         feederFilter = null;
-        authenticator = null;
         securityChkIntvMs = 0;
     }
 
@@ -673,12 +673,15 @@ final public class Feeder {
         feederManager.getReplicaVLSNRateMap().removeStat(replicaName);
 
         LoggerUtils.info(logger, repImpl,
-                         "Shutting down feeder for replica " + replicaName +
+                         "Shutting down feeder for replica=" + replicaName +
                          ((shutdownException == null) ?
                           "" :
-                          (" Reason: " +
-                           shutdownException.getMessage() + " ")) +
-                         RepUtils.writeTimesString(pstats));
+                          (" reason=" + shutdownException +
+                           ", protocol stats= ")) +
+                         RepUtils.writeTimesString(pstats) +
+                         ((shutdownException == null) ? "" :
+                         ", shutdown exception stack=\n" +
+                         LoggerUtils.getStackTrace(shutdownException)));
 
         final String feederState =
             String.format("Feeder state at exit -- " +
@@ -760,8 +763,8 @@ final public class Feeder {
         return null;
     }
 
-    public StreamAuthenticator getAuthenticator() {
-        return authenticator;
+    private StreamAuthenticator getAuthenticator() {
+        return feederReplicaChannel.getChannel().getStreamAuthenticator();
     }
 
     /**
@@ -951,6 +954,11 @@ final public class Feeder {
                  * thread is the only one to notice a problem. The Replica can
                  * decide to re-establish the connection
                  */
+                LoggerUtils.info(logger, repImpl,
+                                 "Feeder input thread to shut down feeder in " +
+                                 "its entirety" +
+                                 ", replica=" + replicaNameIdPair.getName() +
+                                 ", exception=" + shutdownException) ;
                 shutdown(shutdownException);
                 cleanup();
             }
@@ -1586,10 +1594,14 @@ final public class Feeder {
                  * Feeder but this is the safe course of action.
                  */
                 LoggerUtils.severe(logger, repImpl,
-                                   "Unexpected exception: " + e.getMessage() +
+                                   "Unexpected runtime exception=" + e +
+                                   ", stack=\n" +
                                    LoggerUtils.getStackTraceForSevereLog(e));
                 throw e;
             } catch (Error e) {
+                LoggerUtils.severe(logger, repImpl,
+                                   "Unexpected error=" + e + ", stack=\n" +
+                                   LoggerUtils.getStackTraceForSevereLog(e));
                 feederOutputError = e;
                 repNode.getRepImpl().invalidate(e);
             } finally {
@@ -2153,12 +2165,13 @@ final public class Feeder {
     public boolean needSecurityChecks() {
 
         /* no check for non-secure store without an authenticator */
+        final StreamAuthenticator authenticator = getAuthenticator();
         if (authenticator == null) {
             return false;
         }
 
         final DataChannel channel = feederReplicaChannel.getChannel();
-        return channel.isTrustCapable() && !channel.isTrusted();
+        return DataChannel.needSecurityCheck(channel);
     }
 
     /**
@@ -2172,8 +2185,8 @@ final public class Feeder {
             return true;
         }
 
+        final StreamAuthenticator authenticator = getAuthenticator();
         final long curr = TimeSupplier.currentTimeMillis();
-
         if ((curr - authenticator.getLastCheckTimeMs()) >= securityChkIntvMs) {
             /* both authentication and authorization */
             return authenticator.checkAccess();
@@ -2196,6 +2209,7 @@ final public class Feeder {
         }
 
         /* ignore the message if no authentication is enabled */
+        final StreamAuthenticator authenticator = getAuthenticator();
         if (authenticator == null) {
             return true;
         }
@@ -2203,7 +2217,12 @@ final public class Feeder {
         final Protocol.ReAuthenticate reauth = (Protocol.ReAuthenticate)msg;
         authenticator.setToken(reauth.getTokenBytes());
         /* both authentication and authorization */
-        return authenticator.checkAccess();
+        final boolean ret = authenticator.checkAccess();
+        LoggerUtils.info(logger, repImpl,
+                         "Feeder=" + nameIdPair + " reauthenticate" +
+                         " result=" + (ret ? "success" : "failure") +
+                         ", channel id=" + authenticator.getChannelId());
+        return ret;
     }
 
     /**

@@ -30,6 +30,7 @@ import com.sleepycat.je.DatabaseEntry;
 import com.sleepycat.je.Get;
 import com.sleepycat.je.OperationResult;
 import com.sleepycat.je.Transaction;
+import com.sleepycat.je.WriteOptions;
 
 /**
  * Server handler for {@link Delete}.
@@ -93,10 +94,11 @@ public class DeleteHandler extends BasicDeleteHandler<Delete> {
                                    Transaction txn,
                                    PartitionId partitionId,
                                    ReturnResultValueVersion prevVal,
-                                   boolean isMultiRegion) {
-        Value value = isMultiRegion ?
-                Value.createTombstoneValue(Region.LOCAL_REGION_ID) :
-                Value.createTombstoneNoneValue();
+                                   boolean isMultiRegion,
+                                   String rowMetadata) {
+        int regionId = isMultiRegion ? Region.LOCAL_REGION_ID :
+            Region.NULL_REGION_ID;
+        Value value = Value.createTombstoneValue(regionId, rowMetadata);
 
         Put put = new Put(op.getKeyBytes(), value,
                           op.getReturnValueVersionChoice(),
@@ -120,6 +122,7 @@ public class DeleteHandler extends BasicDeleteHandler<Delete> {
             returnValueBytes,
             putResult.getPreviousVersion(),
             putResult.getPreviousExpirationTime(),
+            putResult.getPreviousCreationTime(),
             putResult.getPreviousModificationTime(),
             putResult.getPreviousStorageSize());
         reserializeResultValue(op, prevVal.getValueVersion());
@@ -152,8 +155,8 @@ public class DeleteHandler extends BasicDeleteHandler<Delete> {
         try {
             final DatabaseEntry prevData =
                 prevValue.getReturnChoice().needValue() ?
-                new DatabaseEntry() :
-                NO_DATA;
+                    new DatabaseEntry() :
+                    NO_DATA;
 
             final OperationResult result =
                 cursor.get(keyEntry, prevData,
@@ -166,13 +169,15 @@ public class DeleteHandler extends BasicDeleteHandler<Delete> {
                 exist = false;
             } else {
                 final TableImpl tbl = getAndCheckTable(op.getTableId());
-                if (tbl != null && (tbl.isMultiRegion() || op.doTombstone())) {
+                if (tbl != null && (tbl.isMultiRegion() || op.doTombstone() ||
+                    op.getRowMetadata() != null)) {
                     /*
-                     * It's a multi-region table, so insert tombstone instead of
-                     * deleting.
+                     * It has regionId or rowMetadata, so insert tombstone
+                     * instead of deleting.
                      */
                     return insertTombstone(op, txn, partitionId, prevValue,
-                                           tbl.isMultiRegion());
+                                           tbl.isMultiRegion(),
+                                           op.getRowMetadata());
                 }
 
                 final int recordSize = getStorageSize(cursor);
@@ -188,7 +193,12 @@ public class DeleteHandler extends BasicDeleteHandler<Delete> {
                     op.addReadBytes(MIN_READ);
                 }
 
-                cursor.delete(null);
+                final WriteOptions jeOptions = makeOption(null,
+                                                          false,
+                                                          op.getTableId(),
+                                                          operationHandler,
+                                                          false);
+                cursor.delete(jeOptions);
                 op.addWriteBytes(recordSize, getNIndexWrites(cursor),
                                  partitionId, -recordSize);
                 MigrationStreamHandle.get().addDelete(keyEntry, cursor);

@@ -7,10 +7,10 @@
 
 package oracle.kv.impl.api.table;
 
+import static org.junit.Assert.assertEquals;
+
 import java.util.ArrayList;
 import java.util.Arrays;
-
-import static org.junit.Assert.assertEquals;
 
 import oracle.kv.TestBase;
 
@@ -82,7 +82,7 @@ public class MetadataTest extends TestBase {
         assertEquals(table.getSequenceNumber(), md.getSequenceNumber());
 
         md.evolveTable(table, table.numTableVersions(),
-                       table.getFieldMap(), null, "DESCRIPTION",
+                       table.getFieldMap(), null, null, "DESCRIPTION",
                        false, null, null);
         assertEquals(table.getSequenceNumber(), md.getSequenceNumber());
 
@@ -130,6 +130,7 @@ public class MetadataTest extends TestBase {
                            table.getShardKey(),
                            table.getFieldMap(),
                            null, // TTL
+                           null, /*beforeImageTTL*/
                            null, // limits
                            false, 0,
                            null, null);

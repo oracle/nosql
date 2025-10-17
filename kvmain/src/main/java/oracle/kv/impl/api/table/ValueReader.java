@@ -28,18 +28,32 @@ public interface ValueReader<T> extends AvroRowReader {
      * that's a thought for a future refactor.
      */
     void setTableVersion(int tableVersion);
+
     void setExpirationTime(long expirationTime);
+
+    @SuppressWarnings(value = "unused")
+    default void setCreationTime(long creationTime) {}
+
     @SuppressWarnings("unused")
     default void setModificationTime(long modificationTime) {}
+
+    @SuppressWarnings("unused")
+    default void setRowMetadata(String rowMetadata) {}
+
     void setVersion(Version version);
+
     @SuppressWarnings("unused")
     default void setRegionId(int regionId) {}
+
     @SuppressWarnings("unused")
     default void setTombstone(boolean isTombstone) {}
 
     T getValue();
+
     Table getTable();
+
     void reset();
+
     /* this doesn't belong here at all, but is kept for compat for now */
     void setValue(T value);
 }

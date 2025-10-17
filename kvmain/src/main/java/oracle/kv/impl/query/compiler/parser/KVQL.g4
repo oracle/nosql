@@ -515,7 +515,7 @@ set_local_region_statement :
  */
 create_table_statement :
     CREATE TABLE (IF NOT EXISTS)? table_name comment? LP table_def RP
-    table_options ;
+    table_options? ;
 
 table_name : (namespace ':' )? table_id_path ;
 
@@ -547,31 +547,28 @@ id_with_size : id storage_size? ;
 
 storage_size : LP INT RP ;
 
-/* think about adding all ordering options for json collections */
-table_options : (ttl_def? regions_def? | regions_def? ttl_def?
-        | ttl_def? frozen_def? | frozen_def? ttl_def?
-        | regions_def? json_collection_def? ttl_def?
-        | regions_def? ttl_def? json_collection_def?
-        | json_collection_def? ttl_def? regions_def?
-        | ttl_def? json_collection_def? regions_def?) ;
-
-/* Default TTL */
+table_options : 
+    (ttl_def |
+     regions_def |
+     frozen_def |
+     json_collection_def |
+     enable_before_image)+ ;
 
 ttl_def : USING TTL duration ;
-
-/* Regions */
 
 region_names : id_list ;
 
 regions_def : IN REGIONS region_names ;
 
-add_region_def : ADD REGIONS region_names ;
-
-drop_region_def : DROP REGIONS region_names ;
-
 frozen_def : WITH SCHEMA FROZEN FORCE?;
 
 json_collection_def : AS JSON COLLECTION ;
+
+enable_before_image : ENABLE BEFORE IMAGE before_image_ttl? ;
+
+before_image_ttl : USING TTL duration ;
+
+disable_before_image : DISABLE BEFORE IMAGE ;
 
 /*
  * This is used for setting a field as identity field.
@@ -603,11 +600,17 @@ uuid_def :
 alter_table_statement : ALTER TABLE table_name alter_def ;
 
 alter_def : alter_field_statements | ttl_def |
-          add_region_def | drop_region_def | freeze_def | unfreeze_def;
+            add_region_def | drop_region_def |
+            freeze_def | unfreeze_def |
+            enable_before_image | disable_before_image ;
 
 freeze_def: FREEZE SCHEMA FORCE?;
 
 unfreeze_def: UNFREEZE SCHEMA ;
+
+add_region_def : ADD REGIONS region_names ;
+
+drop_region_def : DROP REGIONS region_names ;
 
 /*
  * Table modification -- add, drop, modify fields in an existing table.
@@ -672,11 +675,15 @@ index_function_args : (COMMA const_expr)+ ;
  * be checked for code that reproduces these constants.
  */
 index_path :
-    name_path |
-    multikey_path_prefix multikey_path_suffix? |
-    ELEMENTOF LP name_path RP multikey_path_suffix? |
-    KEYOF LP name_path RP |
-    KEYS LP name_path RP ;
+    (row_metadata? (name_path | multikey_path_prefix multikey_path_suffix? )) |
+    old_index_path;
+
+old_index_path :
+     ELEMENTOF LP name_path RP multikey_path_suffix? |
+     KEYOF LP name_path RP |
+     KEYS LP name_path RP ;
+
+row_metadata : 'row_metadata().' ;
 
 multikey_path_prefix :
     field_name
@@ -976,14 +983,15 @@ id_list : id (COMMA id)* ;
 id :
     (ACCOUNT | ADD | ADMIN | ALL | ALTER | ALWAYS| ANCESTORS | AND | ANY_T |
      ANYATOMIC_T | ANYJSONATOMIC_T | ANYRECORD_T | ARRAY_COLLECT | AS | ASC |
-     BETWEEN | BY | CACHE | CASE | CAST | COLLECTION | COMMENT | COUNT |
+     BEFORE | BETWEEN | BY | CACHE | CASE | CAST | COLLECTION | COMMENT | COUNT |
      CREATE | CYCLE | DAYS | DECLARE | DEFAULT | DELETE | DESC | DESCENDANTS |
-     DESCRIBE | DISTINCT | DROP |
-     ELEMENTOF | ELEMENTS | ELSE | END | ES_SHARDS | ES_REPLICAS | EXISTS | EXTRACT |
+     DESCRIBE | DISABLE | DISTINCT | DROP |
+     ELEMENTOF | ELEMENTS | ELSE | ENABLE | END | ES_SHARDS | ES_REPLICAS |
+     EXISTS | EXTRACT |
      FIELDS | FIRST | FREEZE | FROM | FROZEN | FULLTEXT |
      GENERATED | GRANT | GROUP | HOURS |
-     IDENTIFIED | IDENTITY | IF | INCREMENT | INDEX | INDEXES | INSERT | INTO |
-     IN | IS | JSON | KEY | KEYOF | KEYS |
+     IDENTIFIED | IDENTITY | IF | INCREMENT | IMAGE | INDEX | INDEXES | INSERT |
+     INTO | IN | IS | JSON | KEY | KEYOF | KEYS |
      LIFETIME | LAST | LIMIT | LOCAL | LOCK | MERGE | MINUTES | MODIFY | MR_COUNTER
      NAMESPACE | NAMESPACES | NESTED | NO | NOT | NULLS |
      OF | OFFSET | ON | OR | ORDER | OVERRIDE |
@@ -1039,6 +1047,8 @@ ASC : [Aa][Ss][Cc];
 
 ARRAY_COLLECT : 'array_collect' ;
 
+BEFORE : [Bb][Ee][Ff][Oo][Rr][Ee] ;
+
 BETWEEN : [Bb][Ee][Tt][Ww][Ee][Ee][Nn] ;
 
 BY : [Bb][Yy] ;
@@ -1075,6 +1085,8 @@ DESCENDANTS : [Dd][Ee][Ss][Cc][Ee][Nn][Dd][Aa][Nn][Tt][Ss] ;
 
 DESCRIBE : [Dd][Ee][Ss][Cc][Rr][Ii][Bb][Ee] ;
 
+DISABLE : [Dd][Ii][Ss][Aa][Bb][Ll][Ee] ;
+
 DISTINCT : [Dd][Ii][Ss][Tt][Ii][Nn][Cc][Tt] ;
 
 DROP : [Dd][Rr][Oo][Pp] ;
@@ -1084,6 +1096,8 @@ ELEMENTOF : [Ee][Ll][Ee][Mm][Ee][Nn][Tt][Oo][Ff] ;
 ELEMENTS : [Ee][Ll][Ee][Mm][Ee][Nn][Tt][Ss] ;
 
 ELSE : [Ee][Ll][Ss][Ee] ;
+
+ENABLE : [Ee][Nn][Aa][Bb][Ll][Ee] ;
 
 END : [Ee][Nn][Dd] ;
 
@@ -1126,6 +1140,8 @@ IDENTIFIED : [Ii][Dd][Ee][Nn][Tt][Ii][Ff][Ii][Ee][Dd] ;
 IDENTITY : [Ii][Dd][Ee][Nn][Tt][Ii][Tt][Yy] ;
 
 IF : [Ii][Ff] ;
+
+IMAGE : [Ii][Mm][Aa][Gg][Ee] ;
 
 IN : [Ii][Nn] ;
 

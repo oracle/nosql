@@ -207,13 +207,13 @@ public class SubscriptionStatImpl implements SubscriptionMetrics {
         lastMsgTime.put(shard, stat.getLastMsgTimeMs());
         currOpenTxns.put(shard, stat.getOpenTxns());
         numSuccReconn.put(shard, stat.getNumSuccReconn());
+        totalTokenRefreshed.set(stat.getNumTokenRefreshed());
 
         /* accumulated stat */
         totalCommitTxns.addAndGet(stat.getCommitTxns());
         totalAbortTxns.addAndGet(stat.getAbortTxns());
         totalCommitOps.addAndGet(stat.getCommitOps());
         totalAbortOps.addAndGet(stat.getAbortOps());
-        totalTokenRefreshed.addAndGet(stat.getNumTokenRefreshed());
     }
 
     private static <K, V> Map<K, V> copy(Map<K, V> stat) {

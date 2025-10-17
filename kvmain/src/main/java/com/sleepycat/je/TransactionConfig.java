@@ -34,6 +34,7 @@ public class TransactionConfig implements Cloneable {
     private boolean noWait = false;
     private boolean readUncommitted = false;
     private boolean readCommitted = false;
+    private boolean optimisticRead = false;
     private boolean readOnly = false;
     private boolean localWrite = false;
     private int txnTimeout = -1;
@@ -222,6 +223,34 @@ public class TransactionConfig implements Cloneable {
     }
 
     /**
+     * Configures the transaction for read committed isolation.
+     *
+     * <p>The major difference between Optimistic Read and
+     * Read Committed/Repeatable Read lies in how they handle read locks
+     * in the presence of a write lock.
+     * In Read Committed and Repeatable Read, a read operation will block and
+     * wait for the write lock to be released if it is held by an open
+     * transaction on the LN. In contrast, Optimistic Read does not wait for the
+     * lock; instead, it attempts to read the most recently committed version of
+     * the data(i.e., the latest version that has been committed before the
+     * uncommitted transaction). If it fails to do so, it falls back to
+     * Read Committed semantics.</p>
+     *
+     * <p>Additionally, Optimistic Read does not guarantee cursor stability.
+     * The read lock is released immediately after reading the LN-before
+     * the BIN latch is released-ensuring that the read does not block
+     * subsequent write operations.</p>
+     *
+     * @param optimisticRead Configures the transaction for optimistic read
+     * isolation.
+     * @return this
+     */
+    public TransactionConfig setOptimisticRead(final boolean optimisticRead) {
+        this.optimisticRead = optimisticRead;
+        return this;
+    }
+
+    /**
      * Returns true if the transaction is configured for read-committed
      * isolation.
      *
@@ -233,6 +262,19 @@ public class TransactionConfig implements Cloneable {
      */
     public boolean getReadCommitted() {
         return readCommitted;
+    }
+
+    /**
+     * Returns true if the transaction is configured for optimisticRead
+     * isolation.
+     *
+     * @return true if the transaction is configured for read-committed
+     * isolation.
+     *
+     * @see #setOptimisticRead
+     */
+    public boolean getOptimisticRead() {
+        return optimisticRead;
     }
 
     /**
@@ -392,6 +434,7 @@ public class TransactionConfig implements Cloneable {
             "\nnoWait=" + noWait +
             "\nreadUncommitted=" + readUncommitted +
             "\nreadCommitted=" + readCommitted +
+            "\noptimisticRead=" + optimisticRead +
             "\n";
     }
 

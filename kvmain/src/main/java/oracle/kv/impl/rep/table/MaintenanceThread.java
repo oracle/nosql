@@ -1241,6 +1241,7 @@ public class MaintenanceThread extends ShutdownThread {
                             lastKey.setData(keyBytes);
                             scanner.getDatabase().
                             populateSecondaries(txn, lastKey, dentry,
+                                                scanner.getCreationTime(),
                                                 scanner.getModificationTime(),
                                                 scanner.getExpirationTime(),
                                                 scanner.getCurrentStorageSize(),

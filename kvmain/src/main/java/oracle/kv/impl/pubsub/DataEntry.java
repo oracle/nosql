@@ -13,6 +13,9 @@
 
 package oracle.kv.impl.pubsub;
 
+import static oracle.kv.impl.pubsub.DataEntry.Type.TXN_ABORT;
+import static oracle.kv.impl.pubsub.DataEntry.Type.TXN_COMMIT;
+
 import oracle.kv.table.TimeToLive;
 
 import com.sleepycat.je.dbi.DatabaseId;
@@ -23,7 +26,7 @@ import com.sleepycat.je.tree.Key;
  * Object to represent an operation from source kvstore via replication
  * stream. Each entry is reconstructed from a single message in replication
  * stream. Received entries will be queued in a FIFO queue to be processed
- * at granularity of transaction. Currently two types of operations can be
+ * at granularity of transaction. Currently, two types of operations can be
  * constructed from replication stream: 1) a data operation representing a
  * write (e.g., put or delete) operation in kvstore; 2) a transactional
  * operation (e.g, commit or abort). All other type of messages shall be
@@ -58,6 +61,25 @@ public class DataEntry {
                             TimeToLive.DO_NOT_EXPIRE.getUnit());
     /** expiration time in ms */
     private final long expirationMs;
+    /**
+     * True if before image for the table in the entry, false otherwise
+     */
+    private final boolean beforeImgEnabled;
+    /**
+     * Value byte array for before image, or null if before image is disabled
+     * or does not exist
+     */
+    private final byte[] valBeforeImg;
+    /**
+     * Timestamp in ms of the before image, or 0 if before image is disabled or
+     * does not exist
+     */
+    private final long tsBeforeImg;
+    /**
+     * Expiration time in ms of the before image, or 0 if before image is
+     * disabled or does not exist
+     */
+    private final long expBeforeImg;
 
     /**
      * Builds a data entry
@@ -70,10 +92,16 @@ public class DataEntry {
      * @param dbId     database ID of the entry or null
      * @param lastUpdateMs last update time in ms
      * @param expirationMs expiration time
+     * @param beforeImgEnabled true if before image is enabled
+     * @param valBeforeImg value byte[] of before imge
+     * @param tsBeforeImg timestamp of before image
+     * @param expBeforeImg expiration time of before image
      */
-    DataEntry(Type type, long vlsn, long txnId, byte[] key, byte[] value,
-              DatabaseId dbId, long lastUpdateMs, long expirationMs) {
-
+    private DataEntry(Type type, long vlsn, long txnId, byte[] key,
+                      byte[] value, DatabaseId dbId, long lastUpdateMs,
+                      long expirationMs, boolean beforeImgEnabled,
+                      byte[] valBeforeImg, long tsBeforeImg,
+                      long expBeforeImg) {
         this.type = type;
         this.vlsn = vlsn;
         this.txnId = txnId;
@@ -82,6 +110,37 @@ public class DataEntry {
         this.dbId = dbId;
         this.lastUpdateMs = lastUpdateMs;
         this.expirationMs = expirationMs;
+        this.beforeImgEnabled = beforeImgEnabled;
+        this.valBeforeImg = valBeforeImg;
+        this.tsBeforeImg = tsBeforeImg;
+        this.expBeforeImg = expBeforeImg;
+    }
+
+    /**
+     * Builds a put entry
+     */
+    static DataEntry getPutEntry(long vlsn, long txnId, byte[] key,
+                                 byte[] value, DatabaseId dbId, long ts,
+                                 long expMs, boolean beforeImgEnabled,
+                                 byte[] valBeforeImg, long tsBeforeImg,
+                                 long expBeforeImg) {
+        return new DataEntry(Type.PUT, vlsn, txnId, key, value, dbId, ts,
+                             expMs, beforeImgEnabled, valBeforeImg,
+                             tsBeforeImg, expBeforeImg);
+    }
+
+    /**
+     * Builds a delete entry
+     */
+    static DataEntry getDelEntry(long vlsn, long txnId, byte[] key,
+                                 byte[] value, DatabaseId dbId, long ts,
+                                  boolean beforeImgEnabled,
+                                 byte[] valBeforeImg, long tsBeforeImg,
+                                 long expBeforeImg) {
+        return new DataEntry(Type.DELETE, vlsn, txnId, key, value, dbId, ts,
+                             DO_NOT_EXPIRE_EXPIRATION_TIME_MS,
+                             beforeImgEnabled, valBeforeImg, tsBeforeImg,
+                             expBeforeImg);
     }
 
     /**
@@ -95,25 +154,32 @@ public class DataEntry {
      * @param dbId     database ID of the entry or null
      * @param lastUpdateMs last update time in ms
      */
-    DataEntry(Type type, long vlsn, long txnId, byte[] key, byte[] value,
-              DatabaseId dbId, long lastUpdateMs) {
+    private DataEntry(Type type, long vlsn, long txnId, byte[] key,
+                      byte[] value, DatabaseId dbId, long lastUpdateMs) {
         this(type, vlsn, txnId, key, value, dbId, lastUpdateMs,
-             DO_NOT_EXPIRE_EXPIRATION_TIME_MS);
+             DO_NOT_EXPIRE_EXPIRATION_TIME_MS, false, null, 0, 0);
     }
 
     /**
-     * Builds a data entry where update timestamp is not applicable
+     * Builds a data entry that represents a transaction commit
      *
-     * @param type     type of entry
-     * @param vlsn     vlsn of operation
+     * @param vlsn     vlsn of entry
      * @param txnId    txn id
-     * @param key      key of the entry
-     * @param value    value of the entry
-     * @param dbId     database ID of the entry or null
+     * @param ts       timestamp of commit
      */
-    DataEntry(Type type, long vlsn, long txnId, byte[] key, byte[] value,
-              DatabaseId dbId) {
-        this(type, vlsn, txnId, key, value, dbId, 0);
+    static DataEntry getCommitEntry(long vlsn, long txnId, long ts) {
+        return new DataEntry(TXN_COMMIT, vlsn, txnId, null, null, null, ts);
+    }
+
+    /**
+     * Builds a data entry that represents a transaction abort
+     *
+     * @param vlsn     vlsn of entry
+     * @param txnId    txn id
+     * @param ts       timestamp of abort
+     */
+    static DataEntry getAbortEntry(long vlsn, long txnId, long ts) {
+        return new DataEntry(TXN_ABORT, vlsn, txnId, null, null, null, ts);
     }
 
     /**
@@ -121,7 +187,7 @@ public class DataEntry {
      *
      * @return type of entry
      */
-    Type getType() {
+    public Type getType() {
         return type;
     }
 
@@ -130,7 +196,7 @@ public class DataEntry {
      *
      * @return VLSN of the entry
      */
-    long getVLSN(){
+    public long getVLSN() {
         return vlsn;
     }
 
@@ -148,7 +214,7 @@ public class DataEntry {
      *
      * @return key as byte array, null if does not exist
      */
-    byte[] getKey() {
+    public byte[] getKey() {
         return key;
     }
 
@@ -158,7 +224,7 @@ public class DataEntry {
      * @return value as byte array, null if it does not exist, e.g., in
      * delete operation.
      */
-    byte[] getValue() {
+    public byte[] getValue() {
         return value;
     }
 
@@ -188,6 +254,52 @@ public class DataEntry {
         return expirationMs;
     }
 
+    /**
+     * Returns if the before image is enabled
+     * @return true if the before image is enabled, false otherwise
+     */
+    boolean isBeforeImgEnabled() {
+        return beforeImgEnabled;
+    }
+
+    /**
+     * Returns value byte[] of the before image if available, or null if
+     * before image is not enabled
+     * @return  value byte[] of the before image if available or null
+     */
+    byte[] getValBeforeImg() {
+        if (!beforeImgEnabled) {
+            return null;
+        }
+        return valBeforeImg;
+    }
+
+    /**
+     * Returns last modification timestamp of the before image if available,
+     * or 0 if before image is not enabled
+     * @return last modification timestamp of the before image if available
+     * or 0 if before image is not enabled.
+     */
+    long getLastModTimeBeforeImg() {
+        if (!beforeImgEnabled) {
+            return 0;
+        }
+        return tsBeforeImg;
+    }
+
+    /**
+     * Returns expiration timestamp of the before image if available,
+     * or 0 if before image is not enabled
+     * @return expiration timestamp of the before image if available
+     * or 0 if before image is not enabled.
+     */
+    long getExpBeforeImg() {
+        if (!beforeImgEnabled) {
+            return 0;
+        }
+        return expBeforeImg;
+    }
+
     @Override
     public String toString() {
         StringBuilder msg  = new StringBuilder();
@@ -195,35 +307,37 @@ public class DataEntry {
         switch(type) {
             case TXN_COMMIT:
                 msg.append("txn commit, ")
-                   .append("vlsn: ").append(vlsn)
-                   .append(", txn id: ").append(txnId);
+                   .append("vlsn=").append(vlsn)
+                   .append(", txn id=").append(txnId);
                 break;
 
             case TXN_ABORT:
                 msg.append("txn abort, ")
-                   .append("vlsn: ").append(vlsn)
-                   .append(", txn id: ").append(txnId);
+                   .append("vlsn=").append(vlsn)
+                   .append(", txn id=").append(txnId);
                 break;
 
             case DELETE:
                 msg.append("delete op, ")
-                   .append("vlsn: ").append(vlsn)
+                   .append("vlsn=").append(vlsn)
                    .append(", key:").append(getKeyBytesString())
-                   .append(", txn id: ").append(txnId)
-                   .append(", db id: ").append(dbId)
-                   .append(", last update time: ").append(lastUpdateMs);
+                   .append(", txn id=").append(txnId)
+                   .append(", db id=").append(dbId)
+                   .append(", last update time=").append(lastUpdateMs);
+                appendBeforeImage(msg);
                 break;
 
             case PUT:
                 msg.append("put op, ")
-                   .append("vlsn: ").append(vlsn)
+                   .append("vlsn=").append(vlsn)
                    .append(", key:").append(getKeyBytesString())
-                   .append(", txn id: ").append(txnId)
-                   .append(", db id: ").append(dbId)
-                   .append(", last update time: ").append(lastUpdateMs)
-                   .append(", expiration: ").append(
+                   .append(", txn id=").append(txnId)
+                   .append(", db id=").append(dbId)
+                   .append(", last update time=").append(lastUpdateMs)
+                   .append(", expiration=").append(
                        (expirationMs != DO_NOT_EXPIRE_EXPIRATION_TIME_MS) ?
                            expirationMs : "never");
+                appendBeforeImage(msg);
                 break;
 
             default:
@@ -231,6 +345,18 @@ public class DataEntry {
         }
         msg.append("\n");
         return msg.toString();
+    }
+
+    /**
+     * Appends before image info in message if enabled
+     * @param msg message
+     */
+    private void appendBeforeImage(StringBuilder msg) {
+        msg.append("Before image enabled=").append(beforeImgEnabled);
+        if (beforeImgEnabled) {
+            msg.append("timestamp of before image=").append(tsBeforeImg);
+            msg.append("expiration time of before image=").append(expBeforeImg);
+        }
     }
 
     /**
@@ -244,7 +370,7 @@ public class DataEntry {
     /**
      * Type of messages supported in publisher
      */
-    enum Type {
+    public enum Type {
 
         /* txn commit */
         TXN_COMMIT,

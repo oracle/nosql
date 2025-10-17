@@ -324,7 +324,7 @@ public class AvroEncoder implements Flushable {
      *             expected
      */
     public void writeString(String string) throws IOException {
-        final int charLength = string.length();
+        final int charLength = string != null ? string.length() : 0;
         if (0 == charLength) {
             writeZero();
             return;

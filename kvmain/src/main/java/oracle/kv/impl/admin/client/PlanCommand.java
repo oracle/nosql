@@ -3405,7 +3405,8 @@ class PlanCommand extends CommandWithSubs {
                         te.getTable().getFullName(),
                         te.getTableVersion(),
                         te.getFieldMap(),
-                        te.getDefaultTTL(),
+                        te.getNewTableTTL(),
+                        te.getNewBeforeImageTTL(),
                         te.getRegions());
                 shell.removeVariable(tableName);
                 return executePlan(planId, cs, shell);

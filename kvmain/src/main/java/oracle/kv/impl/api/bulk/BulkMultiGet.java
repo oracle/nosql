@@ -154,6 +154,7 @@ public class BulkMultiGet {
                             entry.getValue(),
                             entry.getVersion(),
                             entry.getExpirationTime(),
+                            entry.getCreationTime(),
                             entry.getModificationTime());
                     elementList.add(value);
                 }

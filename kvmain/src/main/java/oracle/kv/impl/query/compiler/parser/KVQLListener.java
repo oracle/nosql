@@ -1608,26 +1608,6 @@ public interface KVQLListener extends ParseTreeListener {
 	 */
 	void exitRegions_def(KVQLParser.Regions_defContext ctx);
 	/**
-	 * Enter a parse tree produced by {@link KVQLParser#add_region_def}.
-	 * @param ctx the parse tree
-	 */
-	void enterAdd_region_def(KVQLParser.Add_region_defContext ctx);
-	/**
-	 * Exit a parse tree produced by {@link KVQLParser#add_region_def}.
-	 * @param ctx the parse tree
-	 */
-	void exitAdd_region_def(KVQLParser.Add_region_defContext ctx);
-	/**
-	 * Enter a parse tree produced by {@link KVQLParser#drop_region_def}.
-	 * @param ctx the parse tree
-	 */
-	void enterDrop_region_def(KVQLParser.Drop_region_defContext ctx);
-	/**
-	 * Exit a parse tree produced by {@link KVQLParser#drop_region_def}.
-	 * @param ctx the parse tree
-	 */
-	void exitDrop_region_def(KVQLParser.Drop_region_defContext ctx);
-	/**
 	 * Enter a parse tree produced by {@link KVQLParser#frozen_def}.
 	 * @param ctx the parse tree
 	 */
@@ -1647,6 +1627,36 @@ public interface KVQLListener extends ParseTreeListener {
 	 * @param ctx the parse tree
 	 */
 	void exitJson_collection_def(KVQLParser.Json_collection_defContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link KVQLParser#enable_before_image}.
+	 * @param ctx the parse tree
+	 */
+	void enterEnable_before_image(KVQLParser.Enable_before_imageContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link KVQLParser#enable_before_image}.
+	 * @param ctx the parse tree
+	 */
+	void exitEnable_before_image(KVQLParser.Enable_before_imageContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link KVQLParser#before_image_ttl}.
+	 * @param ctx the parse tree
+	 */
+	void enterBefore_image_ttl(KVQLParser.Before_image_ttlContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link KVQLParser#before_image_ttl}.
+	 * @param ctx the parse tree
+	 */
+	void exitBefore_image_ttl(KVQLParser.Before_image_ttlContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link KVQLParser#disable_before_image}.
+	 * @param ctx the parse tree
+	 */
+	void enterDisable_before_image(KVQLParser.Disable_before_imageContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link KVQLParser#disable_before_image}.
+	 * @param ctx the parse tree
+	 */
+	void exitDisable_before_image(KVQLParser.Disable_before_imageContext ctx);
 	/**
 	 * Enter a parse tree produced by {@link KVQLParser#identity_def}.
 	 * @param ctx the parse tree
@@ -1727,6 +1737,26 @@ public interface KVQLListener extends ParseTreeListener {
 	 * @param ctx the parse tree
 	 */
 	void exitUnfreeze_def(KVQLParser.Unfreeze_defContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link KVQLParser#add_region_def}.
+	 * @param ctx the parse tree
+	 */
+	void enterAdd_region_def(KVQLParser.Add_region_defContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link KVQLParser#add_region_def}.
+	 * @param ctx the parse tree
+	 */
+	void exitAdd_region_def(KVQLParser.Add_region_defContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link KVQLParser#drop_region_def}.
+	 * @param ctx the parse tree
+	 */
+	void enterDrop_region_def(KVQLParser.Drop_region_defContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link KVQLParser#drop_region_def}.
+	 * @param ctx the parse tree
+	 */
+	void exitDrop_region_def(KVQLParser.Drop_region_defContext ctx);
 	/**
 	 * Enter a parse tree produced by {@link KVQLParser#alter_field_statements}.
 	 * @param ctx the parse tree
@@ -1877,6 +1907,26 @@ public interface KVQLListener extends ParseTreeListener {
 	 * @param ctx the parse tree
 	 */
 	void exitIndex_path(KVQLParser.Index_pathContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link KVQLParser#old_index_path}.
+	 * @param ctx the parse tree
+	 */
+	void enterOld_index_path(KVQLParser.Old_index_pathContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link KVQLParser#old_index_path}.
+	 * @param ctx the parse tree
+	 */
+	void exitOld_index_path(KVQLParser.Old_index_pathContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link KVQLParser#row_metadata}.
+	 * @param ctx the parse tree
+	 */
+	void enterRow_metadata(KVQLParser.Row_metadataContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link KVQLParser#row_metadata}.
+	 * @param ctx the parse tree
+	 */
+	void exitRow_metadata(KVQLParser.Row_metadataContext ctx);
 	/**
 	 * Enter a parse tree produced by {@link KVQLParser#multikey_path_prefix}.
 	 * @param ctx the parse tree

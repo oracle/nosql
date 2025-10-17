@@ -603,7 +603,7 @@ public class ReplicatedEnvironment extends Environment {
                ReplicaConsistencyException,
                IllegalArgumentException {
 
-        super(envHome, envConfig, repConfig, envImplParam);
+        super(envHome, envConfig, repConfig, envImplParam, joinGroup);
 
         repEnvironmentImpl = (RepImpl) DbInternal.getNonNullEnvImpl(this);
         nameIdPair = repEnvironmentImpl.getNameIdPair();

@@ -215,11 +215,13 @@ public final class NameLN extends LN {
         int abortExpiration,
         boolean abortExpirationInHours,
         long abortModificationTime,
+        long abortCreationTime,
         boolean abortTombstone,
         byte[] newKey,
         boolean newEmbeddedLN,
         int newExpiration,
         boolean newExpirationInHours,
+        long creationTime,
         long newModTime,
         boolean newTombstone,
         boolean newBlindDeletion,
@@ -229,7 +231,8 @@ public final class NameLN extends LN {
         BeforeImageContext bImgCtx) {
 
         return new NameLNLogEntry(
-            entryType, dbImpl.getId(), txn, abortLsn, abortKD, abortModificationTime,
-            newKey, this, newModTime, priorSize, priorLsn, repContext);
+            entryType, dbImpl.getId(), txn, abortLsn, abortKD,
+            abortModificationTime, newKey, this,
+            creationTime, newModTime, priorSize, priorLsn, repContext);
     }
 }

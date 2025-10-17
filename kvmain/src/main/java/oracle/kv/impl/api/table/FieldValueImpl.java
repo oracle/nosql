@@ -31,6 +31,7 @@ import oracle.kv.impl.api.table.ValueSerializer.FieldValueSerializer;
 import oracle.kv.impl.api.table.ValueSerializer.MapValueSerializer;
 import oracle.kv.impl.api.table.ValueSerializer.RecordValueSerializer;
 import oracle.kv.impl.query.QueryStateException;
+import oracle.kv.impl.query.compiler.FuncRowMetadata;
 import oracle.kv.impl.query.types.TypeManager;
 import oracle.kv.impl.util.FastExternalizable;
 import oracle.kv.table.ArrayValue;
@@ -41,6 +42,7 @@ import oracle.kv.table.EnumValue;
 import oracle.kv.table.FieldDef;
 import oracle.kv.table.FieldDef.Type;
 import oracle.kv.table.FieldValue;
+import oracle.kv.table.FieldValueFactory;
 import oracle.kv.table.FixedBinaryValue;
 import oracle.kv.table.FloatValue;
 import oracle.kv.table.IndexKey;
@@ -912,7 +914,20 @@ public abstract class FieldValueImpl implements FieldValue, FieldValueSerializer
         case RECORD: {
             RecordValueImpl rec = (RecordValueImpl)this;
             String next = path.get(pathPos).getStep();
-            FieldValueImpl fv = rec.get(next);
+            FieldValueImpl fv;
+
+            if (this instanceof RowImpl &&
+                next.equals(FuncRowMetadata.COL_NAME)) {
+                String rowMetadata = ((RowImpl)rec).getRowMetadata();
+                if (rowMetadata != null) {
+                    fv = (FieldValueImpl)FieldValueFactory.
+                        createValueFromJson(rowMetadata);
+                } else {
+                    return EmptyValueImpl.getInstance();
+                }
+            } else {
+                fv = rec.get(next);
+            }
 
             if (fv == null) {
 

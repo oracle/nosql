@@ -739,6 +739,10 @@ public class MasterTxn extends Txn {
         default MasterTxn createNullTxn(EnvironmentImpl envImpl) {
             return new NullTxn(envImpl);
         }
+
+        default MasterTxn createSyncNullTxn(EnvironmentImpl envImpl) {
+            return new NullTxn(envImpl, true);
+        }
     }
 
     /* The method used to create user Master Txns via the factory. */
@@ -747,8 +751,10 @@ public class MasterTxn extends Txn {
         return factory.create(envImpl, config);
     }
 
-    public static MasterTxn createNullTxn(EnvironmentImpl envImpl) {
-        return factory.createNullTxn(envImpl);
+    public static MasterTxn createNullTxn(EnvironmentImpl envImpl, boolean sync) {
+        return sync
+                ? factory.createSyncNullTxn(envImpl)
+                : factory.createNullTxn(envImpl);
     }
 
     /**

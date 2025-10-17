@@ -23,6 +23,8 @@ import java.io.DataOutput;
 
 import oracle.kv.KeyRange;
 import oracle.kv.impl.api.table.TargetTables;
+import oracle.kv.impl.util.SerialVersion;
+import oracle.kv.impl.util.SerializationUtil;
 
 /**
  * A multi-delete table operation over table(s) in the same partition.
@@ -47,6 +49,7 @@ public class MultiDeleteTable extends MultiTableOperation {
     private final int batchSize;
     private final int maxWriteKB;
     private final boolean doTombstone;
+    private final String rowMetadata;
 
     /*
      * This is only used on the server side by table data removal to track the
@@ -61,7 +64,7 @@ public class MultiDeleteTable extends MultiTableOperation {
                             TargetTables targetTables,
                             KeyRange subRange) {
         this(parentKey, targetTables, subRange, null, 0,
-             false /* doTombstone */);
+             false /* doTombstone */, null /* rowMetadata */);
     }
 
     /**
@@ -72,13 +75,16 @@ public class MultiDeleteTable extends MultiTableOperation {
                             KeyRange subRange,
                             byte[] resumeKey,
                             int maxWriteKB,
-                            boolean doTombstone) {
+                            boolean doTombstone,
+                            String rowMetadata) {
         super(OpCode.MULTI_DELETE_TABLE, parentKey, targetTables, subRange);
         this.resumeKey = resumeKey;
         this.maxWriteKB = maxWriteKB;
         this.majorPathComplete = true;
         this.batchSize = 0;
-        this.doTombstone = doTombstone;
+        /* Must use tombstones if rowMetadata is present */
+        this.doTombstone = doTombstone || (rowMetadata != null);
+        this.rowMetadata = rowMetadata;
     }
 
     /** Constructor to implement deserializedForm */
@@ -98,6 +104,12 @@ public class MultiDeleteTable extends MultiTableOperation {
                     "must be " + CLOUD_MR_TABLE + " or greater");
             }
             doTombstone = false;
+        }
+
+        if (serialVersion >= SerialVersion.ROW_METADATA_VERSION) {
+            rowMetadata = other.rowMetadata;
+        } else {
+            rowMetadata = null;
         }
     }
 
@@ -119,6 +131,12 @@ public class MultiDeleteTable extends MultiTableOperation {
         } else {
             doTombstone = false;
         }
+
+        if (serialVersion >= SerialVersion.ROW_METADATA_VERSION) {
+            rowMetadata = SerializationUtil.readString(in, serialVersion);
+        } else {
+            rowMetadata = null;
+        }
     }
 
     @Override
@@ -138,6 +156,10 @@ public class MultiDeleteTable extends MultiTableOperation {
                     serialVersion + " does not support doTombstone, " +
                     "must be " + CLOUD_MR_TABLE + " or greater");
             }
+        }
+
+        if (serialVersion >= SerialVersion.ROW_METADATA_VERSION) {
+            SerializationUtil.writeString(out, serialVersion, rowMetadata);
         }
     }
 
@@ -161,6 +183,7 @@ public class MultiDeleteTable extends MultiTableOperation {
         this.resumeKey = resumeKey;
         this.maxWriteKB = 0;
         this.doTombstone = doTombstone;
+        this.rowMetadata = null;
     }
 
     byte[] getResumeKey() {
@@ -185,6 +208,10 @@ public class MultiDeleteTable extends MultiTableOperation {
 
     int getMaxWriteKB() {
         return maxWriteKB;
+    }
+
+    String getRowMetadata() {
+        return rowMetadata;
     }
 
     /**

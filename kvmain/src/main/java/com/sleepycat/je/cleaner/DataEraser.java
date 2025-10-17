@@ -1848,6 +1848,7 @@ public class DataEraser extends StoppableThread implements EnvConfigObserver {
                         DbLsn.getFileOffset(logLsn),
                         new LNInfo(
                             targetLN, dbId, key, expirationTime,
+                            lnEntry.getCreationTime(),
                             lnEntry.getModificationTime(), headerSize,
                             itemSize));
 

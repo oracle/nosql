@@ -859,6 +859,7 @@ public class TableAPIImpl implements TableAPI {
         }
         ((TableImpl)rowKey.getTable()).readKeyFields(reader, rowKey);
         getRowFromValueVersion(vv, rowKey, result.getPreviousExpirationTime(),
+                               result.getPreviousCreationTime(),
                                result.getPreviousModificationTime(),
                                false, false, reader);
     }
@@ -943,6 +944,7 @@ public class TableAPIImpl implements TableAPI {
                                     ReturnRow prevRowArg) {
         if (result.getSuccess()) {
             row.setExpirationTime(result.getNewExpirationTime());
+            row.setCreationTime(result.getNewCreationTime());
             row.setModificationTime(result.getNewModificationTime());
         }
 
@@ -1504,12 +1506,9 @@ public class TableAPIImpl implements TableAPI {
                              */
                             if (getIsTombstone(row)) {
                                 /* tombstone */
-                                int regionId = ((RowImpl)row).getRegionId();
-                                if (Region.isMultiRegionId(regionId)) {
-                                    return Value.createTombstoneValue(
-                                        ((RowImpl)row).getRegionId());
-                                }
-                                return Value.createTombstoneNoneValue();
+                                return Value.createTombstoneValue(
+                                    ((RowImpl)row).getRegionId(),
+                                    row.getRowMetadata());
                             }
                             /*
                              * if using putResolve MR counter values should
@@ -1532,6 +1531,12 @@ public class TableAPIImpl implements TableAPI {
                             TableImpl table = (TableImpl)row.getTable();
                             tablesUsed.put(table.getFullNamespaceName(), table);
                             return table.getId();
+                        }
+
+                        @Override
+                        protected long getCreationTime(Row row) {
+                            return options.getUsePutResolve() ?
+                                row.getCreationTime() : 0L;
                         }
 
                         @Override
@@ -1675,12 +1680,8 @@ public class TableAPIImpl implements TableAPI {
                              */
                             if (row.getIsTombstone()) {
                                 /* tombstone */
-                                int regionId = row.getRegionId();
-                                if (Region.isMultiRegionId(regionId)) {
-                                    return Value.createTombstoneValue(
-                                        row.getRegionId());
-                                }
-                                return Value.createTombstoneNoneValue();
+                                return Value.createTombstoneValue(
+                                    row.getRegionId(), null /* rowMetadata */);
                             }
                             if (row.getNsonValue() != null) {
                                 /*
@@ -1705,6 +1706,11 @@ public class TableAPIImpl implements TableAPI {
                         @Override
                         protected long getTableId(NsonRow row) {
                             return row.getTable().getId();
+                        }
+
+                        @Override
+                        protected long getCreationTime(NsonRow row) {
+                            return row.getCreationTime();
                         }
 
                         @Override
@@ -2349,7 +2355,8 @@ public class TableAPIImpl implements TableAPI {
                                     getTimeout(writeOptions),
                                     getTimeoutUnit(writeOptions),
                                     table.getId(),
-                                    doTombstone(writeOptions));
+                                    doTombstone(writeOptions),
+                                    rowKey.getRowMetadata());
         setContextFromOptions(req, writeOptions);
         return req;
     }
@@ -2442,7 +2449,8 @@ public class TableAPIImpl implements TableAPI {
             getTimeout(writeOptions),
             getTimeoutUnit(writeOptions),
             table.getId(),
-            doTombstone(writeOptions));
+            doTombstone(writeOptions),
+            rowKey.getRowMetadata());
         setContextFromOptions(req, writeOptions);
         return req;
     }
@@ -2556,7 +2564,8 @@ public class TableAPIImpl implements TableAPI {
                                  keyRange,
                                  continuationKey,
                                  getMaxWriteKB(writeOptions),
-                                 doTombstone(writeOptions));
+                                 doTombstone(writeOptions),
+                                 rowKey.getRowMetadata());
         final Request req =
             store.makeWriteRequest(del, partitionId,
                                    getDurability(writeOptions),
@@ -3154,18 +3163,20 @@ public class TableAPIImpl implements TableAPI {
     RowImpl getRowFromValueVersion(ValueVersion vv,
                                    RowImpl row,
                                    long expirationTime,
+                                   long creationTime,
                                    long modificationTime,
                                    boolean keyOnly,
                                    boolean isTombstone) {
         ValueReader<RowImpl> reader = row.initRowReader();
-        getRowFromValueVersion(vv, row, expirationTime, modificationTime,
-                               keyOnly, isTombstone, reader);
+        getRowFromValueVersion(vv, row, expirationTime, creationTime,
+            modificationTime, keyOnly, isTombstone, reader);
         return reader.getValue();
     }
 
     void getRowFromValueVersion(ValueVersion vv,
                                 RowSerializer row,
                                 long expirationTime,
+                                long creationTime,
                                 long modificationTime,
                                 boolean keyOnly,
                                 boolean isTombstone,
@@ -3182,6 +3193,7 @@ public class TableAPIImpl implements TableAPI {
                 }
             }
             reader.setExpirationTime(expirationTime);
+            reader.setCreationTime(creationTime);
             reader.setModificationTime(modificationTime);
             reader.setTombstone(isTombstone);
             if (!table.readRowFromValueVersion(reader, vv)) {
@@ -3223,6 +3235,7 @@ public class TableAPIImpl implements TableAPI {
         newTable.readKeyFields(reader, row);
         reader.setExpirationTime(expirationTime);
         reader.setModificationTime(modificationTime);
+        reader.setCreationTime(creationTime);
         reader.setTombstone(isTombstone);
         if (!newTable.readRowFromValueVersion(reader, vv)) {
             reader.reset();
@@ -3420,7 +3433,8 @@ public class TableAPIImpl implements TableAPI {
                     op = factory.createDelete(key, choice,
                                               abortIfUnsuccessful,
                                               t.getId(),
-                                              false /* doTombstone */);
+                                              false /* doTombstone */,
+                                              record.getRowMetadata());
                     break;
                 case DELETE_IF_VERSION:
                     key = t.createKeyInternal(record, false);
@@ -3428,7 +3442,8 @@ public class TableAPIImpl implements TableAPI {
                                                        choice,
                                                        abortIfUnsuccessful,
                                                        t.getId(),
-                                                       false /* doTombstone */);
+                                                       false /* doTombstone */,
+                                                       record.getRowMetadata());
                     break;
                 }
 
@@ -3512,14 +3527,15 @@ public class TableAPIImpl implements TableAPI {
             if (value != null && key != null) {
                 PrimaryKeyImpl rowKey = (PrimaryKeyImpl)key;
                 ((TableImpl)key.getTable()).readKeyFields(reader, rowKey);
-                impl.getRowFromValueVersion
-                    (new ValueVersion(value, version),
-                     rowKey,
-                     opRes.getPreviousExpirationTime(),
-                     opRes.getPreviousModificationTime(),
-                     false,
-                     false,
-                     reader);
+                impl.getRowFromValueVersion(
+                    new ValueVersion(value, version),
+                    rowKey,
+                    opRes.getPreviousExpirationTime(),
+                    opRes.getPreviousCreationTime(),
+                    opRes.getPreviousModificationTime(),
+                    false,
+                    false,
+                    reader);
                 return true;
             }
             return false;
@@ -3782,10 +3798,12 @@ public class TableAPIImpl implements TableAPI {
                 ReturnRowImpl.mapChoice(prevReturn);
             TableImpl table = (TableImpl)rowKey.getTable();
             Key key = table.createKeyInternal(rowKey, false);
-            Operation op = factory.createDelete(key, choice,
+            Operation op = factory.createDelete(key,
+                                                choice,
                                                 abortIfUnsuccessful,
                                                 table.getId(),
-                                                doTombstone);
+                                                doTombstone,
+                                                rowKey.getRowMetadata());
             return new OpWrapper(op, TableOperation.Type.DELETE, rowKey, null);
         }
 
@@ -3821,10 +3839,8 @@ public class TableAPIImpl implements TableAPI {
             TableImpl table = (TableImpl)rowKey.getTable();
             Key key = table.createKeyInternal(rowKey, false);
             Operation op = factory.createDeleteIfVersion(key, versionMatch,
-                                                         choice,
-                                                         abortIfUnsuccessful,
-                                                         table.getId(),
-                                                         doTombstone);
+                choice, abortIfUnsuccessful, table.getId(), doTombstone,
+                rowKey.getRowMetadata());
             return new OpWrapper
                 (op, TableOperation.Type.DELETE_IF_VERSION, rowKey, null);
         }
@@ -3955,11 +3971,12 @@ public class TableAPIImpl implements TableAPI {
                                             byte[] nsonValueBytes,
                                             int regionId,
                                             long expirationTime,
+                                            long creationTime,
                                             long lastModificationTime,
                                             WriteOptions writeOptions) {
         return store.executeRequest(
             makePutDelResolveRequest(table, nsonKeyBytes, nsonValueBytes,
-                                     regionId, expirationTime,
+                                     regionId, expirationTime, creationTime,
                                      lastModificationTime, writeOptions));
     }
 
@@ -3970,11 +3987,13 @@ public class TableAPIImpl implements TableAPI {
                                        byte[] nsonValueBytes,
                                        int regionId,
                                        long expirationTime,
+       // todo add creationTime on the callers of this method
+                                       // long creationTime,
                                        long lastModificationTime,
                                        WriteOptions writeOptions) {
         return store.executeRequestAsync(
             makePutDelResolveRequest(table, nsonKeyBytes, nsonValueBytes,
-                                     regionId, expirationTime,
+                                     regionId, expirationTime, 0 /* creationTime*/,
                                      lastModificationTime, writeOptions));
     }
 
@@ -3987,11 +4006,17 @@ public class TableAPIImpl implements TableAPI {
         final Value value;
 
         if (row.isPrimaryKey()) {
-            value = Value.createTombstoneValue(row.getRegionId());
+            value = Value.createTombstoneValue(row.getRegionId(),
+                row.getRowMetadata());
         } else {
+            Value.Format format = Value.Format.MULTI_REGION_TABLE;
+            if (row.getRowMetadata() != null) {
+                format = Value.Format.TABLE_V5;
+            }
             value = table.createValueInternal(row,
-                                              Value.Format.MULTI_REGION_TABLE,
-                                              row.getRegionId(), store,
+                                              format,
+                                              row.getRegionId(),
+                                              store,
                                               null /* genInfo */,
                                               false /* replaceCRDT */);
         }
@@ -3999,6 +4024,7 @@ public class TableAPIImpl implements TableAPI {
         return makePutDelResolveRequest(table, prevRow, key, value,
                                         row.isPrimaryKey(),
                                         row.getExpirationTime(),
+                                        row.getCreationTime(),
                                         row.getLastModificationTime(),
                                         writeOptions);
     }
@@ -4008,6 +4034,7 @@ public class TableAPIImpl implements TableAPI {
                                              byte[] nsonValueBytes,
                                              int regionId,
                                              long expirationTime,
+                                             long creationTime,
                                              long lastModificationTime,
                                              WriteOptions writeOptions) {
 
@@ -4015,14 +4042,14 @@ public class TableAPIImpl implements TableAPI {
         boolean isTombstone = nsonValueBytes == null;
         final Value value;
         if (isTombstone) {
-            value = Value.createTombstoneValue(regionId);
+            value = Value.createTombstoneValue(regionId, null /* rowMetadata */);
         } else {
             value = NsonUtil.createValueFromNsonBytes(table, nsonValueBytes,
                                                       regionId, false);
         }
 
         return makePutDelResolveRequest(table, null, key, value, isTombstone,
-                                        expirationTime, lastModificationTime,
+                                        expirationTime, creationTime, lastModificationTime,
                                         writeOptions);
     }
 
@@ -4032,6 +4059,7 @@ public class TableAPIImpl implements TableAPI {
                                              Value value,
                                              boolean isTombstone,
                                              long expirationTime,
+                                             long creationTime,
                                              long lastModificationTime,
                                              WriteOptions writeOptions) {
 
@@ -4041,7 +4069,9 @@ public class TableAPIImpl implements TableAPI {
                 "PutDelResolve is not supported for non multi-region table");
         }
 
-        if (value.getFormat() != Value.Format.MULTI_REGION_TABLE) {
+        if (
+            !Region.isMultiRegionId(value.getRegionId())
+        ) {
             throw new IllegalArgumentException(
                 "PutDelResolve is not supported for non multi-region row");
         }
@@ -4059,6 +4089,7 @@ public class TableAPIImpl implements TableAPI {
                                         /* delete if row is primary key */
                                         isTombstone,
                                         /* pass key metadata */
+                                        creationTime,
                                         lastModificationTime,
                                         getRegionId(writeOptions));
         setContextFromOptions(req, writeOptions);
@@ -4099,11 +4130,13 @@ public class TableAPIImpl implements TableAPI {
             if (rr instanceof ReturnRowImpl) {
                 ((ReturnRowImpl)rr).init(this, rvv, row,
                                          result.getPreviousExpirationTime(),
+                                         result.getPreviousCreationTime(),
                                          result.getPreviousModificationTime(),
                                          rowReader);
             } else {
                 ((JsonCollectionReturnRowImpl)rr).init(this, rvv, row,
                                          result.getPreviousExpirationTime(),
+                                         result.getPreviousCreationTime(),
                                          result.getPreviousModificationTime(),
                                          rowReader);
             }
@@ -4211,6 +4244,7 @@ public class TableAPIImpl implements TableAPI {
                 list.add(getRowFromValueVersion(vv,
                                                 row,
                                                 rkvv.getExpirationTime(),
+                                                rkvv.getCreationTime(),
                                                 rkvv.getModificationTime(),
                                                 false,
                                                 false));

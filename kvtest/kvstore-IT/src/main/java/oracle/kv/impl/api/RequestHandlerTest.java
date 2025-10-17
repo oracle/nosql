@@ -343,11 +343,8 @@ public class RequestHandlerTest extends RepNodeTestBase {
                            new OperationsStatsTracker());
 
         config.startupRHs();
-        handler.setPreCommitTestHook(new TestHook<RepImpl>() {
-            @Override
-            public void doHook(RepImpl arg) {
-                throw new InsufficientAcksException("request timeout");
-            }
+        handler.setPreCommitTestHook(arg -> {
+            throw new InsufficientAcksException("request timeout");
         });
 
         InternalOperation op = new Get(new byte[0]);
@@ -384,21 +381,18 @@ public class RequestHandlerTest extends RepNodeTestBase {
 
         try {
             config.startupRHs();
-            handler.setPreCommitTestHook(new TestHook<RepImpl>() {
-                @Override
-                public void doHook(RepImpl arg) {
-                    try {
-                        readyLatch.countDown();
+            handler.setPreCommitTestHook(arg -> {
+                try {
+                    readyLatch.countDown();
 
-                        /* Wait for the EFE */
-                        efeLatch.await();
+                    /* Wait for the EFE */
+                    efeLatch.await();
 
-                        /* Simulate a NPE following the EFE */
-                        throw new NullPointerException("test");
-                    } catch (InterruptedException e) {
-                        failTest.compareAndSet(null,
-                                               "Unexpected interrupt");
-                    }
+                    /* Simulate a NPE following the EFE */
+                    throw new NullPointerException("test");
+                } catch (InterruptedException e) {
+                    failTest.compareAndSet(null,
+                                           "Unexpected interrupt");
                 }
             });
             final Value v = Value.createValue(new byte[0]);

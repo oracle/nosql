@@ -14,6 +14,7 @@ import java.util.Map;
 import oracle.kv.FaultException;
 import oracle.kv.MetadataNotFoundException;
 import oracle.kv.impl.api.table.FieldDefImpl;
+import oracle.kv.impl.api.table.NullJsonValueImpl;
 import oracle.kv.table.FieldDef;
 import oracle.kv.table.FieldValue;
 import oracle.kv.table.Row;
@@ -28,6 +29,8 @@ public class JsonLoaderKV extends JsonLoader{
 
     private final TableAPI tableImpl;
 
+    private final String dataFile;
+
     private WriteOptions option;
 
     /**
@@ -41,9 +44,9 @@ public class JsonLoaderKV extends JsonLoader{
      *
      * @return a map of table name and its corresponding record count loaded.
      */
-    public static Map<String, Long> loadJsonFromFile(final TableAPI tableImpl,
-                                                     final String fileName,
-                                                     final WriteOptions options)
+    public static Map<String, Long> loadJsonFromFile(TableAPI tableImpl,
+                                                     String fileName,
+                                                     WriteOptions options)
         throws IllegalArgumentException, IOException, FaultException {
 
         return loadJsonFromFile(tableImpl, null, fileName, options);
@@ -56,14 +59,14 @@ public class JsonLoaderKV extends JsonLoader{
      * method, the difference is that 2nd argument "table" is provided to
      * specify the target table to load records to.
      */
-    public static Map<String, Long> loadJsonFromFile(final TableAPI tableImpl,
-                                                     final Table table,
-                                                     final String fileName,
-                                                     final WriteOptions options)
+    public static Map<String, Long> loadJsonFromFile(TableAPI tableImpl,
+                                                     Table table,
+                                                     String fileName,
+                                                     WriteOptions options)
         throws IllegalArgumentException, IOException, FaultException {
 
-        return new JsonLoaderKV(tableImpl).loadJsonToTables(table, fileName,
-                                                            options, true);
+        return new JsonLoaderKV(tableImpl, fileName).
+               loadJsonToTables(table, options, true);
     }
 
     /**
@@ -77,9 +80,9 @@ public class JsonLoaderKV extends JsonLoader{
      *
      * @return a map of table name and its corresponding record count loaded.
      */
-    public static Map<String, Long> loadCSVFromFile(final TableAPI tableImpl,
-                                                    final String fileName,
-                                                    final WriteOptions options)
+    public static Map<String, Long> loadCSVFromFile(TableAPI tableImpl,
+                                                    String fileName,
+                                                    WriteOptions options)
         throws IllegalArgumentException, IOException, FaultException {
 
         return loadCSVFromFile(tableImpl, null, fileName, options);
@@ -92,18 +95,19 @@ public class JsonLoaderKV extends JsonLoader{
      * method, the difference is that 2nd argument "table" is provided to
      * specify the target table to load records to.
      */
-    public static Map<String, Long> loadCSVFromFile(final TableAPI tableImpl,
-                                                    final Table table,
-                                                    final String fileName,
-                                                    final WriteOptions options)
+    public static Map<String, Long> loadCSVFromFile(TableAPI tableImpl,
+                                                    Table table,
+                                                    String fileName,
+                                                    WriteOptions options)
         throws IllegalArgumentException, IOException, RuntimeException {
 
-        return new JsonLoaderKV(tableImpl).loadCSVToTables(table, fileName,
-                                                           options, true);
+        return new JsonLoaderKV(tableImpl, fileName).
+               loadCSVToTables(table, options, true);
     }
 
-    public JsonLoaderKV(final TableAPI tableImpl) {
+    public JsonLoaderKV(TableAPI tableImpl, String dataFile) {
         this.tableImpl = tableImpl;
+        this.dataFile = dataFile;
     }
 
     private void setWriteOptions(WriteOptions option) {
@@ -114,7 +118,6 @@ public class JsonLoaderKV extends JsonLoader{
      * Load JSON records from a file to tables.
      *
      * @param table the initial table to which JSON records are loaded.
-     * @param fileName the file contains JSON records.
      * @param options the WriteOptions used to put records.
      * @param exitOnFailure the flag indicates if exits if a record is
      *        failed to put.
@@ -122,13 +125,12 @@ public class JsonLoaderKV extends JsonLoader{
      * @return A map of table name and count of records loaded.
      */
     public Map<String, Long> loadJsonToTables(Table table,
-                                              String fileName,
                                               WriteOptions options,
                                               boolean exitOnFailure)
             throws IllegalArgumentException, IOException, FaultException {
 
         setWriteOptions(options);
-        return loadRecordsFromFile(table, fileName, Type.JSON,
+        return loadRecordsFromFile(table, dataFile, Type.JSON,
                                    false, exitOnFailure);
     }
 
@@ -137,7 +139,6 @@ public class JsonLoaderKV extends JsonLoader{
      *
      * @param table the target table to which CSV records are loaded, the
      *        records of other tables will be skipped.
-     * @param fileName the file contains CSV records.
      * @param options the WriteOptions used to put records.
      * @param exitOnFailure the flag indicates if exits if a record is
      *        failed to put.
@@ -145,13 +146,12 @@ public class JsonLoaderKV extends JsonLoader{
      * @return A map of table name and count of records loaded.
      */
     public Map<String, Long> loadCSVToTables(Table table,
-                                             String fileName,
                                              WriteOptions options,
                                              boolean exitOnFailure)
         throws IllegalArgumentException, IOException, FaultException {
 
         setWriteOptions(options);
-        return loadRecordsFromFile(table, fileName, Type.CSV,
+        return loadRecordsFromFile(table, dataFile, Type.CSV,
                                    false, exitOnFailure);
     }
 
@@ -206,6 +206,15 @@ public class JsonLoaderKV extends JsonLoader{
             throws RuntimeException {
 
         Row row = createRow((Table)target, rowLine, type);
+
+        if (dataFile.contains("row_metadata")) {
+            FieldValue info = row.get("info");
+            if (info == null) {
+                info = NullJsonValueImpl.getInstance();
+            }
+            String metadata = info.toJsonString(false);
+            row.setRowMetadata(metadata);
+        }
 
         int retry = 0;
         while (true) {

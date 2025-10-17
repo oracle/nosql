@@ -13,6 +13,7 @@ import static oracle.kv.impl.util.SerialVersion.CLOUD_MR_TABLE;
 import static oracle.kv.impl.util.SerialVersion.QUERY_VERSION_14;
 import static oracle.kv.impl.util.SerialVersion.QUERY_VERSION_16;
 import static oracle.kv.impl.util.SerialVersion.QUERY_VERSION_17;
+import static oracle.kv.impl.util.SerialVersion.ROW_METADATA_VERSION;
 
 import java.math.MathContext;
 import java.util.concurrent.TimeUnit;
@@ -126,26 +127,32 @@ public class TableOpsSerialTest extends OpsSerialTestBase {
                                           KEY_RANGE,
                                           RESUME_KEY,
                                           7,
-                                          false /* doTombstone */),
+                                          false /* doTombstone */,
+                                          null /* rowMetadata */),
                      SerialVersion.MINIMUM, 0xf1263fcede36a88dL,
-                     CLOUD_MR_TABLE, 0xae8e2fc911747f58L),
+                CLOUD_MR_TABLE, 0xae8e2fc911747f58L,
+                     ROW_METADATA_VERSION, 0x260462ecb0234090L),
                  serialVersionChecker(
                      new MultiDeleteTable(null, /* parentKey */
                                           new TargetTables(TABLE, null, null),
                                           null, /* subRange */
                                           null, /* resumeKey */
                                           8,
-                                          false /* doTombstone */),
+                                          false /* doTombstone */,
+                                          null /* rowMetadata */),
                      SerialVersion.MINIMUM, 0x648b1dc049dec2bdL,
-                     CLOUD_MR_TABLE, 0xf3b61b1030c629fL),
+                     CLOUD_MR_TABLE, 0xf3b61b1030c629fL,
+                     ROW_METADATA_VERSION, 0xdc4a82ec4c3b4503L),
                  serialVersionChecker(
                      new MultiDeleteTable(null, /* parentKey */
                                           new TargetTables(TABLE, null, null),
                                           null, /* subRange */
                                           null, /* resumeKey */
                                           8,
-                                          true  /* doTombstone */),
-                     CLOUD_MR_TABLE, 0xb6b9fa2e043df94aL));
+                                          true  /* doTombstone */,
+                                          null /* rowMetadata */),
+                     CLOUD_MR_TABLE, 0xb6b9fa2e043df94aL,
+                     ROW_METADATA_VERSION, 0xdb30f86c7d4bc186L));
     }
 
     @Test
@@ -382,12 +389,14 @@ public class TableOpsSerialTest extends OpsSerialTestBase {
                          Region.NULL_REGION_ID,
                          false /* doTombstone */,
                          0,
-                         false /* performsWrite */),
+                         false /* performsWrite */,
+                         null /* rowMetadata */),
                      SerialVersion.MINIMUM, 0x3144c2b760b8c32cL,
                      CLOUD_MR_TABLE, 0x790589f5083ee0edL,
                      QUERY_VERSION_14, 0x929514f53334c1e3L,
                      QUERY_VERSION_16, 0xff61efe8a32c1ea7L,
-                     QUERY_VERSION_17, 0x71e479f809d5a33eL),
+                     QUERY_VERSION_17, 0x71e479f809d5a33eL,
+                     ROW_METADATA_VERSION, 0xe5efeda932111fb0L),
                  serialVersionChecker(
                      new TableQuery(
                          "testQuery",
@@ -425,10 +434,12 @@ public class TableOpsSerialTest extends OpsSerialTestBase {
                          regionId,
                          true /* doTombstone */,
                          0,
-                         false /* performsWrite */),
+                         false /* performsWrite */,
+                         null /* rowMetadata */),
                      CLOUD_MR_TABLE, 0x1767f1dc5bbf651eL,
                      QUERY_VERSION_14, 0x8a7933f2058d74c8L,
                      QUERY_VERSION_16, 0x8c562212955c1835L,
-                     QUERY_VERSION_17, 0x3a8b98d37b8fecdbL));
+                     QUERY_VERSION_17, 0x3a8b98d37b8fecdbL,
+                     ROW_METADATA_VERSION, 0xfb04422829bc5a73L));
     }
 }

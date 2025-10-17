@@ -1214,7 +1214,8 @@ public interface TableAPI {
      * @return the version of the new row value
      *
      * @throws IllegalArgumentException if the row does not have a complete
-     * primary key or is otherwise invalid
+     * primary key or is otherwise invalid, or if
+     * {@link Row#setRowMetadata(String)} is not a valid JSON construct.
      *
      * @see <a href="../KVStore.html#writeExceptions">Write exceptions</a>
      */
@@ -1235,7 +1236,8 @@ public interface TableAPI {
      *
      * <ul>
      * <li> {@link IllegalArgumentException} - if the row does not have a
-     * complete primary key or is otherwise invalid
+     * complete primary key or is otherwise invalid, or if
+     * {@link Row#setRowMetadata(String)} is not a valid JSON construct.
      *
      * <li> {@link FaultException} - for one of the standard <a
      * href="../KVStore.html#writeExceptions">write exceptions</a>
@@ -1318,7 +1320,8 @@ public interface TableAPI {
      * value is present and the put is unsuccessful
      *
      * @throws IllegalArgumentException if the row does not have a complete
-     * primary key or is otherwise invalid
+     * primary key or is otherwise invalid, or if
+     * {@link Row#setRowMetadata(String)} is not a valid JSON construct.
      *
      * @see <a href="../KVStore.html#writeExceptions">Write exceptions</a>
      */
@@ -1340,7 +1343,8 @@ public interface TableAPI {
      *
      * <ul>
      * <li> {@link IllegalArgumentException} - if the row does not have a
-     * complete primary key or is otherwise invalid
+     * complete primary key or is otherwise invalid, or if
+     * {@link Row#setRowMetadata(String)} is not a valid JSON construct.
      *
      * <li> {@link FaultException} - for one of the standard <a
      * href="../KVStore.html#writeExceptions">write exceptions</a>
@@ -1424,7 +1428,8 @@ public interface TableAPI {
      * existing row and the put is unsuccessful
      *
      * @throws IllegalArgumentException if the {@code Row} does not have
-     * a complete primary key or is otherwise invalid
+     * a complete primary key or is otherwise invalid, or if
+     * {@link Row#setRowMetadata(String)} is not a valid JSON construct.
      *
      * @see <a href="../KVStore.html#writeExceptions">Write exceptions</a>
      */
@@ -1445,7 +1450,8 @@ public interface TableAPI {
      *
      * <ul>
      * <li> {@link IllegalArgumentException} - if the {@code Row} does not have
-     * a complete primary key or is otherwise invalid
+     * a complete primary key or is otherwise invalid, or if
+     * {@link Row#setRowMetadata(String)} is not a valid JSON construct.
      *
      * <li> {@link FaultException} - for one of the standard <a
      * href="../KVStore.html#writeExceptions">write exceptions</a>
@@ -1533,7 +1539,8 @@ public interface TableAPI {
      * not match and the put is unsuccessful
      *
      * @throws IllegalArgumentException if the {@code Row} does not have
-     * a complete primary key or is otherwise invalid
+     * a complete primary key or is otherwise invalid, or if
+     * {@link Row#setRowMetadata(String)} is not a valid JSON construct.
      *
      * @see <a href="../KVStore.html#writeExceptions">Write exceptions</a>
      */
@@ -1557,7 +1564,8 @@ public interface TableAPI {
      *
      * <ul>
      * <li> {@link IllegalArgumentException} - if the {@code Row} does not have
-     * a complete primary key or is otherwise invalid
+     * a complete primary key or is otherwise invalid, or if
+     * {@link Row#setRowMetadata(String)} is not a valid JSON construct.
      *
      * <li> {@link FaultException} - for one of the standard <a
      * href="../KVStore.html#writeExceptions">write exceptions</a>
@@ -1625,7 +1633,8 @@ public interface TableAPI {
      * @return {@code true} if the row existed and was deleted, and {@code
      * false} otherwise
      *
-     * @throws IllegalArgumentException if the primary key is not complete
+     * @throws IllegalArgumentException if the primary key is not complete or if
+     * {@link PrimaryKey#setRowMetadata(String)} is not a valid JSON construct.
      *
      * @see <a href="../KVStore.html#writeExceptions">Write exceptions</a>
      */
@@ -1645,7 +1654,8 @@ public interface TableAPI {
      *
      * <ul>
      * <li> {@link IllegalArgumentException} - if the primary key is not
-     * complete
+     * complete or if {@link PrimaryKey#setRowMetadata(String)} is not a valid
+     * JSON construct.
      *
      * <li> {@link FaultException} - for one of the standard <a
      * href="../KVStore.html#writeExceptions">write exceptions</a>
@@ -1698,7 +1708,8 @@ public interface TableAPI {
      * @return {@code true} if the row existed, and its version matched {@code
      * matchVersion} and was successfully deleted, and {@code false} otherwise
      *
-     * @throws IllegalArgumentException if the primary key is not complete
+     * @throws IllegalArgumentException if the primary key is not complete or if
+     * {@link PrimaryKey#setRowMetadata(String)} is not a valid JSON construct.
      *
      * @see <a href="../KVStore.html#writeExceptions">Write exceptions</a>
      */
@@ -1721,7 +1732,8 @@ public interface TableAPI {
      *
      * <ul>
      * <li> {@link IllegalArgumentException} - if the primary key is not
-     * complete
+     * complete or if {@link PrimaryKey#setRowMetadata(String)} is not a valid
+     * JSON construct.
      *
      * <li> {@link FaultException} - for one of the standard <a
      * href="../KVStore.html#writeExceptions">write exceptions</a>
@@ -1758,7 +1770,7 @@ public interface TableAPI {
 
     /**
      * Deletes multiple rows from a table in an atomic operation.  The
-     * key used may be partial but must contain all of the fields that are
+     * key used may be partial but must contain all the fields that are
      * in the shard key.
      *
      * @param key the primary key for the row to delete
@@ -1775,7 +1787,8 @@ public interface TableAPI {
      * @return the number of rows deleted from the table
      *
      * @throws IllegalArgumentException if the primary key is malformed or does
-     * not contain all shard key fields
+     * not contain all shard key fields or if
+     * {@link PrimaryKey#setRowMetadata(String)} is not a valid JSON construct.
      *
      * @see <a href="../KVStore.html#writeExceptions">Write exceptions</a>
      */
@@ -1786,7 +1799,7 @@ public interface TableAPI {
     /**
      * Deletes multiple rows from a table in an atomic operation, returning a
      * future to manage the asynchronous operation. The key used may be partial
-     * but must contain all of the fields that are in the shard key.
+     * but must contain all the fields that are in the shard key.
      *
      * <p>The result supplied to the future is the number of rows deleted from
      * the table.
@@ -1796,7 +1809,8 @@ public interface TableAPI {
      *
      * <ul>
      * <li> {@link IllegalArgumentException} - if the primary key is malformed
-     * or does not contain all shard key fields
+     * or does not contain all shard key fields or if
+     * {@link PrimaryKey#setRowMetadata(String)} is not a valid JSON construct.
      *
      * <li> {@link FaultException} - for one of the standard <a
      * href="../KVStore.html#writeExceptions">write exceptions</a>
@@ -1828,7 +1842,7 @@ public interface TableAPI {
 
     /**
      * Returns a {@code TableOperationFactory} to create operations passed
-     * to {@link #execute}.  Not all operations must use the same table but
+     * to {@link #execute}.  Not all operations must use the same table, but
      * they must all use the same shard portion of the primary key.
      *
      * @return an empty {@code TableOperationFactory}

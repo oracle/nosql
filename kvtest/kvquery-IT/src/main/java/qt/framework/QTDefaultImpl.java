@@ -70,7 +70,7 @@ public class QTDefaultImpl implements QTBefore, QTAfter {
             if (beforeDataProp != null) {
 
                 File dataFile = new File(configFile.getParentFile(),
-                    beforeDataProp);
+                                         beforeDataProp);
                 if (!dataFile.exists() || !dataFile.isFile())
                     throw new IllegalArgumentException("Property before-data-file" +
                         " doesn't reference a valid file.");

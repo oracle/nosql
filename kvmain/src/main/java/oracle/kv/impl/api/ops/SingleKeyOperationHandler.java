@@ -13,6 +13,7 @@
 
 package oracle.kv.impl.api.ops;
 
+import java.util.EnumSet;
 import java.util.List;
 
 import oracle.kv.UnauthorizedException;
@@ -23,6 +24,7 @@ import oracle.kv.impl.api.table.TableImpl;
 import oracle.kv.impl.security.AccessCheckUtils;
 import oracle.kv.impl.security.ExecutionContext;
 import oracle.kv.impl.security.KVStorePrivilege;
+import oracle.kv.impl.security.KVStorePrivilegeLabel;
 import oracle.kv.impl.security.SystemPrivilege;
 import oracle.kv.impl.security.TablePrivilege;
 
@@ -82,6 +84,39 @@ abstract class SingleKeyOperationHandler<T extends SingleKeyOperation>
      * fails.
      */
     void verifyDataAccess(T op)
+        throws UnauthorizedException {
+
+        verifyDataAccess(op, null);
+    }
+
+    /**
+     * Verifies the data access in general keyspace for operation.  If the
+     * tableId for the operation is non-zero, table existence will be checked
+     * first. Then if the security is enabled, the legitimacy of data access
+     * will be checked further:
+     * <p>
+     * 1. if tableId is non-zero, the access privileges on the table specified
+     * by the id are needed;<br>
+     * 2. if tableId is zero but the key falls in a table's keyspace, the
+     * access privileges on the table are needed;<br>
+     * 3. if tableId is zero and the key is not in any table keyspace, the
+     * access privileges on general keyspace are needed;
+     * <p>
+     * If it's a table operation and requires additional table privileges to
+     * perform, we also check if current session has required access privileges.
+     *
+     * Here we only check if current session has the required access
+     * privileges for efficiency, since the authentication checking and subject
+     * identification have been done while processing the request.
+     *
+     * @param op the operation
+     * @param tablePrivs the additional required table privileges. Note that the
+     * table privileges specified should be able to imply the same privileges
+     * in the generalAccessPrivileges of the operation.
+     * @throws UnauthorizedException if the permission check for data access
+     * fails.
+     */
+    void verifyDataAccess(T op, EnumSet<KVStorePrivilegeLabel> tablePrivs)
         throws UnauthorizedException {
 
         TableImpl accessedTable = null;
@@ -144,6 +179,14 @@ abstract class SingleKeyOperationHandler<T extends SingleKeyOperation>
         /* Check the privileges on the namespace */
         if ( !accessedTable.isSystemTable() && exeCtx.hasAllPrivileges(
             namespaceAccessPrivileges(accessedTable.getInternalNamespace()))) {
+
+            /*
+             * The operation may require additional privileges, verify if
+             * current session has the required privileges.
+             */
+            if (tablePrivs != null) {
+                verifyTablePrivileges(accessedTable, tablePrivs);
+            }
             return;
         }
 
@@ -156,7 +199,8 @@ abstract class SingleKeyOperationHandler<T extends SingleKeyOperation>
             throw new UnauthorizedException(
                 "Insufficient access rights granted on table, id: " +
                 accessedTable.getId() +
-                " name: " + accessedTable.getFullNamespaceName());
+                " name: " + accessedTable.getFullNamespaceName()
+            );
         }
 
         /* Ensure at least read privileges on all parent tables */
@@ -180,6 +224,14 @@ abstract class SingleKeyOperationHandler<T extends SingleKeyOperation>
          * table access.
          */
         verifySystemTableAccess(accessedTable);
+
+        /*
+         * The operation may require additional privileges, verify if
+         * current session has the required privileges.
+         */
+        if (tablePrivs != null) {
+            verifyTablePrivileges(accessedTable, tablePrivs);
+        }
     }
 
     void reserializeResultValue(SingleKeyOperation op, ResultValueVersion rvv) {

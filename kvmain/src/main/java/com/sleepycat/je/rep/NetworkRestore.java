@@ -17,17 +17,11 @@ import java.io.File;
 import java.io.IOException;
 import java.net.ConnectException;
 import java.net.InetSocketAddress;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Random;
-import java.util.Set;
+import java.util.*;
 import java.util.logging.Logger;
 
 import com.sleepycat.je.DatabaseException;
+import com.sleepycat.je.Environment;
 import com.sleepycat.je.EnvironmentFailureException;
 import com.sleepycat.je.log.RestoreMarker;
 import com.sleepycat.je.rep.impl.RepImpl;
@@ -92,6 +86,16 @@ public class NetworkRestore {
     private static final long MAX_VLSN = Long.MAX_VALUE;
 
     /*
+     * Singleton instance aimed to control what environments are in network
+     * restore
+     */
+    private static final EnvironmentsInNetworkRestore envsInNetworkRestore;
+
+    static {
+        envsInNetworkRestore = new EnvironmentsInNetworkRestore();
+    }
+
+    /*
      * The log provider last used or null. May be queried by other threads
      * during the backup.
      */
@@ -105,8 +109,12 @@ public class NetworkRestore {
 
     private final Logger logger;
 
+    /*
+     * For testing only.
+     */
     private TestHook<File> testInterruptHook;
     private boolean failDuringRestore = false;
+    private boolean delayRestore = false;
 
     /**
      * Creates an instance of NetworkRestore suitable for restoring the logs at
@@ -177,7 +185,7 @@ public class NetworkRestore {
         final List<ReplicationNode> logProviders;
 
         if ((config.getLogProviders() != null) &&
-            (config.getLogProviders().size() > 0)) {
+            (!config.getLogProviders().isEmpty())) {
             final Set<String> memberNames = new HashSet<>();
             for (ReplicationNode node : logException.getLogProviders()) {
                 memberNames.add(node.getName());
@@ -237,12 +245,101 @@ public class NetworkRestore {
         return Math.max(0, maxVlsnServer.rangeEnd - maxLag);
     }
 
+    /*
+     * Return if the directory of an environment handle is in network restore.
+     * An 'Environment' object corresponding the handle to be opened could
+     * be given as parameter. So, when the network restore finishes, this
+     * object will be notified that can continue the opening of the handle,
+     * avoiding the corresponding timeout ('je.env.networkRestoreLockTimeout').
+     */
+    static public boolean isEnvInRestore(File envHome, Environment env) {
+        return envsInNetworkRestore.isEnvInRestore(envHome, env);
+    }
+
+    /*
+     * Used in testing to clear the cache of environments that
+     * are in network restore when switching between test methods.
+     */
+    static public void cleanEnvsInRestore() {
+        envsInNetworkRestore.clearEnvsInRestore();
+    }
+
+    /*
+     * Class aimed to control the environments that are in network restore.
+     */
+    static private class EnvironmentsInNetworkRestore {
+        private final List<String> envsInRestore = new ArrayList<>();
+        /*
+         * The first idea was using Map<String, Environment> instead
+         * Map<String, List<Environment>>. But several unit tests failed. It
+         * led to think if several environment handles can be opened on a
+         * same directory in production, or the opening of environment
+         * handles can be similar as implemented in the unit tests. To avoid
+         * possible outages, it was used List<Environment>.
+         */
+        private final Map<String, List<Environment>> envsForKey = new HashMap<>();
+
+        synchronized boolean isEnvInRestore(File envHome, Environment env) {
+            String envKey = makeKeyForEnv(envHome);
+            if (envsInRestore.contains(envKey)) {
+                /*
+                 * It True, save the environment handle that is being
+                 * opened but its directory is in network restore.
+                 */
+                if (env != null) {
+                    List<Environment> envList = envsForKey.computeIfAbsent(
+                            envKey, k -> new ArrayList<>());
+                    envList.add(env);
+                }
+                return true;
+            }
+            return false;
+        }
+
+        synchronized void addEnvInRestore(File envHome) {
+            String envKey = makeKeyForEnv(envHome);
+            if (!envsInRestore.contains(envKey)) {
+                envsInRestore.add(envKey);
+            }
+        }
+
+        synchronized void removeEnvInRestore(File envHome) {
+            String envKey = makeKeyForEnv(envHome);
+            envsInRestore.remove(envKey);
+            List<Environment> envList = envsForKey.remove(envKey);
+            if (envList != null) {
+                /*
+                 * Notify to all environment handles that the
+                 * corresponding network restore finished.
+                 */
+                for (Environment env : envList) {
+                    synchronized (env) {
+                        env.notify();
+                    }
+                }
+            }
+        }
+
+        /*
+         * Used in testing to clear the cache of environments in
+         * network restore when switching between test methods.
+         */
+        synchronized void clearEnvsInRestore() {
+            envsInRestore.clear();
+            envsForKey.clear();
+        }
+
+        private String makeKeyForEnv(File envHome) {
+            return envHome.getAbsolutePath();
+        }
+    }
+
     /**
      * Restores the log files from one of the members of the replication group.
      * <p>
      * If <code>config.getLogProviders()</code> returns null, or an empty list,
      * it uses the member that is least busy as the provider of the log files.
-     * Otherwise it selects a member from the list, choosing the first member
+     * Otherwise, it selects a member from the list, choosing the first member
      * that's available, to provide the log files. If the members in this list
      * are not present in <code>logException.getLogProviders()</code>, it will
      * result in an <code>IllegalArgumentException</code> being thrown.
@@ -253,7 +350,7 @@ public class NetworkRestore {
      * <p>
      * Log files that are currently at the node will be retained if they are
      * part of a consistent set of log files. Obsolete log files are either
-     * deleted, or are renamed based on the the configuration of
+     * deleted, or are renamed based on the configuration of
      * <code>config.getRetainLogFiles()</code>.
      * <p>
      * If the <code>InsufficientLogException</code> was caught by the
@@ -279,9 +376,30 @@ public class NetworkRestore {
         throws EnvironmentFailureException,
                IllegalArgumentException {
 
-        RepImpl repImpl = null;
+        final RepImpl repImpl = logException.openRepImpl(config.
+                getLoggingHandler());
+        final File envHome = repImpl.getEnvironmentHome();
+        boolean isCompletedRestore = false;
         try {
-            repImpl = logException.openRepImpl(config.getLoggingHandler());
+            envsInNetworkRestore.addEnvInRestore(envHome);
+
+            /*
+             * For testing only.
+             */
+            if (delayRestore) {
+                /*
+                 * Delay the starting of a network restore to ensure that
+                 * the opening of an environment handle is locked because
+                 * its directory should be restored.
+                 */
+                try {
+                    wait(1000 * 10);
+                } catch (InterruptedException ex) {
+                    /*
+                     * Do not make anything.
+                     */
+                }
+            }
 
             /* See 'Algorithm'. */
             final int maxLag = repImpl.getConfigManager().getInt(
@@ -317,7 +435,6 @@ public class NetworkRestore {
              */
             while (!serverList.isEmpty()) {
                 final List<Server> newServerList = new LinkedList<>();
-                final File envHome = repImpl.getEnvironmentHome();
 
                 for (Server server : serverList) {
                     final InetSocketAddress serverSocket =
@@ -350,6 +467,7 @@ public class NetworkRestore {
                         backup.setInterruptHook(testInterruptHook);
                         backup.setFailDuringRestore(failDuringRestore);
                         backup.execute();
+                        isCompletedRestore = true;
                         LoggerUtils.info(logger, repImpl, String.format(
                             "Network restore completed from: %s. " +
                                 "Elapsed time: %,d s.",
@@ -411,8 +529,9 @@ public class NetworkRestore {
             throw EnvironmentFailureException.unexpectedState
                 ("Tried and failed with every node");
         } finally {
-            if (repImpl != null) {
-                repImpl.close();
+            repImpl.close();
+            if (isCompletedRestore) {
+                envsInNetworkRestore.removeEnvInRestore(envHome);
             }
         }
     }
@@ -467,11 +586,24 @@ public class NetworkRestore {
         }
     }
 
+    /*
+     * For testing only
+     */
     public void setTestInterruptHook(final TestHook<File> hook) {
         testInterruptHook = hook;
     }
 
+    /*
+     * For testing only
+     */
     public void setFailDuringRestore(boolean fail) {
         failDuringRestore = fail;
+    }
+
+    /*
+     * For testing only
+     */
+    public void setDelayRestore(boolean delayRestore) {
+        this.delayRestore = delayRestore;
     }
 }

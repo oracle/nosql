@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2011, 2024 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011, 2025 Oracle and/or its affiliates. All rights reserved.
  *
  * This file was distributed by Oracle as part of a version of Oracle NoSQL
  * Database made available at:
@@ -77,7 +77,8 @@ public class KVDataService extends DataService {
                          ProxyAuditManager audit,
                          Config config,
                          LogControl logControl) {
-        super(logger, tm, stats, audit, null, null, null, config, logControl);
+        super(logger, tm, stats, audit,
+              null, null, null, config, logControl);
         this.isSecure = config.useSSL();
     }
 

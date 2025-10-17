@@ -208,7 +208,13 @@ public class KVVersion implements Comparable<KVVersion>, Serializable {
         new KVVersion(24, 4, 4, null);   /* R24.4 11/2024 */
     /** @hidden */
     public static final KVVersion R25_1 =
-        new KVVersion(25, 1, 13, null);   /* R25.1 4/2025, prerequisite: 22.3 */
+        new KVVersion(25, 1, 10, null);   /* R25.1 4/2025, prerequisite: 22.3 */
+    /** @hidden */
+    public static final KVVersion R25_2 =
+        new KVVersion(25, 2, 0, null);   /* R25.2 (for cloud) prerequisite: 22.3 */
+    /** @hidden */
+    public static final KVVersion R25_3 =
+        new KVVersion(25, 3, 21, null);   /* R25.3 8/2025 */
 
     /**
      * The current software version.
@@ -218,7 +224,7 @@ public class KVVersion implements Comparable<KVVersion>, Serializable {
          * WHEN YOU BUMP THIS VERSION, BE SURE TO BUMP THE VERSIONS IN
          * misc/rpm/*.spec.
          */
-        R25_1;
+        R25_3;
 
    /**
     * The current prerequisite version.  Nodes can only join the cluster if

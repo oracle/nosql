@@ -200,6 +200,9 @@ public class BIN extends IN {
     private static final INLongRep.EmptyRep EMPTY_MODIFICATION_TIMES =
         new INLongRep.EmptyRep(3, true);
 
+    private static final INLongRep.EmptyRep EMPTY_CREATION_TIMES =
+        new INLongRep.EmptyRep(3, true);
+
     /**
      * The set of cursors that are currently referring to this BIN.
      * This field is set to null when there are no cursors on this BIN.
@@ -273,6 +276,9 @@ public class BIN extends IN {
      */
     private INLongRep modificationTimes = EMPTY_MODIFICATION_TIMES;
     private long modificationTimesBase = -1;
+
+    private INLongRep creationTimes = EMPTY_CREATION_TIMES;
+    private long creationTimesBase = -1;
 
     public BIN() {
     }
@@ -578,7 +584,7 @@ public class BIN extends IN {
 
         setModificationTimeOffset(idx, value - modificationTimesBase + 1);
     }
-
+      
     /**
      * Returns the modification time for an embedded record. Returns zero if
      * the record is not embedded or the record was written with JE 19.3 or
@@ -606,6 +612,72 @@ public class BIN extends IN {
 
     void setModificationTimeOffset(int idx, long offset) {
         modificationTimes = modificationTimes.set(idx, offset, this);
+    }
+
+    public void setCreationTime(int idx, long value) {
+
+        if (value == 0) {
+            creationTimes = creationTimes.set(idx, 0, this);
+            return;
+        }
+
+        /*
+         * If this is the first slot with an expiration, initialize the base to
+         * the value and set the offset (slot value) to one.
+         */
+        if (creationTimesBase == -1 || nEntries == 1) {
+            creationTimesBase = value;
+            setCreationTimeOffset(idx, 1);
+            return;
+        }
+
+        /*
+         * Slot's creation time must not be less than the base. If it is,
+         * decrease the base and increase the offset in other slots
+         * accordingly.
+         */
+        if (value < creationTimesBase) {
+            final long adjustment = creationTimesBase - value;
+            creationTimesBase = value;
+
+            for (int i = 0; i < nEntries; ++i) {
+                if (i == idx) {
+                    continue;
+                }
+                final long offset = creationTimes.get(i);
+                if (offset == 0) {
+                    continue;
+                }
+                setCreationTimeOffset(i, offset + adjustment);
+            }
+        }
+
+        setCreationTimeOffset(idx, value - creationTimesBase + 1);
+    }
+
+    public long getCreationTime(int idx) {
+        final long offset = creationTimes.get(idx);
+
+        if (offset == 0) {
+            return 0;
+        }
+        return offset - 1 + creationTimesBase;
+    }
+
+    long getCreationTimesBase() {
+        return creationTimesBase;
+    }
+
+    long getCreationTimeOffset(int idx) {
+        return creationTimes.get(idx);
+    }
+
+    void setCreationTimesBase(long base) {
+        creationTimesBase = base;
+    }
+
+    void setCreationTimeOffset(int idx, long offset) {
+        creationTimes = creationTimes.set(idx, offset, this);
     }
 
     /**
@@ -685,6 +757,7 @@ public class BIN extends IN {
             fromBin.isExpirationInHours());
 
         setModificationTime(idx, fromBin.getModificationTime(fromIdx));
+        setCreationTime(idx, fromBin.getCreationTime(fromIdx));
     }
 
     /**
@@ -695,6 +768,7 @@ public class BIN extends IN {
         super.copyEntries(from, to, n);
         vlsnCache = vlsnCache.copy(from, to, n, this);
         expirationValues = expirationValues.copy(from, to, n, this);
+        creationTimes = creationTimes.copy(from, to, n, this);
         modificationTimes = modificationTimes.copy(from, to, n, this);
     }
 
@@ -707,6 +781,7 @@ public class BIN extends IN {
         setCachedVLSNUnconditional(idx, NULL_VLSN);
         setExpiration(idx, 0, false);
         setModificationTime(idx, 0);
+        setCreationTime(idx, 0);
     }
 
     /*
@@ -1228,6 +1303,8 @@ public class BIN extends IN {
         final long oldSize = inMemorySize;
         super.compactMemory();
         expirationValues = expirationValues.compact(this, EMPTY_EXPIRATION);
+        creationTimes =
+            creationTimes.compact(this, EMPTY_CREATION_TIMES);
         modificationTimes =
             modificationTimes.compact(this, EMPTY_MODIFICATION_TIMES);
         return oldSize - inMemorySize;
@@ -1255,6 +1332,10 @@ public class BIN extends IN {
             size += expirationValues.getMemorySize();
         }
 
+        if (creationTimes != null) {
+            size += creationTimes.getMemorySize();
+        }
+
         if (modificationTimes != null) {
             size += modificationTimes.getMemorySize();
         }
@@ -1272,16 +1353,18 @@ public class BIN extends IN {
         final long inTotal = super.printMemorySize();
         final long vlsnCacheOverhead = vlsnCache.getMemorySize();
         final long expirationOverhead = expirationValues.getMemorySize();
+        final long createTimeOverhead = creationTimes.getMemorySize();
         final long modTimeOverhead = modificationTimes.getMemorySize();
 
         final long binTotal = inTotal +
-            vlsnCacheOverhead + expirationOverhead + modTimeOverhead;
+            vlsnCacheOverhead + expirationOverhead + modTimeOverhead
+            + createTimeOverhead;
 
-        System.out.format(
-            "BIN: %d vlsns: %d expiration: %d" +
-                " modTimeOverhead: %d %n",
-            binTotal, vlsnCacheOverhead, expirationOverhead, modTimeOverhead);
-
+        System.out.format("BIN: %d vlsns: %d expiration: %d"
+                              + " createTimeOverhead: %d"
+                              + " modTimeOverhead: %d %n",
+                          binTotal, vlsnCacheOverhead, expirationOverhead,
+                          createTimeOverhead, modTimeOverhead);
         return binTotal;
     }
 
@@ -1522,7 +1605,7 @@ public class BIN extends IN {
         final LogItem logItem = ln.log(
             envImpl, dbImpl, null /*locker*/, null /*writeLockInfo*/,
             isEmbeddedLN(idx), getKey(idx),
-            getExpiration(idx), isExpirationInHours(),
+            getExpiration(idx), isExpirationInHours(), ln.getCreationTime(),
             ln.getModificationTime(), isTombstone(idx),
             false /*newBlindDeletion*/, isEmbeddedLN(idx),
             currLsn, getLastLoggedSize(idx),
@@ -1811,6 +1894,7 @@ public class BIN extends IN {
         Node[] targets = null;
         int[] expiration = null;
         long[] modTimes = null;
+        long[] createTimes = null;
 
         if (copyTargets) {
             targets = new Node[nDeltas];
@@ -1822,6 +1906,10 @@ public class BIN extends IN {
 
         if (modificationTimesBase != -1) {
             modTimes = new long[nDeltas];
+        }
+
+        if (creationTimesBase != -1) {
+            createTimes = new long[nDeltas];
         }
 
         int j = 0;
@@ -1850,6 +1938,9 @@ public class BIN extends IN {
                 modTimes[j] = getModificationTime(i);
             }
 
+            if (createTimes != null) {
+                createTimes[j] = getCreationTime(i);
+            }
             j += 1;
         }
 
@@ -1865,6 +1956,7 @@ public class BIN extends IN {
             states, keyPrefix, keys, targets,
             sizes, vlsns,
             expiration, isExpirationInHours(),
+            createTimes,
             modTimes);
 
         destBIN.setBINDelta(true);
@@ -1889,6 +1981,7 @@ public class BIN extends IN {
         final long[] vlsns,
         final int[] expiration,
         final boolean expirationInHours,
+        final long[] createTimes,
         final long[] modTimes) {
 
         updateRepCacheStats(false);
@@ -1904,7 +1997,8 @@ public class BIN extends IN {
         expirationBase = -1;
         modificationTimes = EMPTY_MODIFICATION_TIMES;
         modificationTimesBase = -1;
-
+        creationTimes = EMPTY_CREATION_TIMES;
+        creationTimesBase = 1;
         updateRepCacheStats(true);
 
         entryStates = new byte[capacity];
@@ -1927,6 +2021,9 @@ public class BIN extends IN {
                 setModificationTime(i, modTimes[i]);
             }
 
+            if (createTimes != null) {
+                setCreationTime(i, createTimes[i]);
+            }
             setLastLoggedSizeUnconditional(i, loggedSizes[i]);
             setCachedVLSNUnconditional(i, vlsns[i]);
         }
@@ -2142,6 +2239,9 @@ public class BIN extends IN {
         expirationBase = other.expirationBase;
         setExpirationInHours(other.isExpirationInHours());
 
+        creationTimes = other.creationTimes;
+        creationTimesBase = other.creationTimesBase;
+
         modificationTimes = other.modificationTimes;
         modificationTimesBase = other.modificationTimesBase;
 
@@ -2183,6 +2283,8 @@ public class BIN extends IN {
         lastLoggedSizes = lastLoggedSizes.resize(newCapacity);
         expirationValues = expirationValues.resize(newCapacity);
         modificationTimes = modificationTimes.resize(newCapacity);
+        creationTimes = creationTimes.resize(newCapacity);
+
         vlsnCache = vlsnCache.resize(newCapacity);
 
         updateMemorySize(inMemorySize, computeMemorySize());
@@ -2297,6 +2399,7 @@ public class BIN extends IN {
                     getLastLoggedSize(i),
                     getCachedVLSN(i), getTarget(i),
                     getExpiration(i), isExpirationInHours(),
+                    getCreationTime(i),
                     getModificationTime(i));
             }
 
@@ -2325,6 +2428,7 @@ public class BIN extends IN {
         final Node child,
         final int expiration,
         final boolean expirationInHours,
+        final long creationTime,
         final long modificationTime) {
 
         /*
@@ -2370,6 +2474,7 @@ public class BIN extends IN {
 
         setCachedVLSNUnconditional(foundIndex, vlsn);
         setExpiration(foundIndex, expiration, expirationInHours);
+        setCreationTime(foundIndex, creationTime);
         setModificationTime(foundIndex, modificationTime);
     }
 

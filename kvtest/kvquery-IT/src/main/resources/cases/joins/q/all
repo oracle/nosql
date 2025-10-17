@@ -1,4 +1,12 @@
 ################
+26844.q
+################
+select *
+from nested tables (X x descendants (X.Y y))
+
+
+
+################
 err01.q
 ################
 select *
@@ -40,6 +48,32 @@ select a.ida as a_ida, c1,
        d.ida as d_ida, d.idb as d_idb, d.idc as d_idc, d.idd as d_idd
 from nested tables(A a descendants(A.B.C.D d, A.G g))
 order by a.ida
+
+
+
+################
+err05.q
+################
+select *
+from nested tables(A a descendants(A.B b, A.B.C c, A.B.C.D d))
+where a.ida != 40
+order by a.ida desc
+
+
+
+################
+err06.q
+################
+select * 
+from nested tables (A.B b1 ancestors (A.B b2))
+
+
+
+################
+err07.q
+################
+select *
+from nested tables (A.B ancestors (A.B))
 
 
 
@@ -170,6 +204,8 @@ from nested tables(A.B.C.D d ancestors(A a, A.B b, A.B.C c))
 where d.d2 > 15 and d.c3 < 100
 
 
+
+
 ################
 lina12.q
 ################
@@ -184,12 +220,53 @@ from nested tables(A.B.C.D d ancestors(A a, A.B b, A.B.C c))
 where d.d2 > 15 and d.c3 < 100
 
 
+
 ################
 lina13.q
 ################
 select c.ida as c_ida, c.idb as c_idb, c.idc as c_idc, a2
 from nested tables(A.B.C c ancestors(A))
 order by c.ida desc
+
+
+
+################
+lina14.q
+################
+select *
+from nested tables(A.B.C c ancestors(A a, A.B b))
+order by c.ida
+
+
+
+################
+lina15.q
+################
+select d.ida as d_ida, d.idb as d_idb, d.idc as d_idc, d.idd as d_idd,
+       a.ida as a_ida, a.c1 as a_c1,
+       b.ida as b_ida, b.idb as b_idb, b.c1 as b_c1,
+       c.ida as c_ida, c.idb as c_idb, c.idc as c_idc
+from nested tables(A.B.C.D d ancestors(A a, A.B b, A.B.C c))
+where d.d2 > 15 and d.c3 < 100
+
+
+
+################
+lina16.q
+################
+select * 
+from nested tables(A.B.C.D d ancestors(A)) 
+where d.d2 < 10
+
+
+################
+lina17.q
+################
+select b.ida, b.idb
+from nested tables(A.B b ancestors(A a))
+where b.ida = 10 and
+      b.b1 = a.a1
+order by b.ida, b.idb
 
 
 
@@ -227,6 +304,58 @@ from nested tables(A.B.C c ancestors(A a, A.B b)
                            descendants(A.B.C.D d on b.b2 = 45 or
                                                     b.b2 is null and d.c3 < 32))
 order by c.ida, c.idb
+
+
+
+################
+linad04.q
+################
+# row_storage_size on target, ancestor, and descendant tables
+# index_storage_size on anscestor table
+
+select $b.ida as b_ida, $b.idb as b_idb,
+       $a.ida as a_ida, $a.a1, 
+       $c.ida as c_ida, $c.idb as c_idb, $c.idc as c_idc,
+       row_storage_size($a) < row_storage_size($b) and
+       row_storage_size($b) < row_storage_size($c) as c_size,
+       20 < index_storage_size($a, "a_idx_a2") and
+            index_storage_size($a, "a_idx_a2") < 30 as size_a_idx_a2 
+from nested tables(A.B $b ancestors(A $a) descendants(A.B.C $c))
+where $b.ida != 40
+order by $b.ida, $b.idb
+
+
+
+################
+linad05.q
+################
+# index_storage_size on descendant table
+
+select $b.ida as b_ida, $b.idb as b_idb,
+       $a.ida as a_ida, $a.a1, 
+       $d.ida as d_ida, $d.idb as d_idb, $d.idc as d_idc, $d.idd as d_idd,
+       50 <= index_storage_size($d, "d_idx_d2_idb_c3") and 
+       index_storage_size($d, "d_idx_d2_idb_c3") < 65 as size_d_idx_d2_idb_c3 
+from nested tables(A.B $b ancestors(A $a) descendants(A.B.C.D $d))
+where $b.ida != 40
+order by $b.ida, $b.idb
+
+
+
+################
+linad06.q
+################
+# index_storage_size on target and on secondary index used by query
+
+select $a.ida as a_ida, $a.a1, 
+       $d.ida as d_ida, $d.idb as d_idb, $d.idc as d_idc, $d.idd as d_idd,
+       20 < index_storage_size($a, "a_idx_c1") and
+            index_storage_size($a, "a_idx_c1") < 28 as size_a_idx_c1,
+       50 < index_storage_size($d, "d_idx_d2_idb_c3") and
+            index_storage_size($d, "d_idx_d2_idb_c3") < 65 as size_d_idx_d2_idb_c3 
+from nested tables(A $a descendants(A.B.C.D $d))
+where $a.c1 > 10
+order by $a.ida
 
 
 
@@ -444,15 +573,117 @@ order by a.ida
 limit 10
 
 
+
 ################
 lind21.q
 ################
-select a.ida as a_ida, a.c1,
+select /*+ FORCE_INDEX(A a_idx_c1_a2) */
+       a.ida as a_ida, a.c1,
        b.ida as b_ida, b.idb as b_idb,
        c.ida as c_ida, c.idb as c_idb, c.idc as c_idc,
        d.ida as d_ida, d.idb as d_idb, d.idc as d_idc, d.idd as d_idd 
 from nested tables(A a descendants(A.B b, A.B.C c, A.B.C.D d))
 order by a.c1
+
+
+
+################
+lind22.q
+################
+select a.ida as a_ida, b.ida as b_ida, b.idb as b_idb , b.c1 as b_c1 
+from nested tables (A as a descendants(A.B as b))
+order by a.c1, a.ida
+
+
+
+################
+lind23.q
+################
+select /*+ force_primary_index(A) */ *
+from nested tables(A a descendants(A.B b))
+order by a.ida desc
+
+
+
+################
+lind24.q
+################
+select a.ida as a_ida,
+       b.ida as b_ida, b.idb as b_idb
+from nested tables(A a descendants(A.B b))
+where a.ida = 40
+order by b.idb desc
+
+
+
+################
+lind25.q
+################
+select /* FORCE_PRIMARY_INDEX(A) */
+       a.ida, b.ida, b.idb
+from nested tables(A a descendants(A.B b))
+order by a.ida, b.ida, b.idb
+limit 10
+
+
+
+################
+lind26.q
+################
+select /* FORCE_PRIMARY_INDEX(A) */
+       a.ida, b.ida, b.idb
+from nested tables(A a descendants(A.B b))
+order by a.ida, b.idb
+limit 10
+
+
+
+################
+lind27.q
+################
+select a.ida, b.idb, count(*) as cnt
+from nested tables(A a descendants(A.B b, A.B.C c))
+group by a.ida, b.idb
+
+
+
+################
+lind28.q
+################
+select a.ida, b.idb, count(case
+                           when b.idb is null then b.idb
+                           when c.idc is null then c.idc
+                           else 1
+                           end) as cnt
+from nested tables(A a descendants(A.B b, A.B.C c))
+group by a.ida, b.idb
+
+
+
+################
+lind29.q
+################
+select a.a2, b.ida, b.idb, count(case
+                           when b.idb is null then b.idb
+                           when c.idc is null then c.idc
+                           else 1
+                           end) as cnt
+from nested tables(A a descendants(A.B b, A.B.C c))
+group by a.a2, b.ida, b.idb
+
+
+
+################
+lind30.q
+################
+select a.a2, a.ida, b.idb, count(case
+                           when b.idb is null then b.idb
+                           when c.idc is null then c.idc
+                           else 1
+                           end) as cnt
+from nested tables(A a descendants(A.B b, A.B.C c))
+group by a.a2, a.ida, b.idb
+
 
 
 ################
@@ -466,7 +697,7 @@ select b.ida as b_ida, b.idb as b_idb,
 from nested tables(A.B b ancestors(A a)
                          descendants(A.B.C.D d on a.ida != 15 and d.idd <= $ext1,
                                      A.B.E e))
-order by b.ida, b.idb
+order by b.ida, b.idb, d.idc, d.idd, e.ide
 
 
 
@@ -513,7 +744,7 @@ from nested tables(A a descendants(A.B.C.D d,
                                    A.B.C c,
                                    A.B.E e,
                                    A.G.H h))
-order by a.ida
+order by a.ida, b.idb, c.idc, d.idd, e.ide, g.idg, j.idj, h.idh
 
 
 
@@ -565,6 +796,7 @@ from nested tables(A a descendants(A.B.C.D d on d1 > 10,
 order by a.ida
 
 
+
 ################
 treed07.q
 ################
@@ -576,15 +808,18 @@ from nested tables(A a descendants(A.B b, A.B.C c, A.G.J.K k))
 where a.a2 > 30
 
 
+
 ################
 treed08.q
 ################
-select a.ida as a_ida, a.a1,
+select /*+ FORCE_INDEX(A a_idx_a2) */
+       a.ida as a_ida, a.a1,
        b.ida as b_ida, b.idb as b_idb,
        c.ida as c_ida, c.idb as c_idb, c.idc as c_idc,
        k.ida as k_ida, k.idg as k_idg, k.idj as k_idj, k.idk as k_idk
 from nested tables(A a descendants(A.B b, A.B.C c, A.G.J.K k))
 where a.a2 < 30
+
 
 
 ################
@@ -597,3 +832,72 @@ select a.ida as a_ida, a.a2, a.a1,
 from nested tables(A a descendants(A.B b, A.B.C c, A.G.J.K k))
 where a.a2 < 30
 order by a.a2 desc
+
+
+
+################
+treed10.q
+################
+select a.ida as a_ida, a.a1,
+       b.ida as b_ida, b.idb as b_idb,
+       c.ida as c_ida, c.idb as c_idb, c.idc as c_idc,
+       k.ida as k_ida, k.idg as k_idg, k.idj as k_idj, k.idk as k_idk
+from nested tables(A a descendants(A.B b, A.B.C c, A.G.J.K k))
+where a.a2 < 30
+
+
+
+################
+treed11.q
+################
+select /* FORCE_PRIMARY_INDEX(A) */
+       a.ida, b.ida, b.idb, g.idg
+from nested tables(A a descendants(A.B b, A.G g))
+order by a.ida, b.idb
+
+
+
+################
+treed12.q
+################
+select /* FORCE_PRIMARY_INDEX(A) */
+       a.ida, b.ida, b.idb, g.idg
+from nested tables(A a descendants(A.B b, A.G g))
+order by a.ida, g.idg
+
+
+
+################
+treed13.q
+################
+select /* FORCE_PRIMARY_INDEX(A) */
+       a.ida, b.ida, b.idb, g.idg
+from nested tables(A a descendants(A.B b, A.G g))
+order by a.ida, b.idb, g.idg
+
+
+
+################
+unnest01.q
+################
+select p.idp, c.idc, c.a1, $pa
+from NESTED TABLES(P p descendants(P.C c)), p.arr[] as $pa
+
+
+
+################
+unnest02.q
+################
+select p.idp, c.idc, c.a1, $pa
+from NESTED TABLES(P p descendants(P.C c)), c.arr[] as $pa
+
+
+
+################
+unnest03.q
+################
+select p.idp, c.idc, c.a1, $pa, $ca
+from NESTED TABLES(P p descendants(P.C c)), p.arr[] as $pa, c.arr[] as $ca
+
+
+

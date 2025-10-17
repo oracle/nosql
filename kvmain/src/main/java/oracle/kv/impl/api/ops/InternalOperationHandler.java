@@ -17,6 +17,7 @@ import static oracle.kv.Value.Format.isTableFormat;
 
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -36,6 +37,8 @@ import oracle.kv.impl.rep.RepNode;
 import oracle.kv.impl.security.AccessCheckUtils;
 import oracle.kv.impl.security.ExecutionContext;
 import oracle.kv.impl.security.KVStorePrivilege;
+import oracle.kv.impl.security.KVStorePrivilegeLabel;
+import oracle.kv.impl.security.NamespacePrivilege;
 import oracle.kv.impl.security.SystemPrivilege;
 import oracle.kv.impl.security.TablePrivilege;
 import oracle.kv.impl.systables.TableMetadataDesc;
@@ -50,6 +53,7 @@ import com.sleepycat.je.LockMode;
 import com.sleepycat.je.OperationResult;
 import com.sleepycat.je.ReadOptions;
 import com.sleepycat.je.Transaction;
+import com.sleepycat.je.WriteOptions;
 import com.sleepycat.je.dbi.CursorImpl;
 import com.sleepycat.je.dbi.RecordVersion;
 import com.sleepycat.je.utilint.VLSN;
@@ -232,25 +236,38 @@ public abstract class InternalOperationHandler<T extends InternalOperation> {
     }
 
     /**
-     * Creates JE write options with given TTL arguments.
+     * Creates JE write options with given TTL, before image TTL if enabled,
+     * and tombstone.
      */
-    static com.sleepycat.je.WriteOptions makeOption(TimeToLive ttl,
-                                                    boolean updateTTL) {
-        int ttlVal = ttl != null ? (int) ttl.getValue() : 0;
-        TimeUnit ttlUnit = ttl != null ? ttl.getUnit() : null;
-        return new com.sleepycat.je.WriteOptions()
-            .setTTL(ttlVal, ttlUnit)
-            .setUpdateTTL(updateTTL);
+    static WriteOptions makeOption(TimeToLive ttl,
+                                   boolean updateTTL,
+                                   long tableId,
+                                   OperationHandler handler,
+                                   boolean tombstone) {
+        final int ttlVal = ttl != null ? (int) ttl.getValue() : 0;
+        final TimeUnit ttlUnit = ttl != null ? ttl.getUnit() : null;
+        final WriteOptions ret = new WriteOptions();
+        /* set TTL */
+        ret.setTTL(ttlVal, ttlUnit).setUpdateTTL(updateTTL);
+        /* set before image TTL */
+        handler.setBeforeImageTTL(ret, tableId);
+        /* set tombstone */
+        ret.setTombstone(tombstone);
+        return ret;
     }
 
     /**
-     * Creates JE write options with given expiration time
+     * Creates JE write options with given expiration time, and before image
+     * TTL if enabled
      */
-    static com.sleepycat.je.WriteOptions makeExpirationTimeOption(
-        long expiration, boolean updateTTL) {
-        return new com.sleepycat.je.WriteOptions()
-            .setExpirationTime(expiration, null)
-            .setUpdateTTL(updateTTL);
+    static WriteOptions makeExpirationTimeOption(long expiration,
+                                                 boolean updateTTL,
+                                                 long tableId,
+                                                 OperationHandler handler) {
+        final WriteOptions ret = new WriteOptions();
+        ret.setExpirationTime(expiration, null).setUpdateTTL(updateTTL);
+        handler.setBeforeImageTTL(ret, tableId);
+        return ret;
     }
 
     /**
@@ -278,14 +295,17 @@ public abstract class InternalOperationHandler<T extends InternalOperation> {
                              OperationResult result) {
 
         long expirationTime = (result != null ? result.getExpirationTime() : 0);
+        long creationTime = (result != null ? result.getCreationTime() : 0);
         long modificationTime = (result != null ?
             result.getModificationTime() : 0);
+
         switch (prevValue.getReturnChoice()) {
         case VALUE:
             assert !prevData.getPartial();
             prevValue.setValueVersion(prevData.getData(),
                                       null,
                                       expirationTime,
+                                      creationTime,
                                       modificationTime,
                                       getStorageSize(cursor));
             break;
@@ -298,6 +318,7 @@ public abstract class InternalOperationHandler<T extends InternalOperation> {
                                       getVersion(cursor),
                                       expirationTime,
                                       0L,
+                                      0L,
                                       -1);
             break;
         case ALL:
@@ -305,11 +326,12 @@ public abstract class InternalOperationHandler<T extends InternalOperation> {
             prevValue.setValueVersion(prevData.getData(),
                                       getVersion(cursor),
                                       expirationTime,
+                                      creationTime,
                                       modificationTime,
                                       getStorageSize(cursor));
             break;
         case NONE:
-            prevValue.setValueVersion(null, null, 0L, 0L, -1);
+            prevValue.setValueVersion(null, null, 0L, 0L, 0L, -1);
             break;
         default:
             throw new IllegalStateException
@@ -326,6 +348,7 @@ public abstract class InternalOperationHandler<T extends InternalOperation> {
         long expirationTime = (result != null ? result.getExpirationTime() : 0);
         long modificationTime = (result != null ?
                                  result.getModificationTime(): 0);
+        long creationTime = (result != null ? result.getCreationTime(): 0);
 
         switch (choice) {
         case VALUE:
@@ -333,6 +356,7 @@ public abstract class InternalOperationHandler<T extends InternalOperation> {
             return new ResultValueVersion(prevData.getData(),
                                           null,
                                           expirationTime,
+                                          creationTime,
                                           modificationTime,
                                           getStorageSize(cursor));
         case VERSION:
@@ -344,16 +368,18 @@ public abstract class InternalOperationHandler<T extends InternalOperation> {
                                           handler.getVersion(cursor),
                                           expirationTime,
                                           0L,
+                                          0L,
                                           -1);
         case ALL:
             assert !prevData.getPartial();
             return new ResultValueVersion(prevData.getData(),
                                           handler.getVersion(cursor),
                                           expirationTime,
+                                          creationTime,
                                           modificationTime,
                                           getStorageSize(cursor));
         case NONE:
-            return new ResultValueVersion(null, null, 0L, 0L, -1);
+            return new ResultValueVersion(null, null, 0L, 0L, 0L,-1);
         default:
             throw new IllegalStateException(choice.toString());
         }
@@ -531,8 +557,14 @@ public abstract class InternalOperationHandler<T extends InternalOperation> {
         private static final byte[] AVRO_SCHEMA_KEY_PREFIX =
             new byte[] { 0, 0x73, 0x63, 0x68 }; /* Keybytes of "//sch" */
 
-        static interface KeyAccessChecker {
+        interface KeyAccessChecker {
             boolean allowAccess(byte[] key);
+
+            @SuppressWarnings("unused")
+            default boolean allowAccess(
+                byte[] key, EnumSet<KVStorePrivilegeLabel> tablePrivs) {
+                return allowAccess(key);
+            }
         }
 
         static final KeyAccessChecker privateKeyAccessChecker =
@@ -696,6 +728,12 @@ public abstract class InternalOperationHandler<T extends InternalOperation> {
 
         @Override
         public boolean allowAccess(byte[] key) {
+            return allowAccess(key, null);
+        }
+
+        @Override
+        public boolean allowAccess(byte[] key,
+                                   EnumSet<KVStorePrivilegeLabel> tablePrivs) {
             if (!Keyspace.isGeneralAccess(key)) {
                 return true;
             }
@@ -707,7 +745,13 @@ public abstract class InternalOperationHandler<T extends InternalOperation> {
                 return false;
             }
 
-            return internalCheckTableAccess(possibleTable);
+            if (!internalCheckTableAccess(possibleTable)) {
+                return false;
+            }
+            if (tablePrivs != null) {
+                return hasTablePrivileges(possibleTable, tablePrivs);
+            }
+            return true;
         }
 
         boolean internalCheckTableAccess(TableImpl table) {
@@ -762,6 +806,49 @@ public abstract class InternalOperationHandler<T extends InternalOperation> {
             /* Caches the verified table */
             accessibleTables.add(table.getId());
             return true;
+        }
+    }
+
+    /**
+     * Whether current session has the required table privileges.
+     */
+    static boolean hasTablePrivileges(TableImpl table,
+                                      EnumSet<KVStorePrivilegeLabel> privs) {
+        final ExecutionContext exeCtx = ExecutionContext.getCurrent();
+        if (exeCtx == null) {
+            return true;
+        }
+
+        for (KVStorePrivilegeLabel priv : privs) {
+            /* Current session has privileges on the namespace of the table */
+            if (exeCtx.hasPrivilege(
+                    NamespacePrivilege.get(
+                        TablePrivilege.implyingNamespacePrivLabel(priv),
+                        table.getInternalNamespace()))) {
+                continue;
+            }
+
+            /* Current session doesn't have the required table privileges */
+            if (!exeCtx.hasPrivilege(
+                    TablePrivilege.get(priv,
+                                       table.getId(),
+                                       table.getInternalNamespace(),
+                                       table.getName()))) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /*
+     * Verify if current session has the required table privileges.
+     */
+    protected static void verifyTablePrivileges(
+        TableImpl table, EnumSet<KVStorePrivilegeLabel> tablePrivs) {
+        if (!hasTablePrivileges(table, tablePrivs)) {
+            throw new UnauthorizedException(
+                "Insufficient access rights granted on table, id: " +
+                table.getId() + " name: " + table.getFullNamespaceName());
         }
     }
 

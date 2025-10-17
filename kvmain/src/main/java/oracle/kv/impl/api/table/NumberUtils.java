@@ -317,15 +317,15 @@ public class NumberUtils {
         if (sign < 0) {
             value = -1 * value;
         }
-        buffer[offset] = toUnsignedByte(value);
+        buffer[offset] = toUnsignedByte(sign, value);
     }
 
     /**
      * Converts the value with sign to a unsigned byte. If the value is
      * negative, subtract 2.
      */
-    private static byte toUnsignedByte(int value) {
-        if (value < 0) {
+    private static byte toUnsignedByte(int sign, int value) {
+        if (sign < 0) {
             value -= 2;
         }
         return excess128(value);

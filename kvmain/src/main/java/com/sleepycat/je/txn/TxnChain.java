@@ -250,6 +250,7 @@ public class TxnChain {
                             currLogrec.getAbortVLSN(),
                             currLogrec.getAbortExpiration(),
                             currLogrec.isAbortExpirationInHours(),
+                            currLogrec.getCreationTime(),
                             currLogrec.getModificationTime(),
                             currLogrec.isTombstone());
 
@@ -349,6 +350,7 @@ public class TxnChain {
         public long revertVLSN;
         public int revertExpiration;
         public boolean revertExpirationInHours;
+        public long revertCreationTime;
         public long revertModificationTime;
         public boolean revertTombstone;
 
@@ -360,6 +362,7 @@ public class TxnChain {
             long revertVLSN,
             int revertExpiration,
             boolean revertExpirationInHours,
+            long revertCreationTime,
             long revertModificationTime,
             boolean revertTombstone) {
 
@@ -371,6 +374,7 @@ public class TxnChain {
             this.revertVLSN = revertVLSN;
             this.revertExpiration = revertExpiration;
             this.revertExpirationInHours = revertExpirationInHours;
+            this.revertCreationTime = revertCreationTime;
             this.revertModificationTime = revertModificationTime;
             this.revertTombstone = revertTombstone;
         }
@@ -416,6 +420,7 @@ public class TxnChain {
             this.key = key;
         }
 
+        @Override
         public int compareTo(CompareSlot other) {
             int dbCompare = dbImpl.getId().compareTo(other.dbImpl.getId());
             if (dbCompare != 0) {

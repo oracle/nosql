@@ -21,12 +21,18 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.junit.Assume.assumeTrue;
 
+import java.io.IOException;
+import java.net.InetSocketAddress;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Level;
@@ -42,19 +48,28 @@ import oracle.kv.OperationFactory;
 import oracle.kv.RequestTimeoutException;
 import oracle.kv.StoreIteratorException;
 import oracle.kv.Value;
-import oracle.kv.Value.Format;
 import oracle.kv.ValueVersion;
 import oracle.kv.Version;
 import oracle.kv.impl.api.AggregateThroughputTracker;
+import oracle.kv.impl.api.KVStoreImpl;
 import oracle.kv.impl.api.table.Region;
+import oracle.kv.impl.api.table.RowImpl;
 import oracle.kv.impl.api.table.TableBuilder;
 import oracle.kv.impl.api.table.TableImpl;
 import oracle.kv.impl.api.table.TableKey;
 import oracle.kv.impl.api.table.TableMetadata;
+import oracle.kv.impl.fault.OperationFaultException;
+import oracle.kv.impl.fault.RNUnavailableException;
+import oracle.kv.impl.metadata.Metadata;
 import oracle.kv.impl.param.ParameterState;
+import oracle.kv.impl.rep.admin.RepNodeAdminImpl;
 import oracle.kv.impl.rep.admin.RepNodeAdmin.PartitionMigrationState;
+import oracle.kv.impl.rep.migration.MigrationManager;
+import oracle.kv.impl.rep.migration.MigrationTarget;
 import oracle.kv.impl.rep.migration.PartitionMigrationStatus;
+import oracle.kv.impl.rep.migration.TargetMonitorExecutor;
 import oracle.kv.impl.test.TestHook;
+import oracle.kv.impl.topo.Partition;
 import oracle.kv.impl.topo.PartitionId;
 import oracle.kv.impl.topo.RepGroupId;
 import oracle.kv.impl.topo.RepNodeId;
@@ -66,7 +81,9 @@ import oracle.kv.impl.util.registry.AsyncControl;
 import oracle.kv.table.Index;
 import oracle.kv.table.IndexKey;
 import oracle.kv.table.KeyPair;
+import oracle.kv.table.PrimaryKey;
 import oracle.kv.table.Row;
+import oracle.kv.table.Table;
 import oracle.kv.table.TableAPI;
 import oracle.kv.table.TableIterator;
 import oracle.kv.table.TableIteratorOptions;
@@ -75,6 +92,8 @@ import com.sleepycat.je.Database;
 import com.sleepycat.je.DatabaseEntry;
 import com.sleepycat.je.DatabaseNotFoundException;
 import com.sleepycat.je.rep.utilint.ServiceDispatcher.Response;
+import com.sleepycat.je.rep.utilint.net.SimpleDataChannel;
+import com.sleepycat.je.utilint.TestHookAdapter;
 
 import org.junit.Test;
 
@@ -789,6 +808,234 @@ public class PartitionMigrationTest extends PartitionMigrationTestBase {
         assertNull(kvs.get(keys[9], Consistency.ABSOLUTE, 0, null));
     }
 
+    /**
+     * Tests that the row creation time remains unchanged after executing client
+     * operations (PUT/DELETE) and COPY during a partition migration.
+     * <p>
+     * This test triggers a migration, then single-steps the stream using a
+     * read hook. While migration is running, it performs multiple client
+     * operations:
+     * <p>
+     * - PUT operations on rows both before and after the migration cursor
+     * - DELETE operations on rows both before and after the cursor
+     * - INSERT operation both before and after cursor of the deleted rows.
+     * <p>
+     * The test primarily verifies that:
+     * - The creation time of each retained row remains unchanged before and
+     * after partition migration.
+     * <p>
+     * It also verifies :
+     * - Rows updated are correctly reflected in the target
+     * - Rows deleted are no longer retrievable
+     * - Topology metadata is updated correctly after migration completion
+     */
+    @Test
+    public void testRowCreationTimeAfterClientOps() {
+        config.startRepNodeServices();
+
+        final RepNode source = config.getRN(sourceId);
+        final RepNode target = config.getRN(targetId);
+
+        kvs = KVStoreFactory.getStore(config.getKVSConfig());
+        final TableAPI tableAPI = kvs.getTableAPI();
+        final Table table = createTable();
+
+        /* The rows contain the final update to be done in the client ops */
+        final Row[] rows = getRowsInPartition(table);
+        final int totalRows = rows.length;
+        final PrimaryKey[] pk = new PrimaryKey[totalRows];
+        final List<Long> beforeCreationTime = new ArrayList<>();
+        for (int i = 0; i < totalRows; i++) {
+            PrimaryKey primaryKey = table.createPrimaryKey();
+            primaryKey.put("id", rows[i].get("id").asInteger().get());
+            pk[i] = primaryKey;
+            beforeCreationTime.add(tableAPI.get(pk[i],null).getCreationTime());
+        }
+        Arrays.sort(rows, (r1, r2) -> {
+            int id1 = r1.get("id").asInteger().get();
+            int id2 = r2.get("id").asInteger().get();
+            return Integer.compare(id1, id2);
+        });
+
+        ReadHook readHook = new ReadHook();
+        source.getMigrationManager().setReadHook(readHook);
+
+        assertEquals(PartitionMigrationState.PENDING,
+                     target.migratePartition(p1, rg1)
+                           .getPartitionMigrationState());
+
+        waitForMigrationState(target, p1, PartitionMigrationState.RUNNING);
+        readHook.waitForHook();
+
+        /* COPY Operation */
+        readHook.releaseHook();     // row[0]
+        readHook.waitForHook();
+        readHook.releaseHook();     // row[1]
+        readHook.waitForHook();
+        readHook.releaseHook();     // row[2]
+        readHook.waitForHook();
+        readHook.releaseHook();     // row[3]
+        readHook.waitForHook();
+        readHook.releaseHook();     // row[4]
+
+        /* Update row behind the cursor - PUT Operation */
+        tableAPI.put(rows[0], null, null);
+        tableAPI.put(rows[1], null, null);
+        tableAPI.put(rows[2], null, null);
+        tableAPI.put(rows[3], null, null);
+
+        /* Update rows ahead of cursor */
+        tableAPI.put(rows[5], null, null);
+        tableAPI.put(rows[6], null, null);
+        tableAPI.put(rows[7], null, null);
+
+        /* Delete rows before the cursor - DELETE Operation */
+        tableAPI.delete(pk[0], null, null);
+        tableAPI.delete(pk[1], null, null);
+
+        /* Delete rows after the cursor - DELETE Operation */
+        tableAPI.delete(pk[5], null, null);
+        tableAPI.delete(pk[6], null, null);
+
+        /* Inserting row before the cursor */
+        tableAPI.put(rows[0], null, null);
+        /* Replacing the creation time of deleted row with newly inserted row */
+        beforeCreationTime.set(0, tableAPI.get(pk[0], null).getCreationTime());
+
+        /* Inserting row after the cursor */
+        tableAPI.put(rows[6], null, null);
+        /* Replacing the creation time of deleted row with newly inserted row */
+        beforeCreationTime.set(6, tableAPI.get(pk[6], null).getCreationTime());
+
+        readHook.waitForHook();
+        source.getMigrationManager().setReadHook(null);
+        readHook.releaseHook();
+        waitForMigrationState(target, p1, PartitionMigrationState.SUCCEEDED);
+
+        verifyRowAndCreationTime(tableAPI, totalRows, rows, pk,
+                                 beforeCreationTime);
+
+        /* Update topology */
+        final Topology topo = config.getTopology();
+        topo.updatePartition(p1, new RepGroupId(
+            target.getRepNodeId().getGroupId()));
+        source.updateMetadata(topo);
+        target.updateMetadata(topo);
+
+        verifyRowAndCreationTime(tableAPI, totalRows, rows, pk,
+                                 beforeCreationTime);
+
+        assertEquals(2, p1.getComponent(topo).getRepGroupId().getGroupId());
+    }
+
+    /**
+     * Verifies the state of rows after partition migration by checking:
+     * - The creation time of all non-deleted rows remains unchanged after PM.
+     * - Deleted rows (IDs: 0, 1, 5, 6) are no longer retrievable.</li>
+     * - Rows with additional updates (IDs: 2, 3, 7) have correct final value.
+     * - Other retained rows have their original values.
+     */
+    private void verifyRowAndCreationTime(TableAPI tableAPI,
+                                          int totalRows,
+                                          Row[] rows,
+                                          PrimaryKey[] pk,
+                                          List<Long> beforeCreationTime) {
+        for (int i = 0; i < totalRows; i++) {
+            /* Deleted rows 1 and 5 should be null after migration */
+            if (i == 1 || i == 5) {
+                assertNull(tableAPI.get(pk[i], null));
+            } else {
+                /* Only row 2,3 and 7 should have the second update .
+                 * Row 0 and 6 were added during migration with the second
+                 * update.
+                 */
+                if (i == 2 || i == 3 || i == 7 || i == 0 || i == 6) {
+                    assertEquals(
+                        "SecondUpdate-" + rows[i].get("id").asInteger().get(),
+                        tableAPI.get(pk[i], null).get("val").asString().get());
+                } else {
+                    assertEquals(
+                        "FirstUpdate-" + rows[i].get("id").asInteger().get(),
+                        tableAPI.get(pk[i], null).get("val").asString().get());
+                }
+                /* Rows 0, 2, 3, 4, 6, 7, 8, 9 must have same creation time */
+                assertEquals((long) beforeCreationTime.get(i),
+                             tableAPI.get(pk[i], null).getCreationTime());
+            }
+        }
+    }
+
+    /**
+     * Creating a table in the store created by KVRepTestConfig.
+     */
+    private Table createTable() {
+        final TableImpl USER_TABLE =
+            TableBuilder.createTableBuilder("User")
+                        .addInteger("id")
+                        .addString("val")
+                        .primaryKey("id")
+                        .buildTable();
+        final RepNode master = config.getMaster(new RepGroupId(1), 100);
+        final TableMetadata md = (TableMetadata) master
+            .getMetadata(Metadata.MetadataType.TABLE).getCopy();
+        md.addTable(USER_TABLE.getInternalNamespace(),
+                    USER_TABLE.getName(),
+                    USER_TABLE.getParentName(),
+                    USER_TABLE.getPrimaryKey(),
+                    null, // primaryKeySizes
+                    USER_TABLE.getShardKey(),
+                    USER_TABLE.getFieldMap(),
+                    null, // TTL
+                    null, /*beforeImageTTL*/
+                    null, // limits
+                    false, 0,
+                    null, null);
+        boolean success;
+        success = master.updateMetadata(md);
+        assertTrue(success);
+        return USER_TABLE;
+    }
+
+    /**
+     * Populates 10 rows in the table that belong to the specific
+     * partition {@code p1}.
+     * <p>
+     * Each row is inserted and then updated twice to simulate multiple
+     * modifications:
+     * <ul>
+     *   <li>The initial value is inserted as "Value-{id}".</li>
+     *   <li>Then updated to "FirstUpdate-{id}".</li>
+     *   <li>Then updated to "SecondUpdate-{id}".</li>
+     * </ul>
+     * <p>
+     * Only rows that fall into the target partition {@code p1} are retained.
+     *
+     * @param table the {@code Table} instance representing table
+     * @return an array of {@code Row} objects after the second update, all
+     * belonging to partition {@code p1}
+     */
+    private Row[] getRowsInPartition(Table table) {
+        final List<Row> rowsList = new ArrayList<>();
+        final TableAPI tableAPI = kvs.getTableAPI();
+        KVStoreImpl storeImpl = (KVStoreImpl) kvs;
+        int i = 0;
+        while (rowsList.size() < 10) {
+            final Row row = table.createRow();
+            row.put("id", i);
+            row.put("val", "Value " + i);
+            if (storeImpl.getPartitionId(((RowImpl) row).getPrimaryKey(false))
+                .equals(p1)) {
+                tableAPI.put(row, null, null);
+                row.put("val", "FirstUpdate-" + i);
+                tableAPI.put(row, null, null);
+                row.put("val", "SecondUpdate-" + i);
+                rowsList.add(row);
+            }
+            i++;
+        }
+        return rowsList.toArray(new Row[0]);
+    }
+
     @Test
     public void testConflict() {
         /* Pausing the source may cause the sream to timeout on some systems */
@@ -1252,7 +1499,9 @@ public class PartitionMigrationTest extends PartitionMigrationTestBase {
                                       null,
                                       userTable.getShardKey(),
                                       userTable.getFieldMap(),
-                                      null, null,
+                                      null,
+                                      null, /*beforeImageTTL*/
+                                      null,
                                       false, 0,
                                       null,
                                       null /* owner */);
@@ -1344,7 +1593,9 @@ public class PartitionMigrationTest extends PartitionMigrationTestBase {
                                       null,
                                       userTable.getShardKey(),
                                       userTable.getFieldMap(),
-                                      null, null,
+                                      null,
+                                      null, /*beforeImageTTL*/
+                                      null,
                                       false, 0,
                                       null,
                                       null /* owner */);
@@ -1444,7 +1695,9 @@ public class PartitionMigrationTest extends PartitionMigrationTestBase {
                                       null,
                                       userTable.getShardKey(),
                                       userTable.getFieldMap(),
-                                      null, null,
+                                      null,
+                                      null, /*beforeImageTTL*/
+                                      null,
                                       false, 0,
                                       null,
                                       null /* owner */);
@@ -1574,7 +1827,9 @@ public class PartitionMigrationTest extends PartitionMigrationTestBase {
                                             null,
                                             userTable.getShardKey(),
                                             userTable.getFieldMap(),
-                                            null, null,
+                                            null,
+                                            null, /*beforeImageTTL*/
+                                            null,
                                             false, 0,
                                             null,
                                             null /* owner */);
@@ -1665,7 +1920,9 @@ public class PartitionMigrationTest extends PartitionMigrationTestBase {
                                       null,
                                       userTable.getShardKey(),
                                       userTable.getFieldMap(),
-                                      null, null,
+                                      null,
+                                      null, /*beforeImageTTL*/
+                                      null,
                                       false, 0,
                                       null,
                                       null /* owner */,
@@ -1777,9 +2034,8 @@ public class PartitionMigrationTest extends PartitionMigrationTestBase {
             return false;
         }
         final Value value = vv.getValue();
-        return value.getFormat() == Format.MULTI_REGION_TABLE &&
-               Region.isMultiRegionId(value.getRegionId()) &&
-               value.getValue().length == 0;
+        return Region.isMultiRegionId(value.getRegionId()) &&
+            value.getValue().length == 0;
     }
 
     /**
@@ -1820,7 +2076,9 @@ public class PartitionMigrationTest extends PartitionMigrationTestBase {
                                       null,
                                       userTable.getShardKey(),
                                       userTable.getFieldMap(),
-                                      null, null,
+                                      null,
+                                      null, /*beforeImageTTL*/
+                                      null,
                                       false, 0,
                                       null,
                                       null /* owner */);
@@ -2227,5 +2485,386 @@ public class PartitionMigrationTest extends PartitionMigrationTestBase {
              */
             2000);
         assertTopoNumbersEqualOrAfter(localizedTopo, targetUpdatedTopo);
+    }
+
+    /**
+     * Tests the situation that a master of the target shard is
+     * network-partitioned before the migration and came back in the middle.
+     *
+     * [KVSTORE-2276][KVSTORE-2640]
+     */
+    @Test
+    public void testCheckTargetWithMasterNetworkPartitioned() throws Exception {
+        config.startRepNodeServices();
+        /* Finds the current master. */
+        final RepNode npMaster = config.getMaster(rg2, 1000);
+        /*
+         * Blocks the master's target executor so that the migration record will
+         * be persisted, but the target never runs.
+         */
+        blockTargetExecution(npMaster);
+        logger.info(String.format("Start blocking target execution of %s",
+            npMaster.getRepNodeId()));
+        /* Starts the migration. */
+        final RepNode source = config.getMaster(rg1, 1000);
+        final RepNode oldTarget = npMaster;
+        final Key k1 = new KeyGenerator(source).getKeys(1)[0];
+        final PartitionId k1p = source.getPartitionId(k1.toByteArray());
+        logger.info(String.format("Migrate partition %s, from %s to %s", k1p,
+            source.getRepNodeId(), oldTarget.getRepNodeId()));
+        assertEquals(PartitionMigrationState.PENDING,
+                     oldTarget.migratePartition(k1p, rg1).
+                         getPartitionMigrationState());
+        /*
+         * Sleep a bit to ensure that the record is written and replicated and
+         * the target is being blocked still.
+         */
+        Thread.sleep(1000);
+        assertEquals(PartitionMigrationState.PENDING,
+                     oldTarget.migratePartition(k1p, rg1).
+                         getPartitionMigrationState());
+        /* Sets up the send nop hook for the source master. */
+        setupNopDestination(source, oldTarget);
+        /* Network-partition the old target. */
+        blockJEHA(npMaster.getRepNodeId());
+        /* Now find the new master. */
+        final RepNode newTarget =
+            config.getMaster(rg2, 10000, Set.of(oldTarget.getRepNodeId()));
+        logger.info(String.format("Migrate partition %s, from %s to %s", k1p,
+            source.getRepNodeId(), newTarget.getRepNodeId()));
+        waitForMigrationState(newTarget, k1p,
+            PartitionMigrationState.SUCCEEDED);
+        Thread.sleep(2 * TargetMonitorExecutor.POLL_PERIOD * 1000);
+        /*
+         * Updates the topology to the official new one and broadcast it to the
+         * source which will cause an IllegalStateException if the issue was not
+         * fixed.
+         */
+        final Topology newTopo = config.getTopology().getCopy();
+        newTopo.updatePartition(k1p, rg2);
+        source.updateMetadata(newTopo);
+    }
+
+    private AtomicBoolean blockJEHA(RepNodeId rnId) {
+        final int port = getHAPort(rnId);
+        logger.info(String.format("Start blocking all traffic to %s of %s",
+            port, rnId));
+        return blockChannel(port);
+    }
+
+    private int getHAPort(RepNodeId rnId) {
+        return config.getRN(rnId).getRepNodeParams().getHAPort();
+    }
+
+    private AtomicBoolean blockChannel(int blockingPort) {
+        final AtomicBoolean blocked = new AtomicBoolean(true);
+        tearDowns.add(() -> blocked.set(false));
+        tearDowns.add(() -> SimpleDataChannel.ioHook = null);
+        SimpleDataChannel.ioHook = new TestHookAdapter<SimpleDataChannel>() {
+            @Override
+            public void doIOHook(SimpleDataChannel ch) throws IOException {
+                final int remotePort;
+                try {
+                    remotePort =
+                        ((InetSocketAddress) ch.getRemoteAddress()).getPort();
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+                if (remotePort != blockingPort) {
+                    return;
+                }
+                if (!blocked.get()) {
+                    return;
+                }
+                throw new IOException("blocked");
+            }
+        };
+        return blocked;
+    }
+
+    private AtomicBoolean blockTargetExecution(RepNode repNode) {
+        final ScheduledThreadPoolExecutor executor =
+            repNode.getMigrationManager().getTargetExecutor();
+        return blockExecution("target execution for " + repNode.getRepNodeId(),
+                executor);
+    }
+
+    private AtomicBoolean blockExecution(String name,
+                                         ScheduledThreadPoolExecutor executor)
+    {
+        final AtomicBoolean blocked = new AtomicBoolean(true);
+        tearDowns.add(() -> blocked.set(false));
+        final int numThreads = executor.getCorePoolSize();
+        logger.info(String.format(
+            "blocking target execution in %s with %s threads",
+            name, numThreads));
+        for (int i = 0; i < numThreads; ++i) {
+            executor.execute(() -> {
+                while (blocked.get()) {
+                    try {
+                        Thread.sleep(1000);
+                    } catch (InterruptedException e) {
+                        /* ignore */
+                    }
+                }
+            });
+        }
+        return blocked;
+    }
+
+    private void setupNopDestination(RepNode source, RepNode target) {
+        tearDowns.add(() -> RepNode.SEND_RG_NOP_HOOK = null);
+        RepNode.SEND_RG_NOP_HOOK = (rn) -> {
+            if (!rn.getRepNodeId().equals(source.getRepNodeId())) {
+                return;
+            }
+            source.sendNOP(target.getRepNodeId());
+        };
+    }
+
+    /**
+     * Tests that the source can detect target failure quickly even when the old
+     * target is being network-partitoned. The concern is that the
+     * TargetMonitorExecutor has only one thread which check one partition at a
+     * time. If the checks are blocking for a long time, then things could queue
+     * up preventing a quick failure detection.
+     */
+    @Test
+    public void testMigrationFailureTargetNetworkPartitioned()
+        throws Exception
+    {
+        /*
+         * Disable stats collection as it will access a non-existing table,
+         * throw MetadataNotFoundException to the fault handler and cause node
+         * restart.
+         */
+        disableStatsCollection();
+        /*
+         * Increase the migration concurrency to speed up the test. We will
+         * migrate many partitions to overwhelm the TargetMonitorExecutor checks
+         * if they are blocking.
+         */
+        increaseMigrationConcurrency();
+        addPartitions();
+        reduceMigrationDelay();
+        config.startRepNodeServices();
+        /* Sets up to fail the target migration. */
+        failMigrationCompletionOnTarget();
+        final RepNode source = config.getMaster(rg1, 1000);
+        final RepNode target = config.getMaster(rg2, 1000);
+        logger.info(String.format("Running migration from %s to %s",
+            source.getRepNodeId(), target.getRepNodeId()));
+        /*
+         * Blocks the nop execution on the target so that source will encounter
+         * errors duing target monitoring.
+         */
+        blockRequestExecute(target.getRepNodeId());
+        /*
+         * Blocks the target monitor execution on the source so that we do not
+         * check the target state until we change target mastership.
+         */
+        final AtomicBoolean targetMonitorBlocked =
+            blockTargetMonitorExecution(source);
+        /* Start moving all the partitions on rg1 to rg2. */
+        ensureMigrationState(PartitionMigrationState.PENDING, target);
+        waitMigrationState(PartitionMigrationState.ERROR, target, 10000);
+        /*
+         * Block JEHA for the target to force a mastership change.
+         */
+        blockJEHA(target.getRepNodeId());
+        final RepNode newTarget =
+            config.getMaster(rg2, 10000, Set.of(target.getRepNodeId()));
+        assertTrue("Master not found", newTarget != null);
+        /*
+         * Runs the migration again on the new target which will result in error
+         * because partition is not on the source. We need to re-run due to a
+         * migration issue. When the old target failed, error() was called and
+         * the record removed. When the master switch to the new target, it just
+         * waits there without doing anything.
+         */
+        logger.info(
+            "Running new migration target on " + newTarget.getRepNodeId());
+        ensureMigrationState(PartitionMigrationState.PENDING, newTarget);
+        /* Unblock the target monitoring. */
+        targetMonitorBlocked.set(false);
+        /*
+         * Even with nop blocked, the source should detect failure pretty
+         * quickly and restore the partition. Checking the state at the source
+         * should return SUCCEEDED indicating the partition is restored instead
+         * of UNKNOWN.
+         */
+        Thread.sleep(20000);
+        ensureMigrationState(PartitionMigrationState.SUCCEEDED, source);
+    }
+
+    private void disableStatsCollection() {
+        for (RepNode rn : config.getRNs()) {
+            rn.getRepNodeParams().getMap().setParameter(
+                ParameterState.RN_SG_ENABLED, "false");
+        }
+    }
+
+    private void increaseMigrationConcurrency() {
+        for (RepNode rn : config.getRNs()) {
+            rn.getRepNodeParams().getMap().setParameter(
+                ParameterState.RN_PM_CONCURRENT_SOURCE_LIMIT, "1000");
+            rn.getRepNodeParams().getMap().setParameter(
+                ParameterState.RN_PM_CONCURRENT_TARGET_LIMIT, "1000");
+        }
+    }
+
+    private void addPartitions() {
+        for (int i = 0; i < 100; ++i) {
+            final RepGroupId rgId = (i % 2 == 0) ? rg1 : rg2;
+            config.getTopology().add(new Partition(rgId));
+        }
+    }
+
+    private void reduceMigrationDelay() {
+        tearDowns.add(() -> MigrationManager.MINIMUM_DELAY_OVERRIDE = -1);
+        MigrationManager.MINIMUM_DELAY_OVERRIDE = 0;
+    }
+
+    private void failMigrationCompletionOnTarget()
+    {
+        tearDowns.add(() -> MigrationTarget.PERSIST_HOOK = null);
+        MigrationTarget.PERSIST_HOOK = (target) -> {
+            throw new RuntimeException("injected failure");
+        };
+    }
+
+    private void ensureMigrationState(PartitionMigrationState expected,
+                                      RepNode rn)
+    {
+        final List<PartitionId> partitions = config.getTopology()
+            .getPartitionsInShard(rg1.getGroupId(), Collections.emptySet());
+        for (PartitionId p : partitions) {
+            final PartitionMigrationState state;
+            if (rn.getRepNodeId().getGroupId() == rg1.getGroupId()) {
+                state = rn.getMigrationState(p).getPartitionMigrationState();
+            } else {
+                state =
+                    rn.migratePartition(p, rg1).getPartitionMigrationState();
+            }
+            assertEquals("wrong state for partition " + p, expected, state);
+        }
+    }
+
+    private void waitMigrationState(PartitionMigrationState expected,
+                                    RepNode rn,
+                                    long timeoutMillis)
+    {
+        final List<PartitionId> partitions = config.getTopology()
+            .getPartitionsInShard(rg1.getGroupId(), Collections.emptySet());
+        for (PartitionId p : partitions) {
+            waitForMigrationState(rn, p, timeoutMillis, expected);
+        }
+    }
+
+    private AtomicBoolean blockRequestExecute(RepNodeId rnId) {
+        final AtomicBoolean blocked = new AtomicBoolean(true);
+        tearDowns.add(() -> blocked.set(false));
+        config.getRH(rnId).setTestNOPHook((r) -> {
+            if (!blocked.get()) {
+                return;
+            }
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {
+                /* ignore */
+            }
+            throw new RNUnavailableException("blocked");
+        });
+        return blocked;
+    }
+
+    private AtomicBoolean blockTargetMonitorExecution(RepNode repNode) {
+        final ScheduledThreadPoolExecutor executor =
+            repNode.getMigrationManager().getTargetMonitorExecutor();
+        return blockExecution(
+            "target monitor execution for " + repNode.getRepNodeId(), executor);
+    }
+
+    /**
+     * Tests the situation that a master of the source shard is
+     * network-partitoned but can still make contact with the admin to receive
+     * topology broadcast.
+     *
+     * [KVSTORE-2276]
+     */
+    @Test
+    public void testTopoUpdateSourceMasterNetworkPartitioned()
+        throws Exception
+    {
+        testTopoUpdateMasterNetworkPartitioned(rg1);
+    }
+
+    private void testTopoUpdateMasterNetworkPartitioned(RepGroupId npGroup)
+        throws Exception
+    {
+        config.startRepNodeServices();
+        /* Finds the current master. */
+        final RepNode npMaster = config.getMaster(npGroup, 10);
+        /* Network-partitions the old master. */
+        blockJEHA(npMaster.getRepNodeId());
+        blockPing(npMaster.getRepNodeId());
+        /* Finds the source and target master and executes the migration. */
+        final RepNode source = npGroup.equals(rg1)
+            ? config.getMaster(rg1, 10000, Set.of(npMaster.getRepNodeId()))
+            : config.getMaster(rg1, 1000);
+        final RepNode target = npGroup.equals(rg2)
+            ? config.getMaster(rg2, 10000, Set.of(npMaster.getRepNodeId()))
+            : config.getMaster(rg2, 1000);
+        final Key k1 = new KeyGenerator(source).getKeys(1)[0];
+        final PartitionId k1p = source.getPartitionId(k1.toByteArray());
+        logger.info(String.format("Migrate partition %s, from %s to %s", k1p,
+            source.getRepNodeId(), target.getRepNodeId()));
+        assertEquals(PartitionMigrationState.PENDING,
+                     target.migratePartition(k1p, rg1).
+                         getPartitionMigrationState());
+        waitForMigrationState(target, k1p, PartitionMigrationState.SUCCEEDED);
+        /*
+         * Broadcasts the new topology to the isolated master which will cause
+         * an IllegalStateException if the issue was not fixed.
+         */
+        final Topology newTopo = config.getTopology().getCopy();
+        newTopo.updatePartition(k1p, rg2);
+        try {
+            npMaster.updateMetadata(newTopo);
+        } catch (OperationFaultException e) {
+            assertTrue(e.getMessage(),
+                e.getMessage().contains("not authoritative master"));
+        }
+    }
+
+    private AtomicBoolean blockPing(RepNodeId rnId) {
+        final AtomicBoolean blocked = new AtomicBoolean(true);
+        tearDowns.add(() -> blocked.set(false));
+        tearDowns.add(() -> RepNodeAdminImpl.PING_HOOK = null);
+        RepNodeAdminImpl.PING_HOOK = (rns) -> {
+            if (!blocked.get()) {
+                return;
+            }
+            if (!rns.getRepNodeId().equals(rnId)) {
+                return;
+            }
+            throw new RNUnavailableException("blocked");
+        };
+        return blocked;
+    }
+
+
+    /**
+     * Tests the situation that a master of the target shard is
+     * network-partitoned but can still make contact with the admin to receive
+     * topology broadcast.
+     *
+     * [KVSTORE-2276]
+     */
+    @Test
+    public void testTopoUpdateTargetMasterNetworkPartitioned()
+        throws Exception
+    {
+        testTopoUpdateMasterNetworkPartitioned(rg2);
     }
 }

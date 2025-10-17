@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2011, 2024 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011, 2025 Oracle and/or its affiliates. All rights reserved.
  *
  * This file was distributed by Oracle as part of a version of Oracle NoSQL
  * Database made available at:
@@ -311,12 +311,28 @@ public interface TenantManager {
     }
 
     /**
-     * Gets the work request information.
+     * Gets the DDL work request information.
      *
      * @param actx access context
      * @param workRequestId the workRequest id
      * @param internal whether this is an internal. For Cloud, internal
      * won't be throttled.
+     * @param lc log context
+     *
+     * @return GetDdlWorkRequestResponse
+     */
+    default GetDdlWorkRequestResponse getDdlWorkRequest(AccessContext actx,
+                                                        String workRequestId,
+                                                        boolean internal,
+                                                        LogContext lc) {
+        return null;
+    }
+
+    /**
+     * Gets the work request information.
+     *
+     * @param actx access context
+     * @param workRequestId the workRequest id
      * @param lc log context
      *
      * @return GetWorkRequestResponse
@@ -341,7 +357,7 @@ public interface TenantManager {
      * @return ListWorkRequestResponse
      */
     default ListWorkRequestResponse listWorkRequests(AccessContext actx,
-                                                     int startIndex,
+                                                     String startIndex,
                                                      int limit,
                                                      LogContext lc) {
         return null;
@@ -457,6 +473,65 @@ public interface TenantManager {
                                          long startTime,
                                          int limit,
                                          LogContext lc);
+    /**
+     * Gets the service level kms key information
+     *
+     * @param actx the AccessContext instance
+     * @param internal whether this is an internal. For Cloud, internal
+     * won't be throttled.
+     * @param lc log context
+     *
+     * @return a GetKmsKeyInfoResponse representing the kms key information
+     */
+    default GetKmsKeyInfoResponse getKmsKey(AccessContext actx,
+                                            boolean internal,
+                                            LogContext lc) {
+        return new GetKmsKeyInfoResponse(
+                ErrorResponse.build(ErrorCode.UNSUPPORTED_OPERATION,
+                                    "getKmsKey is not supported"));
+    }
+
+    /**
+     * Updates the service level kms key
+     *
+     * @param actx the AccessContext instance
+     * @param kmsKeyId the kms key Id
+     * @param kmsVaultId the kms vault Id
+     * @param matchETag the index ETag to be matched
+     * @param dryRun true if test this operation without actually executing it
+     * @param lc the LogContext instance
+     *
+     * @return WorkRequestIdResponse representing the work request Id.
+     */
+    default WorkRequestIdResponse updateKmsKey(AccessContext actx,
+                                               String kmsKeyId,
+                                               String kmsVaultId,
+                                               byte[] matchETag,
+                                               boolean dryRun,
+                                               LogContext lc) {
+        return new WorkRequestIdResponse(
+                ErrorResponse.build(ErrorCode.UNSUPPORTED_OPERATION,
+                                    "updateKmsKey is not supported"));
+    }
+
+    /**
+     * Removes the kms key used by the service
+     *
+     * @param actx the AccessContext instance
+     * @param matchETag the index ETag to be matched
+     * @param dryRun true if test this operation without actually executing it
+     * @param lc the LogContext instance
+     *
+     * @return WorkRequestIdResponse representing the work request Id.
+     */
+    default WorkRequestIdResponse removeKmsKey(AccessContext actx,
+                                               byte[] matchETag,
+                                               boolean dryRun,
+                                               LogContext lc) {
+        return new WorkRequestIdResponse(
+                ErrorResponse.build(ErrorCode.UNSUPPORTED_OPERATION,
+                                    "removeKmsKey is not supported"));
+    }
 
     /**
      * Certain environments require that a newly-created store is

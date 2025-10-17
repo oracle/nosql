@@ -347,7 +347,7 @@ public class IndexScan {
             /**
              * Convert the results to KeyPair instances.  Note that in the
              * case where ancestor and/or child table returns are requested
-             * the IndexKey returned is based on the the index and the table
+             * the IndexKey returned is based on the index and the table
              * containing the index, but the PrimaryKey returned may be from
              * a different, ancestor or child table.
              */
@@ -564,6 +564,7 @@ public class IndexScan {
                 vv,
                 fullKey,
                 rowResult.getExpirationTime(),
+                rowResult.getCreationTime(),
                 rowResult.getModificationTime(),
                 false,
                 false);

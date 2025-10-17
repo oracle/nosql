@@ -364,7 +364,9 @@ public class StorageStatTest extends RepNodeTestBase {
                     null,
                     table.getShardKey(),
                     table.getFieldMap(),
-                    null, null,
+                    null,
+                    null, /*beforeImageTTL*/
+                    null,
                     false, 0, null, null/* owner */,
                     true /* sysTable */,
                     null /* identity col */,
@@ -384,7 +386,9 @@ public class StorageStatTest extends RepNodeTestBase {
                     null,
                     table.getShardKey(),
                     table.getFieldMap(),
-                    null, null,
+                    null,
+                    null, /*beforeImageTTL*/
+                    null,
                     false, 0, null, null/* owner */,
                     false /* not sysTable */,
                     null /* identity col */,

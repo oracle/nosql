@@ -148,6 +148,7 @@ public interface SecondaryMultiKeyCreator {
     public void createSecondaryKeys(SecondaryDatabase secondary,
                                     DatabaseEntry key,
                                     DatabaseEntry data,
+                                    long creationTime,
                                     long modificationTime,
                                     long expirationTime,
                                     int storageSize,

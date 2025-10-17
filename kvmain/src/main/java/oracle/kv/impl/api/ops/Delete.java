@@ -14,6 +14,7 @@
 package oracle.kv.impl.api.ops;
 
 import static oracle.kv.impl.util.SerialVersion.CLOUD_MR_TABLE;
+import static oracle.kv.impl.util.SerialVersion.ROW_METADATA_VERSION;
 
 import java.io.DataInput;
 import java.io.DataOutput;
@@ -22,6 +23,7 @@ import java.util.Objects;
 
 import oracle.kv.ReturnValueVersion.Choice;
 import oracle.kv.impl.api.lob.KVLargeObjectImpl;
+import oracle.kv.impl.util.SerializationUtil;
 
 /**
  * The delete operation deletes the key/value pair associated with the key.
@@ -46,10 +48,15 @@ public class Delete extends SingleKeyOperation {
     private final boolean doTombstone;
 
     /**
+     * The row metadata for the op.
+     */
+    private final String rowMetadata;
+
+    /**
      * Constructs a delete operation.
      */
     public Delete(byte[] keyBytes, Choice prevValChoice) {
-        this(keyBytes, prevValChoice, 0, false);
+        this(keyBytes, prevValChoice, 0, false, null);
     }
 
     /**
@@ -58,8 +65,9 @@ public class Delete extends SingleKeyOperation {
     public Delete(byte[] keyBytes,
                   Choice prevValChoice,
                   long tableId,
-                  boolean doTombstone) {
-        this(OpCode.DELETE, keyBytes, prevValChoice, tableId, doTombstone);
+                  boolean doTombstone,
+                  String rowMetadata) {
+        this(OpCode.DELETE, keyBytes, prevValChoice, tableId, doTombstone, rowMetadata);
     }
 
     /**
@@ -69,11 +77,13 @@ public class Delete extends SingleKeyOperation {
            byte[] keyBytes,
            Choice prevValChoice,
            long tableId,
-           boolean doTombstone) {
+           boolean doTombstone,
+           String rowMetadata) {
         super(opCode, keyBytes);
         this.prevValChoice = prevValChoice;
         this.tableId = tableId;
         this.doTombstone = doTombstone;
+        this.rowMetadata = rowMetadata;
     }
 
     /** Constructor to implement deserializedForm */
@@ -86,11 +96,22 @@ public class Delete extends SingleKeyOperation {
         } else {
             if (other.doTombstone) {
                 throw new IllegalStateException("Serial version " +
-                    serialVersion + " does not support for external " +
+                    serialVersion + " does not have support for external " +
                     "multi-region table, must be " + CLOUD_MR_TABLE +
                     " or greater");
             }
             doTombstone = false;
+        }
+        if (serialVersion >= ROW_METADATA_VERSION) {
+            rowMetadata = other.rowMetadata;
+        } else {
+            if (other.rowMetadata != null) {
+                throw new IllegalStateException("Serial version " +
+                    serialVersion + " does not have support for row metadata, " +
+                    "must be " + ROW_METADATA_VERSION +
+                    " or greater");
+            }
+            rowMetadata = null;
         }
     }
 
@@ -124,6 +145,11 @@ public class Delete extends SingleKeyOperation {
             doTombstone = false;
         }
 
+        if (serialVersion >= ROW_METADATA_VERSION) {
+            rowMetadata = SerializationUtil.readString(in, serialVersion);
+        } else {
+            rowMetadata = null;
+        }
     }
 
     /**
@@ -154,6 +180,16 @@ public class Delete extends SingleKeyOperation {
                 throw new IllegalStateException("Serial version " +
                     serialVersion + " does not support setting doTombstone, " +
                     "must be " + CLOUD_MR_TABLE + " or greater");
+            }
+        }
+
+        if (serialVersion >= ROW_METADATA_VERSION) {
+            SerializationUtil.writeString(out, serialVersion, rowMetadata);
+        } else {
+            if (rowMetadata != null) {
+                throw new IllegalStateException("Serial version " +
+                    serialVersion + " does not support setting row metadata, " +
+                    "must be " + ROW_METADATA_VERSION + " or greater");
             }
         }
     }
@@ -191,6 +227,10 @@ public class Delete extends SingleKeyOperation {
         return doTombstone;
     }
 
+    public String getRowMetadata() {
+        return rowMetadata;
+    }
+
     @Override
     public String toString() {
         StringBuilder sb = new StringBuilder();
@@ -202,6 +242,11 @@ public class Delete extends SingleKeyOperation {
             sb.append("Table Id ");
             sb.append(tableId);
             sb.append(" ");
+        }
+        if (rowMetadata != null) {
+            sb.append("RowMetadata '")
+                .append(rowMetadata)
+                .append("' ");
         }
         sb.append(super.toString());
         return sb.toString();
@@ -220,13 +265,14 @@ public class Delete extends SingleKeyOperation {
         final Delete other = (Delete) obj;
         return (prevValChoice == other.prevValChoice) &&
             (tableId == other.tableId) &&
-            (doTombstone == other.doTombstone);
+            (doTombstone == other.doTombstone) &&
+            (rowMetadata == other.rowMetadata);
     }
 
     @Override
     public int hashCode() {
         return Objects.hash(super.hashCode(), prevValChoice, tableId,
-                            doTombstone);
+                            doTombstone, rowMetadata);
     }
 
     @Override

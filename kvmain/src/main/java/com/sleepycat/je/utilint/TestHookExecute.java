@@ -38,6 +38,15 @@ public class TestHookExecute {
         return true;
     }
 
+    public static <T> boolean doIOHookIfSet(TestHook<T> testHook, T obj)
+        throws IOException {
+
+        if (testHook != null) {
+            testHook.doIOHook(obj);
+        }
+        return true;
+    }
+
     public static boolean doHookIfSet(TestHook<?> testHook) {
         if (testHook != null) {
             testHook.doHook();

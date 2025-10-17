@@ -45,6 +45,7 @@ import com.sleepycat.je.StatsConfig;
 import com.sleepycat.je.dbi.DbConfigManager;
 import com.sleepycat.je.dbi.EnvironmentImpl;
 import com.sleepycat.je.log.LogUtils;
+import com.sleepycat.je.rep.BinaryProtocolException;
 import com.sleepycat.je.rep.ReplicationConfig;
 import com.sleepycat.je.rep.impl.RepParams;
 import com.sleepycat.je.rep.impl.node.NameIdPair;
@@ -502,10 +503,13 @@ public abstract class BinaryProtocol {
         while (buffer.position() < buffer.limit()) {
             final int numRead = channel.read(buffer);
             if (numRead <= 0) {
-                throw new IOException("Expected bytes: " + buffer.limit() +
-                                      " read bytes: " + buffer.position() +
-                                      " messageOp: " +
-                                      (op == null ? "unknown" : op));
+                throw new BinaryProtocolException(
+                        "Expected bytes: " + buffer.limit() +
+                        " read bytes: " + buffer.position() +
+                        " numRead: " + numRead +
+                        " messageOp: " +
+                        (op == null ? "unknown" : op)
+                );
             }
         }
         nReadNanos.add(System.nanoTime() - start);

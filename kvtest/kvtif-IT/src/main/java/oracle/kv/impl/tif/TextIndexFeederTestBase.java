@@ -387,7 +387,9 @@ public abstract class TextIndexFeederTestBase extends TestBase {
                                       userTableProto.getPrimaryKeySizes(),
                                       userTableProto.getShardKey(),
                                       userTableProto.getFieldMap(),
-                                      null, null, false, 0, null, null);
+                                      null,
+                                      null, /*beforeImageTTL*/
+                                      null, false, 0, null, null);
 
         jokeTable = metadata.addTable(jokeTableProto.getInternalNamespace(),
                                       jokeTableProto.getName(),
@@ -396,7 +398,9 @@ public abstract class TextIndexFeederTestBase extends TestBase {
                                       jokeTableProto.getPrimaryKeySizes(),
                                       jokeTableProto.getShardKey(),
                                       jokeTableProto.getFieldMap(),
-                                      null, null, false, 0, null, null);
+                                      null,
+                                      null, /*beforeImageTTL*/
+                                      null, false, 0, null, null);
         metadata.addTextIndex
             (null, "FirstNameIndex", userTable.getFullName(),
              makeTextIndexList
@@ -806,7 +810,9 @@ public abstract class TextIndexFeederTestBase extends TestBase {
                              jsonTableProtoScalar.getPrimaryKeySizes(),
                              jsonTableProtoScalar.getShardKey(),
                              jsonTableProtoScalar.getFieldMap(),
-                             null, null, false, 0, null, null);
+                             null,
+                             null, /*beforeImageTTL*/
+                             null, false, 0, null, null);
         /*
          * Add a full text index for the json column of the table created
          * above.
@@ -878,7 +884,9 @@ public abstract class TextIndexFeederTestBase extends TestBase {
                                 jsonTableProtoSenators.getPrimaryKeySizes(),
                                 jsonTableProtoSenators.getShardKey(),
                                 jsonTableProtoSenators.getFieldMap(),
-                                null, null, false, 0, null, null);
+                                null,
+                                null, /*beforeImageTTL*/
+                                null, false, 0, null, null);
         /*
          * Add a full text index for the json column of the table of
          * senator rows created above. If you don't want to index
@@ -996,7 +1004,9 @@ public abstract class TextIndexFeederTestBase extends TestBase {
                                 jsonTableProtoSenators.getPrimaryKeySizes(),
                                 jsonTableProtoSenators.getShardKey(),
                                 jsonTableProtoSenators.getFieldMap(),
-                                null, null, false, 0, null, null);
+                                null,
+                                null, /*beforeImageTTL*/
+                                null, false, 0, null, null);
         /*
          * Add a full text index for the json column of the table of
          * senator rows created above. And then create another full text index

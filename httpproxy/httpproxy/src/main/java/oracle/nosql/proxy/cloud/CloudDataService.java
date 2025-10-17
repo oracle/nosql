@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2011, 2024 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011, 2025 Oracle and/or its affiliates. All rights reserved.
  *
  * This file was distributed by Oracle as part of a version of Oracle NoSQL
  * Database made available at:
@@ -76,7 +76,8 @@ public class CloudDataService extends DataService {
                             LimiterManager limiterManager,
                             Config config,
                             LogControl logControl) {
-        super(logger, tm, stats, audit, filter, errorManager, limiterManager,
+        super(logger, tm, stats, audit,
+              filter, errorManager, limiterManager,
               config, logControl);
         this.ac = ac;
     }
@@ -502,8 +503,15 @@ public class CloudDataService extends DataService {
         CommonResponse res;
         switch (info.getResourceType()) {
         case WORKREQUEST:
-            res = TableUtils.getWorkRequest(null /* AccessContext */, info.ocid,
-                                            tm, true /* internal */, rc.lc);
+            /*
+             * By design, CMEK related work requests are only visible through
+             * the REST API, so the binary API specifically only fetches DDL
+             * related requests. This is used by the GAT DDL in other region to
+             * check the DDL request information in current region.
+             */
+            res = TableUtils.getDdlWorkRequest(null /* AccessContext */,
+                                               info.ocid, tm,
+                                               true /* internal */, rc.lc);
             break;
         case TABLE:
             res = TableUtils.getTable(null /* AccessContext */, info.ocid,

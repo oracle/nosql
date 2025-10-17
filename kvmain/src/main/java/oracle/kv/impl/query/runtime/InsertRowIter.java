@@ -399,6 +399,8 @@ public class InsertRowIter extends PlanIter {
             table.setUUIDDefaultValue(row);
         }
 
+        row.setRowMetadata(rcb.getRowMetadata());
+
         if (rcb.getTraceLevel() >= 1) {
             rcb.trace("Row to insert =\n" + row);
         }
@@ -556,6 +558,7 @@ public class InsertRowIter extends PlanIter {
                       initRowFromValueBytes(row,
                                             res.getPreviousValue().toByteArray(),
                                             res.getPreviousExpirationTime(),
+                                            res.getPreviousCreationTime(),
                                             res.getPreviousModificationTime(),
                                             res.getPreviousVersion(),
                                             state.thePid.getPartitionId(),
@@ -570,6 +573,7 @@ public class InsertRowIter extends PlanIter {
             } else {
                 row.setVersion(res.getNewVersion());
                 row.setExpirationTime(res.getNewExpirationTime());
+                row.setCreationTime(res.getNewCreationTime());
                 row.setModificationTime(res.getNewModificationTime());
                 row.setPartition(state.thePid.getPartitionId());
                 row.setShard(res.getShard());

@@ -188,8 +188,14 @@ public class JsonConfig implements Serializable {
     /** Checkpoint interval in streamed ops */
     public static final int DEFAULT_CKPT_INTERVAL_OPS = 1024 * 1024;
     private int checkpointIntvOps = DEFAULT_CKPT_INTERVAL_OPS;
-
-
+    /**
+     * True if cascading replication is on. That means, when an agent
+     * stream changes from a remote region, in addition to all changes that
+     * originated on that remote region, all changes originated from other
+     * regions and replicated to the remote region will also be streamed. The
+     * default if false, meaning cascading replication is off.
+     */
+    private boolean cascadingReplication = false;
     /* derived agent root path, not part of json config file */
     private transient String agentRoot;
 
@@ -435,6 +441,14 @@ public class JsonConfig implements Serializable {
     }
 
     /**
+     * Returns true if cascading replication is on, or false otherwise
+     * @return if cascading replication is on.
+     */
+    public boolean getCascadingRep() {
+        return cascadingReplication;
+    }
+
+    /**
      * Returns initial heap size in MB if the XRegion service is running in
      * background
      * @return  initial heap size in MB
@@ -504,6 +518,16 @@ public class JsonConfig implements Serializable {
      */
     public void setDurability(String durability) {
         this.durability = durability;
+    }
+
+    /**
+     * Test only
+     * Sets if cascading replication should be turned on or not
+     * @param cascadingReplication true if cascading replication is on, false
+     *                            otherwise.
+     */
+    public void setCascadingReplication(boolean cascadingReplication) {
+        this.cascadingReplication = cascadingReplication;
     }
 
     /**

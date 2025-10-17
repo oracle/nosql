@@ -128,4 +128,11 @@ public interface FeederFilter {
     default boolean includeBeforeImage() {
         return false;
     }
+
+    /**
+     * Sets the feeder filter id if implemented
+     * @param filterId  feeder filter id
+     */
+    default void setFeederFilterId(String filterId) {
+    }
 }

@@ -21,12 +21,20 @@ import java.nio.channels.SocketChannel;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 
+import com.sleepycat.je.utilint.TestHook;
+import com.sleepycat.je.utilint.TestHookExecute;
+
 
 /**
  * A basic concrete extension of DataChannel.
  * This simply delegates operations directly to the underlying SocketChannel
  */
 public class SimpleDataChannel extends AbstractDataChannel {
+
+    /**
+     * Test hook executed before channel read and write.
+     */
+    public static volatile TestHook<SimpleDataChannel> ioHook = null;
 
     /**
      * A wrapped socket channel so that read can be timed out.
@@ -112,6 +120,8 @@ public class SimpleDataChannel extends AbstractDataChannel {
 
     @Override
     public int read(ByteBuffer dst) throws IOException {
+        assert TestHookExecute.doIOHookIfSet(ioHook, this);
+
         synchronized(wrappedReadChannel) {
             return wrappedReadChannel.read(dst);
         }
@@ -126,6 +136,8 @@ public class SimpleDataChannel extends AbstractDataChannel {
     public long read(ByteBuffer[] dsts, int offset, int length)
         throws IOException
     {
+        assert TestHookExecute.doIOHookIfSet(ioHook, this);
+
         SSLDataChannel.checkParams(dsts, offset, length);
         long nbytes = 0;
         synchronized(wrappedReadChannel) {
@@ -153,11 +165,13 @@ public class SimpleDataChannel extends AbstractDataChannel {
 
     @Override
     public int write(ByteBuffer src) throws IOException {
+        assert TestHookExecute.doIOHookIfSet(ioHook, this);
         return socketChannel.write(src);
     }
 
     @Override
     public long write(ByteBuffer[] srcs) throws IOException {
+        assert TestHookExecute.doIOHookIfSet(ioHook, this);
         return socketChannel.write(srcs);
     }
 
@@ -165,6 +179,7 @@ public class SimpleDataChannel extends AbstractDataChannel {
     public long write(ByteBuffer[] srcs, int offset, int length)
         throws IOException {
 
+        assert TestHookExecute.doIOHookIfSet(ioHook, this);
         return socketChannel.write(srcs, offset, length);
     }
 

@@ -535,12 +535,31 @@ public class PartitionUnionIter extends PlanIter {
                 }
             }
 
+            /*
+             * Stop fetching records when one of the following conditions is
+             * met:
+             *   - Reached the size or batch limit
+             *   - For inner join queries, all local partitions have been
+             *     processed. This is because the theInputIter.reset(rcb)
+             *     before fetch from next partition will clear the resume
+             *     keys of inner tables.
+             *
+             * If all local partitions are done, create an empty ResumeInfo
+             * object to signal the end of sort phase 1.
+             * The proxy will then use the partitions bitmap in ResumeInfo to
+             * locate the next partition to process.
+             */
+            boolean allPartitionsDone =
+                (numDonePartitions == state.theRepPids.length);
             if (rcb.getReachedLimit() ||
                 (batchSize > 0 &&
                  state.theNumResults >= batchSize &&
-                 !rcb.cannotSuspend())) {
+                 !rcb.cannotSuspend())  ||
+                 (allPartitionsDone &&
+                  ri.numTables() > 1 &&
+                  !rcb.cannotSuspend())) {
 
-                if (numDonePartitions == state.theRepPids.length) {
+                if (allPartitionsDone) {
                     ri = new ResumeInfo(rcb);
                     rcb.setResumeInfo(ri);
                     ri.setPartitionsBitmap(partitionsBitmap);

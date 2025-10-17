@@ -280,12 +280,16 @@ public class LogEntryType {
      * -----------------------
      *  [KVSTORE-2316] Remove support for OldBINDelta
      *
-     *  Version 25 (in JE 24.2)
+     *  Version 25 (in JE 25.1)
      * -----------------------
      *  [KVSTORE-2302] Add support for Before Images
      *
+     *  Version 26 (in JE 25.2)
+     * -----------------------
+     *  [KVSTORE-2587] Add support for CreationTime
+     *
      */
-    public static final int LOG_VERSION = 25;
+    public static final int LOG_VERSION = 26;
 
     /**
      * The latest log version for which the replicated log format of any
@@ -296,7 +300,7 @@ public class LogEntryType {
      * non-replicable entries, or only to the local, not replicated, form of
      * replicable entries, the as was the case for log versions 9, 10, and 11.
      */
-    public static final int LOG_VERSION_HIGHEST_REPLICABLE = 25;
+    public static final int LOG_VERSION_HIGHEST_REPLICABLE = 26;
 
     /**
      * Log versions prior to 8 (JE 5.0) are no longer supported as of JE 20.1.
@@ -334,6 +338,12 @@ public class LogEntryType {
      * entries
      */
     public static final int LOG_VERSION_CKPT_SCAN_IDS = 23;
+
+    /*
+     * The log version that introduced creation time to the update and delete
+     * log entries
+     */
+    public static final int LOG_VERSION_CREATION_TIME = 26;
 
     /**
      * Should be used for reading the entry header of the file header, since
@@ -1014,9 +1024,23 @@ public class LogEntryType {
         return nodeType == NodeType.IN;
     }
 
-	public static boolean isBeforeImageType(byte typeNum) {
-		LogEntryType t = findType(typeNum);
-		return t != null && (t == LOG_UPD_LN_TRANSACTIONAL_WITH_BEFORE_IMAGE
-				|| t == LOG_DEL_LN_TRANSACTIONAL_WITH_BEFORE_IMAGE);
-	}
+    public static boolean isBeforeImageType(byte typeNum) {
+        LogEntryType t = findType(typeNum);
+        return t != null && (t == LOG_UPD_LN_TRANSACTIONAL_WITH_BEFORE_IMAGE
+            || t == LOG_DEL_LN_TRANSACTIONAL_WITH_BEFORE_IMAGE);
+    }
+
+    public static boolean isExplicitCreateTimeLNType(byte typeNum) {
+        LogEntryType t = findType(typeNum);
+        return t != null && (t == LOG_UPD_LN_TRANSACTIONAL_WITH_BEFORE_IMAGE
+            || t == LOG_UPD_LN_TRANSACTIONAL || t == LOG_UPD_LN
+            || t == LOG_DEL_LN_TRANSACTIONAL_WITH_BEFORE_IMAGE
+            || t == LOG_DEL_LN_TRANSACTIONAL || t == LOG_DEL_LN);
+    }
+    
+    public static boolean isExplicitCreateTimeInsertLNType(byte typeNum) {
+        LogEntryType t = findType(typeNum);
+        return t != null && (t == LOG_INS_LN_TRANSACTIONAL 
+            || t == LOG_INS_LN);
+    }
 }

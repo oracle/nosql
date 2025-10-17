@@ -378,10 +378,11 @@ public class NoSQLPublisher implements Publisher<StreamOperation> {
      *
      * @throws PublisherFailureException if unable to create a publisher
      */
-    static NoSQLPublisher get(NoSQLPublisherConfig config,
-                              LoginCredentials loginCred,
-                              boolean allowMultiPub,
-                              Logger logger) throws PublisherFailureException {
+    public static NoSQLPublisher get(NoSQLPublisherConfig config,
+                                     LoginCredentials loginCred,
+                                     boolean allowMultiPub,
+                                     Logger logger)
+        throws PublisherFailureException {
 
         final String pubId = makePublisherId(config.getPublisherId(),
                                              config.getStoreName());

@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2011, 2024 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011, 2025 Oracle and/or its affiliates. All rights reserved.
  *
  * This file was distributed by Oracle as part of a version of Oracle NoSQL
  * Database made available at:
@@ -595,28 +595,34 @@ public class TableUtils {
     }
 
     /**
-     * Returns workRequest information
+     * Gets DDL workRequest information
+     *
+     * This is used by cross region internal-status request, for GAT DDL op.
      */
-    public static GetWorkRequestResponse getWorkRequest(AccessContext actx,
-                                                        String workReqId,
-                                                        TenantManager tm,
-                                                        LogContext lc) {
-        return getWorkRequest(actx, workReqId, tm, false /* internal */, lc);
-    }
-
-    public static GetWorkRequestResponse getWorkRequest(AccessContext actx,
-                                                        String workReqId,
-                                                        TenantManager tm,
-                                                        boolean internal,
-                                                        LogContext lc) {
-        return tm.getWorkRequest(actx, workReqId, internal, lc);
+    public static GetDdlWorkRequestResponse getDdlWorkRequest(
+            AccessContext actx,
+            String workReqId,
+            TenantManager tm,
+            boolean internal,
+            LogContext lc) {
+        return tm.getDdlWorkRequest(actx, workReqId, internal, lc);
     }
 
     /**
-     * List workRequests
+     * Gets workRequest information
+     */
+    public static GetWorkRequestResponse getWorkRequest(AccessContext actx,
+                                                        String workReqId,
+                                                        TenantManager tm,
+                                                        LogContext lc) {
+        return tm.getWorkRequest(actx, workReqId, false /* internal */, lc);
+    }
+
+    /**
+     * Lists workRequests
      */
     public static ListWorkRequestResponse listWorkRequests(AccessContext actx,
-                                                           int startIndex,
+                                                           String startIndex,
                                                            int limit,
                                                            TenantManager tm,
                                                            LogContext lc) {
@@ -924,6 +930,91 @@ public class TableUtils {
                                                        LogContext lc) {
         return tm.getReplicaStats(actx, tableNameOrId, replicaName, startTime,
                                   limit, lc);
+    }
+
+    /**
+     * Get the service level kms key information
+     *
+     * @param actx the AccessContext instance
+     * @param tm an instance of TenantManager to use
+     * @param lc the LogContext instance
+     *
+     * @return an instance of GetKmsKeyInfoResponse that represents the
+     * service level configuration information
+     */
+    public static GetKmsKeyInfoResponse getKmsKeyInfo(AccessContext actx,
+                                                      TenantManager tm,
+                                                      LogContext lc) {
+        return tm.getKmsKey(actx, false /* internal */, lc);
+    }
+
+    /**
+     * Updates the service level kms key
+     *
+     * @param actx the AccessContext instance
+     * @param tm the TenantManager instance
+     * @param configuration the new configuration
+     * @param matchETag the index ETag to be matched
+     * @param dryRun set true if test update configuration without actually
+     * executing it
+     * @param lc the LogContext instance
+     * @param request the http request
+     * @param ac an instance of AccessChecker to use
+     * @param filter the handler to filter request
+     * @param updateLc the handler to update log context
+     *
+     * @return an instance of WorkRequestIdResponse
+     */
+    public static WorkRequestIdResponse updateKmsKey(AccessContext actx,
+                                                     TenantManager tm,
+                                                     String tenantId,
+                                                     String kmsKeyId,
+                                                     String kmsVaultId,
+                                                     byte[] matchEtag,
+                                                     boolean dryRun,
+                                                     LogContext lc,
+                                                     FullHttpRequest request,
+                                                     AccessChecker ac,
+                                                     Filter filter,
+                                                     UpdateLogContext updateLc){
+
+        if (ac != null) {
+            actx = ac.checkConfigurationAccess(
+                        request.method(),
+                        request.uri(),
+                        request.headers(),
+                        OpCode.UPDATE_CONFIG_KMS_KEY,
+                        null /* authorizeOps */,
+                        tenantId,
+                        getPayload(request),
+                        filter,
+                        lc);
+            if (updateLc != null) {
+                updateLc.update(lc, actx, OpCode.UPDATE_CONFIGURATION);
+            }
+        }
+        return tm.updateKmsKey(actx, kmsKeyId, kmsVaultId, matchEtag,
+                               dryRun, lc);
+    }
+
+    /**
+     * Removes the kms key used by the service
+     *
+     * @param actx the AccessContext instance
+     * @param tm the TenantManager instance
+     * @param matchETag the index ETag to be matched
+     * @param dryRun set true if test update configuration without actually
+     * executing it
+     * @param lc the LogContext instance
+     *
+     * @return an instance of WorkRequestIdResponse
+     */
+    public static WorkRequestIdResponse removeKmsKey(AccessContext actx,
+                                                     TenantManager tm,
+                                                     byte[] matchEtag,
+                                                     boolean dryRun,
+                                                     LogContext lc) {
+        return tm.removeKmsKey(actx, matchEtag, dryRun, lc);
     }
 
     /*

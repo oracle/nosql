@@ -76,6 +76,7 @@ public abstract class TupleSerialKeyCreator<D> extends TupleBase
     public boolean createSecondaryKey(SecondaryDatabase db,
                                       DatabaseEntry primaryKeyEntry,
                                       DatabaseEntry dataEntry,
+                                      long creationTime,
                                       long modificationTime,
                                       long expirationTime,
                                       int storageSize,

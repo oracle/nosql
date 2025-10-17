@@ -639,7 +639,7 @@ class ClientTestServices {
      *  -stopAllReplicas
      *    See #stopAllReplicas
      *
-     * And an optionally flag:
+     * And an optional flag:
      *
      *  -security
      *    To build and start a secured store.

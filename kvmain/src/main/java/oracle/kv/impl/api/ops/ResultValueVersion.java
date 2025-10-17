@@ -23,6 +23,7 @@ public class ResultValueVersion {
     private byte[] valueBytes;
     private final Version version;
     private final long expirationTime;
+    private final long creationTime;
     private final long modificationTime;
     private final int storageSize;
 
@@ -32,11 +33,13 @@ public class ResultValueVersion {
     public ResultValueVersion(byte[] valueBytes,
                               Version version,
                               long expirationTime,
+                              long creationTime,
                               long modificationTime,
                               int storageSize) {
         this.valueBytes = valueBytes;
         this.version = version;
         this.expirationTime = expirationTime;
+        this.creationTime = creationTime;
         this.modificationTime = modificationTime;
         this.storageSize = storageSize;
     }
@@ -55,6 +58,10 @@ public class ResultValueVersion {
 
     public long getExpirationTime() {
         return expirationTime;
+    }
+
+    public long getCreationTime() {
+        return creationTime;
     }
 
     public long getModificationTime() {

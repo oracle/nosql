@@ -297,6 +297,10 @@ public class SSLDataChannel extends AbstractDataChannel {
                                        toShortString()));
     }
 
+    public InstanceLogger getLogger() {
+        return logger;
+    }
+
     /** Returns the ssl engine. */
     public SSLEngine getSSLEngine() {
         return sslEngine;

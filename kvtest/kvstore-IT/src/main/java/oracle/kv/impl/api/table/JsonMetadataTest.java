@@ -12,6 +12,7 @@ import static org.junit.Assert.assertNotNull;
 
 import java.util.Map;
 
+import oracle.kv.impl.api.table.TableImpl.JsonFormatter;
 import oracle.kv.table.Index;
 
 import org.junit.BeforeClass;
@@ -284,9 +285,56 @@ public class JsonMetadataTest extends TableTestBase {
         roundTrip("foo");
     }
 
+    @Test
+    public void testFunctionalIndex() {
+        String ddl = "CREATE TABLE foo (" +
+                "id INTEGER, " +
+                "i INTEGER, " +
+                "s STRING, " +
+                "ts TIMESTAMP(3), " +
+                "j JSON, " +
+                "PRIMARY KEY(id))";
+        executeDdl(ddl);
+
+        String[] indexDdls = new String[] {
+            "CREATE INDEX idx1 ON foo(" +
+                 "length(s), " +
+                 "substring(s, 1, 2), " +
+                 "power(i, 2), " +
+                 "timestamp_round(ts, 2), " +
+                 "modification_time()) " +
+            "WITH NO NULLS WITH UNIQUE KEYS PER ROW",
+
+            "CREATE INDEX idx2 ON foo (" +
+                 "replace(j.s as STRING, \"nosql\", \"NoSQL\"), " +
+                 "trunc(j.n.d as Double, 3), " +
+                 "substring(j.m[].values().name as AnyAtomic, 3), " +
+                 "power(j.\"#\".a.\"@\" as Long, 2)," +
+                 "j.v as AnyAtomic)"
+        };
+
+        for (String indexDdl : indexDdls) {
+            executeDdl(indexDdl);
+        }
+
+        roundTrip("foo");
+    }
+
     private void roundTrip(String tableName) {
+        roundTrip(tableName, null);
+        for (int v = 1; v <= JsonFormatter.CURRENT_VERSION; v++) {
+            roundTrip(tableName, v);
+        }
+    }
+
+    private void roundTrip(String tableName, Integer jsonVersion) {
         TableImpl table = getTable(tableName);
-        String json = table.toJsonString(false);
+        String json;
+        if (jsonVersion != null) {
+            json = table.toJsonString(true, jsonVersion);
+        } else {
+            json = table.toJsonString(true);
+        }
         TableImpl newTable = TableJsonUtils.fromJsonString(json, null);
         assertEquals(table, newTable);
         if (table.hasIdentityColumn()) {

@@ -13,9 +13,13 @@
 
 package com.sleepycat.je.util;
 
+import java.text.SimpleDateFormat;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
+import java.util.Date;
+import java.util.TimeZone;
 import java.util.concurrent.TimeUnit;
 
 /*
@@ -59,6 +63,32 @@ public class TimeSupplier {
 
     public static Instant now() {
         return clock.instant();
+    }
+
+    public static String formatCurrentTimeToDate() {
+        final Date date = new Date();
+        date.setTime(TimeSupplier.currentTimeMillis());
+        final TimeZone tz = TimeZone.getTimeZone("UTC");
+        final SimpleDateFormat df =
+                new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS z");
+        df.setTimeZone(tz);
+        return df.format(date);
+    }
+    
+    public static String formatCurrentTimeToDate(long time) {
+        final Date date = new Date();
+        date.setTime(time);
+        final TimeZone tz = TimeZone.getTimeZone("UTC");
+        final SimpleDateFormat df =
+                new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS z");
+        df.setTimeZone(tz);
+        return df.format(date);
+    }
+
+    //as we store the ttl in hours granularity since epoch
+    public static long hoursSinceEpoch() {
+        return ChronoUnit.HOURS.between(Instant.EPOCH,
+                clock.instant());
     }
 
     public static void flashBack(long amount, TimeUnit unit) {

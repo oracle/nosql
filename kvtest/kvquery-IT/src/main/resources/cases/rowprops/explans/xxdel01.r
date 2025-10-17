@@ -1,5 +1,4 @@
 compiled-query-plan
-
 {
 "query file" : "rowprops/q/xxdel01.q",
 "plan" : 
@@ -65,43 +64,43 @@ compiled-query-plan
           "field name" : "row_size",
           "field expression" : 
           {
-            "iterator kind" : "OR",
-            "input iterators" : [
-              {
-                "iterator kind" : "EQUAL",
-                "left operand" :
+            "iterator kind" : "LESS_OR_EQUAL",
+            "left operand" :
+            {
+              "iterator kind" : "ABS",
+              "input iterators" : [
                 {
-                  "iterator kind" : "FUNC_ROW_STORAGE_SIZE",
-                  "input iterator" :
-                  {
-                    "iterator kind" : "VAR_REF",
-                    "variable" : "$f"
-                  }
-                },
-                "right operand" :
-                {
-                  "iterator kind" : "CONST",
-                  "value" : 180
+                  "iterator kind" : "ADD_SUBTRACT",
+                  "operations and operands" : [
+                    {
+                      "operation" : "+",
+                      "operand" :
+                      {
+                        "iterator kind" : "FUNC_ROW_STORAGE_SIZE",
+                        "input iterator" :
+                        {
+                          "iterator kind" : "VAR_REF",
+                          "variable" : "$f"
+                        }
+                      }
+                    },
+                    {
+                      "operation" : "-",
+                      "operand" :
+                      {
+                        "iterator kind" : "CONST",
+                        "value" : 182
+                      }
+                    }
+                  ]
                 }
-              },
-              {
-                "iterator kind" : "EQUAL",
-                "left operand" :
-                {
-                  "iterator kind" : "FUNC_ROW_STORAGE_SIZE",
-                  "input iterator" :
-                  {
-                    "iterator kind" : "VAR_REF",
-                    "variable" : "$f"
-                  }
-                },
-                "right operand" :
-                {
-                  "iterator kind" : "CONST",
-                  "value" : 181
-                }
-              }
-            ]
+              ]
+            },
+            "right operand" :
+            {
+              "iterator kind" : "CONST",
+              "value" : 1
+            }
           }
         },
         {
@@ -165,10 +164,52 @@ compiled-query-plan
           }
         },
         {
-          "field name" : "mod_time",
+          "field name" : "creation_time",
+          "field expression" : 
+          {
+            "iterator kind" : "GREATER_OR_EQUAL",
+            "left operand" :
+            {
+              "iterator kind" : "FUNC_CREATION_TIME",
+              "input iterator" :
+              {
+                "iterator kind" : "VAR_REF",
+                "variable" : "$f"
+              }
+            },
+            "right operand" :
+            {
+              "iterator kind" : "CONST",
+              "value" : "2020-09-01T00:00:00.000Z"
+            }
+          }
+        },
+        {
+          "field name" : "creation_ms",
           "field expression" : 
           {
             "iterator kind" : "GREATER_THAN",
+            "left operand" :
+            {
+              "iterator kind" : "FUNC_CREATION_TIME_MILLIS",
+              "input iterator" :
+              {
+                "iterator kind" : "VAR_REF",
+                "variable" : "$f"
+              }
+            },
+            "right operand" :
+            {
+              "iterator kind" : "CONST",
+              "value" : 1700000000
+            }
+          }
+        },
+        {
+          "field name" : "mod_time",
+          "field expression" : 
+          {
+            "iterator kind" : "GREATER_OR_EQUAL",
             "left operand" :
             {
               "iterator kind" : "FUNC_MOD_TIME",
@@ -180,7 +221,8 @@ compiled-query-plan
             },
             "right operand" :
             {
-              "iterator kind" : "FUNC_CURRENT_TIME"
+              "iterator kind" : "CONST",
+              "value" : "2020-09-01T00:00:00.000Z"
             }
           }
         }

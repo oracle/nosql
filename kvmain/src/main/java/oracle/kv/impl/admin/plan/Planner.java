@@ -537,6 +537,7 @@ public class Planner {
                                      int tableVersion,
                                      FieldMap fieldMap,
                                      TimeToLive ttl,
+                                     TimeToLive beforeImgTTL,
                                      IdentityColumnInfo identityColumnInfo,
                                      Set<Integer> regions) {
         return createEvolveTablePlan(planName,
@@ -545,6 +546,7 @@ public class Planner {
                                      tableVersion,
                                      fieldMap,
                                      ttl,
+                                     beforeImgTTL,
                                      null, /* description (no change) */
                                      false /* systemTable */,
                                      identityColumnInfo /*identityColumnInfo*/,
@@ -562,6 +564,7 @@ public class Planner {
         int tableVersion,
         FieldMap fieldMap,
         TimeToLive ttl,
+        TimeToLive beforeImgTTL,
         String description,
         boolean systemTable,
         IdentityColumnInfo newIdentityColumnInfo,
@@ -574,6 +577,7 @@ public class Planner {
                                   tableName,
                                   tableVersion, fieldMap,
                                   ttl,
+                                  beforeImgTTL,
                                   description,
                                   systemTable,
                                   newIdentityColumnInfo,

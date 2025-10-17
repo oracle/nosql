@@ -26,11 +26,11 @@ import com.sleepycat.je.JEVersion;
 import com.sleepycat.je.dbi.DbConfigManager;
 import com.sleepycat.je.dbi.EnvironmentFailureReason;
 import com.sleepycat.je.log.LogEntryType;
+import com.sleepycat.je.rep.BinaryProtocolException;
 import com.sleepycat.je.rep.NodeType;
 import com.sleepycat.je.rep.ReplicaConnectRetryException;
 import com.sleepycat.je.rep.impl.RepGroupImpl;
 import com.sleepycat.je.rep.impl.RepImpl;
-import com.sleepycat.je.rep.impl.RepParams;
 import com.sleepycat.je.rep.impl.node.NameIdPair;
 import com.sleepycat.je.rep.stream.Protocol.CacheSizeResponse;
 import com.sleepycat.je.rep.stream.Protocol.DuplicateNodeReject;
@@ -206,7 +206,35 @@ public class ReplicaFeederHandshake {
          * Returns the highest level the feeder can support, or the version we
          * just sent, if it can support that version
          */
-        Message message = defaultProtocol.read(namedChannel);
+        Message message = null;
+        try {
+            message = defaultProtocol.read(namedChannel);
+        }
+        catch (BinaryProtocolException e) {
+            /*
+             * Error was encountered while reading from the channel.
+             *
+             * Likely, this is because the channel is not alive. So, we want
+             * to throw a Retry Exception so that the handshake to be
+             * successful in the another try. Otherwise, exceptions like the
+             * ones reported in KVSTORE-2654 are repeatedly thrown, which could
+             * delay the performing of a successful handshake.
+             */
+            LoggerUtils.info(logger, repImpl,
+                    "Error reading channel during Protocol " +
+                        "negotiating: " + LoggerUtils.getStackTrace(e));
+
+            LoggerUtils.info(logger, repImpl,
+                    "Throwing Dummy ReplicaConnectRetryException");
+
+            throw new ReplicaConnectRetryException(
+                    "Dummy ReplicaConnectRetryException. Only for achieving " +
+                    "that the handshake can be successful in the another try " +
+                    "with feeder",
+                    REPLICA_CONNECTION_RETRIES,
+                    REPLICA_CONNECTION_RETRY_SLEEP_MS);
+        }
+
         if (message instanceof DuplicateNodeReject) {
 
             /* When the feeder messages with DuplicateNodeReject to the replica
@@ -279,7 +307,7 @@ public class ReplicaFeederHandshake {
         /* Ensure that software versions are compatible. */
         verifyVersions();
 
-        /**
+        /*
          * Note whether log entries with later log versions need to be
          * converted to log version 12 to work around [#25222].
          */

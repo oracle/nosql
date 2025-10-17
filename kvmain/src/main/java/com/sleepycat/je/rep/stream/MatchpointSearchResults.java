@@ -105,8 +105,7 @@ public class MatchpointSearchResults implements Serializable {
          */
         matchpointLSN = DbLsn.makeLsn(0, 0);
 
-        passedTxnLimit =
-            envImpl.getConfigManager().getInt(RepParams.TXN_ROLLBACK_LIMIT);
+        passedTxnLimit = 10; // hardcoded value for debugging purposes
         passedTxns = new ArrayList<>();
         numPassedCommits = 0;
         numPassedDurableCommits = 0;

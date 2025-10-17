@@ -15,27 +15,38 @@ import static org.junit.Assert.fail;
 
 import org.junit.Test;
 import java.rmi.RemoteException;
+import java.util.Arrays;
 import java.util.Random;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
+import java.util.stream.StreamSupport;
 
+import oracle.kv.ExecutionFuture;
 import oracle.kv.KVStore;
+import oracle.kv.KVStoreConfig;
 import oracle.kv.KVStoreFactory;
+import oracle.kv.StatementResult;
 import oracle.kv.TablePartitionSizeLimitException;
 import oracle.kv.TestBase;
 import oracle.kv.impl.admin.CommandServiceAPI;
+import oracle.kv.impl.api.KVStoreImpl;
 import oracle.kv.impl.api.table.TableBuilder;
 import oracle.kv.impl.api.table.TableImpl;
 import oracle.kv.impl.api.table.TableLimits;
 import oracle.kv.impl.param.ParameterMap;
 import oracle.kv.impl.param.ParameterState;
+import oracle.kv.impl.rep.table.ResourceCollector;
 import oracle.kv.impl.rep.table.ResourceCollector.TopCollector;
 import oracle.kv.impl.systables.TableStatsPartitionDesc;
+import oracle.kv.impl.util.CommonLoggerUtils;
+import oracle.kv.impl.util.SpeedyTTLTime;
 import oracle.kv.table.PrimaryKey;
 import oracle.kv.table.Row;
+import oracle.kv.table.Table;
 import oracle.kv.table.TableAPI;
 import oracle.kv.table.TableIterator;
+import oracle.kv.table.TimeToLive;
 import oracle.kv.util.CreateStore;
 import oracle.nosql.common.sklogger.ScheduleStart;
 
@@ -548,5 +559,176 @@ public class PartitionSizeLimitTest extends TestBase {
         map.setParameter(ParameterState.RN_SG_LEASE_DURATION, "60 s");
         map.setParameter(ParameterState.RN_SG_SLEEP_WAIT, "50 ms");
         cstore.setPolicyMap(map);
+    }
+
+    /**
+     * Tests that the partition size limit check works with TTL.
+     *
+     * The approach of computing size from write delta is inaccurate with TTL
+     * present (see ResourceCollector.sizeDeltaMap). However, it still works
+     * eventually by reading from system table which is updated with full scan
+     * (see KeyStatsCollector#scan).
+     *
+     * Test steps:
+     *
+     * - Create a table with size limit of 1G, and partition size of 1M with
+     * partitionSizeLimitScaling.
+     * - Insert records into a single shard with TTL of 1 hour until it exceeds
+     * the partition size limit. Use SpeedyTTLTime to simulate TTL time passing
+     * with faster clock frequency.
+     * - Waits until all rows expire.
+     * - Insert rows again should still succeed.
+     *
+     * [KVSTORE-2711]
+     */
+    @Test
+    public void testPartitionSizeLimitCheckWithTTL() throws Exception {
+        logger.fine("test started");
+        KeyStatsCollector.testIgnoreMinimumDurations = true;
+        ResourceCollector.partitionSizeLimitScaling = 1000;
+        tearDowns.add(() -> {
+            KeyStatsCollector.testIgnoreMinimumDurations = false;
+            ResourceCollector.partitionSizeLimitScaling = 1;
+        });
+        final int port = 5000;
+        final int partitionSizeLimit = 1 * 1024 * 1024;
+        createStore = new CreateStore(kvstoreName, port, 1 /* Storage nodes */,
+            1 /* rf */, 10 /* partitions */, 1 /* capacity */,
+            CreateStore.MB_PER_SN, true /* useThreads */, null /* mgmtImpl */);
+        /* Enable stats */
+        setPartitionSizeLimitPolicies(createStore);
+        createStore.start();
+        logger.fine("store started");
+        /* Prepare to wait for the stats thread to notice the user table */
+        final CompletableFuture<Void> foundUserTables =
+            new CompletableFuture<>();
+        KeyStatsCollector.foundUserTablesTestHook =
+            v -> foundUserTables.complete(null);
+        /* Create table */
+        final KVStore kvstore = KVStoreFactory.getStore(
+            new KVStoreConfig(kvstoreName, String.format("localhost:%s", port)));
+        createSkewTable(kvstore, partitionSizeLimit);
+        logger.fine("table created");
+        final TableAPI api = kvstore.getTableAPI();
+        final Table table = api.getTable("users");
+        /* Before insert, in JE TTL simulates one hour by one second. */
+        final int fakeMillisPerHour = 1000;
+        final SpeedyTTLTime speedyTime = new SpeedyTTLTime(fakeMillisPerHour);
+        speedyTime.start();
+        /* Wait for stats collector to notice user table. */
+        foundUserTables.get(120, TimeUnit.SECONDS);
+        insertUntilLimit(api, table, partitionSizeLimit,
+            TimeToLive.ofHours(10));
+        logger.fine("inserted rows until limit");
+        printUserStatsLine(api, TableStatsPartitionDesc.TABLE_NAME);
+        assertTrue("number of rows in the users table should not be zero",
+                getNumUserRows(api) != 0);
+        logger.fine("sleep until row expired and stats scan happend");
+        Thread.sleep(25 * 1000);
+        printUserStatsLine(api, TableStatsPartitionDesc.TABLE_NAME);
+        assertTrue("number of rows in the users table should be zero",
+                getNumUserRows(api) == 0);
+        logger.fine("all rows expired");
+        /* Insert more rows should succeed. */
+        insertRows(api, table, 0, 1000, new String("name"),
+            TimeToLive.ofHours(10));
+        assertTrue("number of rows in the users table should not be zero",
+                getNumUserRows(api) != 0);
+    }
+
+    private void setPartitionSizeLimitPolicies(CreateStore cstore) {
+        ParameterMap map = new ParameterMap();
+        map.setParameter(ParameterState.AP_CHECK_ADD_INDEX, "1 s");
+        map.setParameter(RN_SG_ENABLED, "true");
+        map.setParameter(RN_SG_INCLUDE_STORAGE_SIZE, "true");
+        map.setParameter(ParameterState.RN_SG_INTERVAL, "10 s");
+        map.setParameter(ParameterState.RN_SG_SIZE_UPDATE_INTERVAL, "2 s");
+        map.setParameter(ParameterState.RN_SG_LEASE_DURATION, "5 s");
+        map.setParameter(ParameterState.RN_SG_SLEEP_WAIT, "1 s");
+        map.setParameter(ParameterState.RN_PARTITION_SIZE_PERCENT, "1");
+        cstore.setPolicyMap(map);
+    }
+
+    private void createSkewTable(KVStore kvstore, int partitionSizeLimit)
+        throws Exception {
+
+        final String ddl = "create table users " +
+            "(shardid integer, id integer, name String, " +
+            " primary key(shard(shardid), id))";
+        final int kb = 1024;
+        /* Sets the throughput limit so that we hit the size limit first. */
+        final TableLimits limits =
+            new TableLimits(TableLimits.NO_LIMIT /* readLimit */,
+                5 * partitionSizeLimit / kb /* writeLimit */,
+                1 /* sizeLimit in gb */);
+        final ExecutionFuture future = ((KVStoreImpl) kvstore)
+            .execute(ddl.toCharArray(), null, limits);
+        final StatementResult res = future.get();
+        assertTrue(res.isSuccessful());
+    }
+
+    private void insertUntilLimit(TableAPI api,
+                                  Table table,
+                                  int partitionSizeLimit,
+                                  TimeToLive ttl) {
+        final int nameBytesLen = 1000;
+        final byte[] nameBytes = new byte[nameBytesLen];
+        Arrays.fill(nameBytes, (byte) 'a');
+        final String name = new String(nameBytes);
+        try {
+            insertRows(api, table, 0, 5 * partitionSizeLimit / nameBytesLen,
+                name, ttl);
+            fail("Expected failure with partition size check");
+        } catch (TablePartitionSizeLimitException e) {
+            logger.fine("insert got exception: " +
+                CommonLoggerUtils.getStackTrace(e));
+        }
+    }
+
+    private void insertRows(TableAPI api,
+                            Table table,
+                            int startId,
+                            int numRows,
+                            String name,
+                            TimeToLive ttl) {
+        for (int id = startId; id < startId + numRows; ++id) {
+            final Row row = table.createRow();
+            row.put("shardid", 1);
+            row.put("id", id);
+            row.put("name", name);
+            row.setTTL(ttl);
+            api.put(row, null, null);
+        }
+    }
+
+    private void printUserStatsLine(TableAPI api, String tableName) {
+        final PrimaryKey pk = waitForTable(api, tableName).createPrimaryKey();
+        final TableIterator<Row> iter = api.tableIterator(pk, null, null);
+        try {
+            while (iter.hasNext()) {
+                final Row row = iter.next();
+                if (row.get(TableStatsPartitionDesc.COL_NAME_TABLE_NAME)
+                    .asString().get().equals("users"))
+                {
+                    logger.fine(row.toJsonString(false));
+                    break;
+                }
+            }
+        } finally {
+            iter.close();
+        }
+    }
+
+    private long getNumUserRows(TableAPI api) {
+        final PrimaryKey pk = waitForTable(api, "users").createPrimaryKey();
+        pk.put("shardid", 1);
+
+        final TableIterator<Row> iter = api.tableIterator(pk, null, null);
+        final Iterable<Row> it = () -> iter;
+        try {
+            return StreamSupport.stream(it.spliterator(), false).count();
+        } finally {
+            iter.close();
+        }
     }
 }

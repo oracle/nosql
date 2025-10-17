@@ -47,6 +47,17 @@ public class ValueSerializer {
         TimeToLive getTTL();
 
         /**
+         * Returns the metadata associated with the row.
+         * A null value represents the absence of metadata.
+         */
+        String getRowMetadata();
+
+        /**
+         * Sets the rowMetadata
+         */
+        void setRowMetadata(String rowMetadata);
+
+        /**
          * Returns true if the RowSerializer is for a Primary Key.
          */
         boolean isPrimaryKey();

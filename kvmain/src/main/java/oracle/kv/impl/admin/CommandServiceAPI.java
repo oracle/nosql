@@ -13,6 +13,7 @@
 
 package oracle.kv.impl.admin;
 
+import static oracle.kv.impl.util.SerialVersion.BEFORE_IMAGE_VERSION;
 import static oracle.kv.impl.util.SerialVersion.JSON_COLLECTION_VERSION;
 import static oracle.kv.impl.util.SerialVersion.SHUTDOWN_REASON_VERSION;
 import static oracle.kv.impl.util.SerialVersion.TABLE_MD_IN_STORE_VERSION;
@@ -926,6 +927,7 @@ public final class CommandServiceAPI extends RemoteAPI {
                                      int tableVersion,
                                      FieldMap fieldMap,
                                      TimeToLive ttl,
+                                     TimeToLive beforeImgTTL,
                                      Set<Integer> regions)
         throws RemoteException {
 
@@ -933,11 +935,25 @@ public final class CommandServiceAPI extends RemoteAPI {
 
         final short serialVersion = getSerialVersion();
 
+        if (serialVersion < BEFORE_IMAGE_VERSION) {
+            return proxyRemote.createEvolveTablePlan(planName,
+                                                     namespace,
+                                                     tableName,
+                                                     tableVersion, fieldMap,
+                                                     ttl,
+                                                     /* ignore before img ttl */
+                                                     null,
+                                                     regions,
+                                                     NULL_CTX,
+                                                     serialVersion);
+        }
+
         return proxyRemote.createEvolveTablePlan(planName,
                                                  namespace,
                                                  tableName,
                                                  tableVersion, fieldMap,
                                                  ttl,
+                                                 beforeImgTTL,
                                                  regions,
                                                  NULL_CTX,
                                                  serialVersion);

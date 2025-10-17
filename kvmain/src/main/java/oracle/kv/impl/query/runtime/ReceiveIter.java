@@ -1017,7 +1017,8 @@ public class ReceiveIter extends PlanIter {
                         rcb.getRegionId(),
                         rcb.doTombstone(),
                         rcb.getMaxServerMemoryConsumption(),
-                        theIsUpdate);
+                        theIsUpdate,
+                        rcb.getRowMetadata());
 
                     if (theIsUpdate) {
                         final Request req =
@@ -1282,7 +1283,8 @@ public class ReceiveIter extends PlanIter {
                         rcb.getRegionId(),
                         rcb.doTombstone(),
                         rcb.getMaxServerMemoryConsumption(),
-                        theIsUpdate);
+                        theIsUpdate,
+                        rcb.getRowMetadata());
 
                     final ExecuteOptions exeOptions = rcb.getExecuteOptions();
                     if (theIsUpdate) {
@@ -2834,13 +2836,21 @@ public class ReceiveIter extends PlanIter {
 
             Set<RepGroupId> shardIds = rcb.getShardSet();
 
-            if (shardIds != null) {
+            /* A simple query run in parallel may have a shardId set */
+            final boolean isSimpleQuery =
+                rcb.getExecuteOptions().getIsSimpleQuery();
+
+            if (shardIds != null && !isSimpleQuery) {
                 /* For a sorting query, the id of the target shard is sent
                  * by the driver, and only this shard will be scanned during
                  * the current batch). If this is the 1st batch of a virtual
                  * scan, the driver also sends the spec of this scan, and we
                  * have to initialize the resume info accordingly. */
-                assert(shardIds.size() == 1);
+                if (shardIds.size() > 1) {
+                    throw new QueryException(
+                        "Use of multiple shards in a single query requires " +
+                        "a simple query, as set in ExecuteOptions");
+                }
                 theShard = shardIds.iterator().next();
                 sid = theShard;
                 VirtualScan vs = rcb.getDriverVirtualScan();
@@ -2867,7 +2877,14 @@ public class ReceiveIter extends PlanIter {
                  * (both base and virtual shards). So, we have to build this
                  * array here to find the target shard and initialize the
                  * shard scan. */
-                theShards = baseTopo.getSortedRepGroupIds();
+                /* if shardIds was passed in, use that set. This can happen
+                 * on a parallel query or use of an input split */
+                if (shardIds != null) {
+                    theShards = new ArrayList<RepGroupId>(shardIds.size());
+                    theShards.addAll(shardIds);
+                } else {
+                    theShards =  baseTopo.getSortedRepGroupIds();
+                }
                 int baseVSID = 1 + theShards.get(theShards.size()-1).getGroupId();
                 int numVirtualScans = ri.numVirtualScans();
                 if (numVirtualScans > 0) {
@@ -3270,7 +3287,8 @@ public class ReceiveIter extends PlanIter {
                         theRCB.getRegionId(),
                         theRCB.doTombstone(),
                         theRCB.getMaxServerMemoryConsumption(),
-                        theIsUpdate);
+                        theIsUpdate,
+                        theRCB.getRowMetadata());
 
             final Consistency consistency = theRCB.getConsistency();
             final Durability durability = theRCB.getDurability();

@@ -13,7 +13,8 @@
 
 package com.sleepycat.je;
 
-import com.sleepycat.je.beforeimage.BeforeImageIndex; 
+import com.sleepycat.je.beforeimage.BeforeImageIndex;
+import com.sleepycat.je.util.TimeSupplier;
 
 /**
  * The result of an operation that successfully reads or writes a record.
@@ -35,6 +36,8 @@ public class OperationResult {
 
     private final long expirationTime;
     private final long modificationTime;
+    private final long creationTime;
+    private long oldCreationTime;
     private long oldModificationTime;
     private final int storageSize;
     private int oldStorageSize;
@@ -44,14 +47,28 @@ public class OperationResult {
 
     OperationResult(final long expirationTime,
                     final boolean update,
+                    final long creationTime,
                     final long modificationTime,
                     final int storageSize,
                     final boolean tombstone) {
         this.expirationTime = expirationTime;
+        this.creationTime = creationTime;
         this.modificationTime = modificationTime;
         this.storageSize = storageSize;
         this.tombstone = tombstone;
         this.update = update;
+    }
+
+    @Override
+    public String toString() {
+        return "OperationResult{" +
+                "expirationTime=" + expirationTime +
+                ", update=" + update +
+                ", creationTime=" + TimeSupplier.formatCurrentTimeToDate(creationTime) +
+                ", modificationTime=" + TimeSupplier.formatCurrentTimeToDate(modificationTime) +
+                ", storageSize=" + storageSize +
+                ", tombstone=" + tombstone +
+                '}';
     }
 
     /**
@@ -122,12 +139,60 @@ public class OperationResult {
         return modificationTime;
     }
 
+    /**
+     * Returns the creationTime of the record, or zero.
+     *
+     * <p>For write operations, non-zero is returned for records belonging to
+     * primary databases and zero is returned when the record belongs to a
+     * secondary (duplicates) database.</p>
+     *
+     * <p>For read operations, zero is returned in the following cases and
+     * non-zero is returned in all other cases.
+     * <ul>
+     *     <li>When the record belongs to a secondary (duplicates) database,
+     *     zero is always returned. Creation times are not maintained in
+     *     secondary databases.</li>
+     *
+     *     <li>When the record data is not requested, i.e., the {@code data}
+     *     param is null or {@link DatabaseEntry#setPartial} was called, then
+     *     zero may be returned. This is because the creation time is
+     *     stored with the record's data if its update or delete,
+     *     so to obtain the creation time
+     *     the record's LN may need to be fetched from disk. If the LN happens
+     *     to be cached or is embedded in the parent BIN (see {@link
+     *     EnvironmentConfig#TREE_MAX_EMBEDDED_LN}), then non-zero is
+     *     returned; but to guarantee that it is returned, the data should be
+     *     requested.</li>
+     *
+     *     <li>When the record was last written using JE 19.3 or earlier,
+     *     zero is always returned. Storage of creation times was added in
+     *     JE 25.2.</li>
+     * </ul>
+     *
+     * @see WriteOptions#setCreationTime
+     * @since 25.2
+     */
+    public long getCreationTime() {
+        return creationTime;
+    }
+
     public long getOldModificationTime() {
         return oldModificationTime;
     }
 
     public void setOldModificationTime(long t) {
         oldModificationTime = t;
+    }
+
+    /*
+     * Used while indexing secondary databases
+     */
+    public long getOldCreationTime() {
+        return oldCreationTime;
+    }
+
+    public void setOldCreationTime(long t) {
+        oldCreationTime = t;
     }
 
     public int getStorageSize() {
@@ -174,10 +239,10 @@ public class OperationResult {
     /**
      * Returns if Before Image was enabled when this record was created.
      * The record may not have a Before Image, even if it is enabled, if no
-     * previous entry for the key of the record existed.  Use 
+     * previous entry for the key of the record existed.  Use
      * {@link OperationResult#hasBeforeImage()} to check if a Before Image
      * exists for the record.
-     * @since 24.3
+     * @since 25.1 Currently not used.
      */
     public boolean beforeImageEnabled() {
     	// TODO check this necessity
@@ -190,7 +255,7 @@ public class OperationResult {
     /**
      * Returns the bytes of the Before Image of this record.  Only non-null
      * if the record has a Before Image and it was requested in
-     * {@link ReadOptions#setIncludeBeforeImage()} in the get operation.
+     * in the get operation. Currently not used.
      * @since 25.1
      */
     public byte[] beforeImage() {
@@ -203,8 +268,8 @@ public class OperationResult {
     /**
      * Returns the expiration time of the Before Image of this record.
      * Only non-zero if the record has a Before Image and it was requested in
-     * {@link ReadOptions#setIncludeBeforeImage()} in the get operation.
-     * @since 25.1
+     * in the get operation.
+     * @since 25.1 Currently not used
      */
     public long beforeImageExpiration() {
         if (bImgEntry != null) {

@@ -185,6 +185,13 @@ public class TableScannerFactory {
 
         public long modificationTime();
 
+        /**
+         * Return the creation time of the current row. The result is valid
+         * only if this method is called after currentTableRow() has been
+         * called.
+         */
+        public long creationTime();
+
         public int partitionId();
 
         public int rowStorageSize();
@@ -438,6 +445,11 @@ public class TableScannerFactory {
         }
 
         @Override
+        public long creationTime() {
+            return theGetResult.getCreationTime();
+        }
+
+        @Override
         public int partitionId() {
             if (thePid.getPartitionId() >= 0) {
                 return thePid.getPartitionId();
@@ -520,6 +532,7 @@ public class TableScannerFactory {
                 return theTable.initRowFromValueBytes(theTableRow,
                                                       data,
                                                       expirationTime(),
+                                                      creationTime(),
                                                       modificationTime(),
                                                       rowVersion(),
                                                       partitionId(),
@@ -531,6 +544,7 @@ public class TableScannerFactory {
             if (!theTable.initRowFromKeyValueBytes(thePrimKey,
                                                    data,
                                                    expirationTime(),
+                                                   creationTime(),
                                                    modificationTime(),
                                                    rowVersion(),
                                                    partitionId(),
@@ -915,6 +929,11 @@ public class TableScannerFactory {
         }
 
         @Override
+        public long creationTime() {
+            return theScanner.getCreationTime();
+        }
+
+        @Override
         public int partitionId() {
             return thePid.getPartitionId();
         }
@@ -998,6 +1017,7 @@ public class TableScannerFactory {
             return theTable.initRowFromValueBytes(theTableRow,
                                                   theDataEntry.getData(),
                                                   expirationTime(),
+                                                  creationTime(),
                                                   modificationTime(),
                                                   rowVersion(),
                                                   partitionId(),
@@ -1427,6 +1447,11 @@ public class TableScannerFactory {
         }
 
         @Override
+        public long creationTime() {
+            return theScanner.getCreationTime();
+        }
+
+        @Override
         public int partitionId() {
             return theHandlersManager.getRepNode().
                 getPartitionId(theBinaryPrimKey).getPartitionId();
@@ -1541,6 +1566,7 @@ public class TableScannerFactory {
             if (!theTable.initRowFromKeyValueBytes(theBinaryPrimKey,
                                                    data,
                                                    expirationTime(),
+                                                   creationTime(),
                                                    modificationTime(),
                                                    rowVersion(),
                                                    partitionId(),

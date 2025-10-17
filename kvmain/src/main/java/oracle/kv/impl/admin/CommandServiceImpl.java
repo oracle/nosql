@@ -1436,6 +1436,7 @@ public class CommandServiceImpl
                                                 shardKey,
                                                 fieldMap,
                                                 ttl,
+                                                null, /*beforeImageTTL*/
                                                 limits,
                                                 r2compat,
                                                 schemaId,
@@ -1605,6 +1606,24 @@ public class CommandServiceImpl
                                      final Set<Integer> regions,
                                      AuthContext authCtx,
                                      short serialVersion) {
+        return createEvolveTablePlan(planName, namespace, tableName,
+                                     tableVersion, fieldMap, ttl,
+                                     null /* ignore before image ttl */,
+                                     regions, authCtx, serialVersion);
+    }
+
+    @Override
+    @SecureInternalMethod
+    public int createEvolveTablePlan(final String planName,
+                                     final String namespace,
+                                     final String tableName,
+                                     final int tableVersion,
+                                     final FieldMap fieldMap,
+                                     final TimeToLive ttl,
+                                     final TimeToLive beforeImgTTL,
+                                     final Set<Integer> regions,
+                                     AuthContext authCtx,
+                                     short serialVersion) {
 
        return aservice.getFaultHandler().execute
             (new ProcessFaultHandler.SimpleOperation<Integer>() {
@@ -1627,6 +1646,7 @@ public class CommandServiceImpl
                                           tableVersion,
                                           fieldMap,
                                           ttl,
+                                          beforeImgTTL,
                                           table.getIdentityColumnInfo(),
                                           regions);
             }

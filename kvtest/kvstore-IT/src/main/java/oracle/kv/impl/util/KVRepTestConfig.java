@@ -546,8 +546,20 @@ public class KVRepTestConfig {
     public oracle.kv.impl.rep.RepNode getMaster(RepGroupId rgId,
                                                 long timeoutMillis)
     {
+        return getMaster(rgId, timeoutMillis, Collections.emptySet());
+    }
+
+    /**
+     * Returns the current master of the provided rep group. Returns
+     * {@code null} if no master found within the provided timeout.
+     */
+    public oracle.kv.impl.rep.RepNode getMaster(RepGroupId rgId,
+                                                long timeoutMillis,
+                                                Set<RepNodeId> excluded)
+    {
         final List<oracle.kv.impl.rep.RepNode> targetRNs = getRNs().stream()
             .filter((rn) -> rn.getRepNodeId().getGroupId() == rgId.getGroupId())
+            .filter((rn) -> !excluded.contains(rn.getRepNodeId()))
             .collect(Collectors.toList());
         final AtomicReference<oracle.kv.impl.rep.RepNode> master =
             new AtomicReference<>(null);

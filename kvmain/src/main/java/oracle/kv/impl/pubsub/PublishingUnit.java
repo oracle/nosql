@@ -15,6 +15,8 @@ package oracle.kv.impl.pubsub;
 
 import static com.sleepycat.je.utilint.VLSN.FIRST_VLSN;
 import static com.sleepycat.je.utilint.VLSN.NULL_VLSN;
+import static oracle.kv.impl.pubsub.CheckpointTableManager.MAX_NUM_ATTEMPTS;
+import static oracle.kv.impl.pubsub.CheckpointTableManager.RETRY_INTERVAL_MS;
 import static oracle.kv.impl.util.CommonLoggerUtils.exceptionString;
 import static oracle.kv.impl.util.ThreadUtils.threadId;
 
@@ -58,6 +60,7 @@ import oracle.kv.impl.util.KVThreadFactory;
 import oracle.kv.impl.util.PollCondition;
 import oracle.kv.impl.util.RateLimitingLogger;
 import oracle.kv.impl.util.server.LoggerUtils;
+import oracle.kv.impl.xregion.service.ServiceMDMan;
 import oracle.kv.pubsub.CheckpointFailureException;
 import oracle.kv.pubsub.NoSQLPublisher;
 import oracle.kv.pubsub.NoSQLStreamMode;
@@ -72,6 +75,7 @@ import oracle.kv.pubsub.SubscriptionFailureException;
 import oracle.kv.pubsub.SubscriptionInsufficientLogException;
 import oracle.kv.pubsub.SubscriptionTableNotFoundException;
 import oracle.kv.stats.SubscriptionMetrics;
+import oracle.kv.table.Table;
 import oracle.kv.table.TableAPI;
 
 import com.sleepycat.je.rep.InsufficientLogException;
@@ -144,14 +148,22 @@ public class PublishingUnit {
     /* true if a new ckpt table is created and used */
     private volatile boolean newCkptTable;
 
-    /*
+    /**
      * A map to hold impl of all subscribed tables, which will be used in
      * de-serialization of rows. The map is null if user is trying to
      * subscribe all tables in this case, we do not prepare any impl at the
      * time when subscription is created, since new table will be created any
-     * time during subscription.
+     * time during subscription. This structure shall be updated atomically
+     * with {@link #streamTxnTables} to avoid inconsistency.
      */
     private volatile ConcurrentMap<String, TableImpl> tables;
+    /**
+     * A thread-safe map of subscribed tables to stream transactions instead
+     * of write operations, indexed by table id. Modifying this structure
+     * must be synchronized with modifying {@link #tables} and they have to
+     * modified atomically to avoid inconsistency.
+     */
+    private final Map<Long, Table> streamTxnTables;
 
 
     /*-- For test and internal use only. ---*/
@@ -231,6 +243,7 @@ public class PublishingUnit {
         directory = null;
         executor = Executors.newSingleThreadScheduledExecutor(
             new PublishingUnitThreadFactory());
+        streamTxnTables = new ConcurrentHashMap<>();
     }
 
     /**
@@ -277,10 +290,16 @@ public class PublishingUnit {
 
             /* determine where to start */
             final StreamPosition initPos = getStartStreamPos(config);
+            /* sanity check of subscribed streaming txn tables */
+            sanityCheckStreamTxnTables(config);
             logger.info(lm("Subscription id=" + si + " to stream from " +
                            "shards=" + shards + " out of all=" + all +
                            ", stream mode=" + config.getStreamMode() +
-                           ", from position=" + initPos));
+                           ", from position=" + initPos +
+                           ", stream txn tables=" +
+                           config.getStreamTxnTables() +
+                           ", include abort txn=" +
+                           config.getStreamAbortTxn()));
             /* prepare the unit */
             prepareUnit(config);
 
@@ -683,7 +702,7 @@ public class PublishingUnit {
      *
      * @return the output queue, null if not initialized
      */
-    BoundedOutputQueue getOutputQueue() {
+    public BoundedOutputQueue getOutputQueue() {
         return outputQueue;
     }
 
@@ -848,6 +867,14 @@ public class PublishingUnit {
     }
 
     /**
+     * Returns true if before image should be included if available, false
+     * otherwise
+     */
+    public boolean includeBeforeImage() {
+        return subscriber.getSubscriptionConfig().getIncludeBeforeImage();
+    }
+
+    /**
      * Internal use in test only
      */
     public ReplicationStreamConsumer getConsumer(RepGroupId gid) {
@@ -861,6 +888,14 @@ public class PublishingUnit {
     /* Returns the change timeout */
     long getChangeTimeoutMs() {
         return config.getChangeTimeoutMs();
+    }
+
+    public boolean getStreamTransaction(long tableId) {
+        return streamTxnTables.containsKey(tableId);
+    }
+
+    public boolean includeAbortTransaction() {
+        return config.getStreamAbortTxn();
     }
 
     /**
@@ -995,7 +1030,7 @@ public class PublishingUnit {
      *
      * @return a copy of subscribed tables, or null
      */
-    Set<String> getSubscribedTables() {
+    public Set<String> getSubscribedTables() {
         if (tables == null) {
             return null;
         }
@@ -1008,8 +1043,18 @@ public class PublishingUnit {
      *
      * @param table table to add
      */
-    void addTable(TableImpl table) {
-        tables.put(table.getFullNamespaceName(), table);
+    synchronized void addTable(TableImpl table, boolean streamTxn) {
+        if (tables != null) {
+            tables.put(table.getFullNamespaceName(), table);
+        }
+        if (streamTxn) {
+            addStreamTxnTable(table.getFullNamespaceName());
+        }
+        logger.info(lm("Added to PU, table=" + ServiceMDMan.getTrace(table) +
+                       ", stream txn="+ streamTxn +
+                       ", subscribed tables=" + tables.keySet() +
+                       ", stream txn tables=" +
+                       ServiceMDMan.getTrace(streamTxnTables.values())));
     }
 
     /**
@@ -1017,8 +1062,11 @@ public class PublishingUnit {
      *
      * @param table table to remove
      */
-    void removeTable(TableImpl table) {
+    synchronized void removeTable(TableImpl table) {
+        assert tables != null;
         tables.remove(table.getFullNamespaceName());
+        /* may or may not in the map of stream txn tables, just remove it */
+        streamTxnTables.remove(table.getId());
     }
 
     /**
@@ -1189,6 +1237,9 @@ public class PublishingUnit {
                     notFoundTbls.add(table);
                 } else {
                     tables.put(tableImpl.getFullNamespaceName(), tableImpl);
+                    if (conf.getStreamTxn(table)) {
+                        addStreamTxnTable(tableImpl.getFullNamespaceName());
+                    }
                 }
             }
 
@@ -1201,11 +1252,20 @@ public class PublishingUnit {
                 throw new SubscriptionFailureException(si, err, stnfe);
             }
 
-            logger.fine(() -> lm("PU subscribed tables=" + tables.keySet() +
-                                 ", table names=" + tableNames));
+            logger.info(lm("PU subscribed tables=" +
+                           ServiceMDMan.getTrace(
+                               tables.values().stream().map(t -> (Table) t)
+                                     .collect(Collectors.toSet())) +
+                           ", configured tables names=" + tableNames +
+                           ", stream txn tables=" +
+                           ServiceMDMan.getTrace(streamTxnTables.values())));
         } else {
-            /* user subscribes all tables */
-            logger.fine(() -> lm("PU subscribed all tables"));
+
+            /* subscribe all tables, add stream txn tables */
+            assert tables == null;
+            config.getStreamTxnTables().forEach(this::addStreamTxnTable);
+            logger.info(lm("PU subscribed all tables, stream txn tables=" +
+                           ServiceMDMan.getTrace(streamTxnTables.values())));
         }
 
         /*
@@ -1274,6 +1334,58 @@ public class PublishingUnit {
         logger.fine(() -> lm("PU preparation done."));
     }
 
+    /**
+     * Adds a table configured to stream transactions
+     * @param table table name
+     */
+    private void addStreamTxnTable(String table) {
+        final TableImpl tb = getTable(config.getSubscriberId(), table);
+        if (tb == null) {
+            logger.warning(lm("Stream txn table=" + table + " not found, " +
+                              "ignore"));
+            return;
+        }
+        if (!tb.isTop()) {
+            /* cannot stream txn for a non-top table */
+            return;
+        }
+
+        /* add top table to stream txn table set */
+        streamTxnTables.put(tb.getId(), tb);
+
+        if (tables == null) {
+            /*
+             * stream already configured to subscribe all tables,
+             * no need to add child tables to subscribed tables set
+             */
+            logger.info(lm("To stream transaction for table=" + table +
+                           ", stream configured to subscribe all tables"));
+            return;
+        }
+
+        /* walk through and add all child tables to subscribed tables */
+        final Set<Table> allTbs = new HashSet<>();
+        getAllChildTables(tb, allTbs);
+        allTbs.forEach(t -> tables.put(t.getFullNamespaceName(),
+                                       (TableImpl) t));
+        logger.info(lm("To stream transaction for table=" + table +
+                       ", adds all tables to subscribed tables=" +
+                       ServiceMDMan.getTbNames(allTbs)));
+    }
+
+    /**
+     * Gets all tables in the hierarchy, including the top level table.
+     * @param rootTable root table
+     * @param tables a returned set of all tables in the hierarchy
+     */
+    public static void getAllChildTables(Table rootTable, Set<Table> tables) {
+        /* walk through hierarchy recursively */
+        tables.add(rootTable);
+        for (Table child : rootTable.getChildTables().values()) {
+            getAllChildTables(child, tables);
+        }
+    }
+
     /* Creates feeder filter from subscribed tables */
     private NoSQLStreamFeederFilter getFilter(RepGroupId gid) {
 
@@ -1286,19 +1398,21 @@ public class PublishingUnit {
         final NoSQLStreamFeederFilter filter;
         final boolean localWrites = config.isLocalWritesOnly();
         final int localRegionId = config.getLocalRegionId();
+        final boolean inclBeforeImage = config.getIncludeBeforeImage();
         if (tables == null) {
             /* get a feeder filter passing all tables */
             filter = NoSQLStreamFeederFilter.getFilter(
-                null, nParts, localWrites, localRegionId);
+                null, nParts, localWrites, localRegionId, inclBeforeImage);
         } else if (tables.isEmpty()) {
             /* get a feeder filter passing no table */
             filter = NoSQLStreamFeederFilter.getFilter(
-                new HashSet<>(), nParts, localWrites, localRegionId);
+                new HashSet<>(), nParts, localWrites, localRegionId,
+                inclBeforeImage);
         } else {
             /* get a feeder filter passing selected tables */
             filter = NoSQLStreamFeederFilter.getFilter(
                 new HashSet<>(tables.values()), nParts, localWrites,
-                localRegionId);
+                localRegionId, inclBeforeImage);
         }
         filter.setRepGroupId(gid);
         logger.fine(() -> lm("Filter created with tables=" +
@@ -1334,6 +1448,75 @@ public class PublishingUnit {
 
     NoSQLPublisher getParent() {
         return parent;
+    }
+
+    /**
+     * Retrieves table from kvstore with retry.
+     * @param table table name
+     * @return table instance if available, or null
+     */
+    private TableImpl getTableWithRetry(String table) {
+        int attempt = 0;
+        final NoSQLSubscriberId sid = config.getSubscriberId();
+        while (!isClosed()) {
+            attempt++;
+            try {
+                final TableImpl ret =
+                    (TableImpl) kvstore.getTableAPI().getTable(table);
+                if (ret != null) {
+                    return ret;
+                }
+                if (attempt == MAX_NUM_ATTEMPTS) {
+                    final String err =
+                        "Table=" + table + " not found" +
+                        ", max attempts=" + MAX_NUM_ATTEMPTS +
+                        ", store=" + getStoreName();
+                    logger.warning(lm(err));
+                    break;
+                }
+                synchronized (this) {
+                    wait(RETRY_INTERVAL_MS);
+                }
+            } catch (FaultException fe) {
+                final String err = "Cannot get table=" + table +
+                                   ", will retry, error=" + fe;
+                logger.finest(() -> lm(err));
+            } catch (Exception exp) {
+                final String err = "Error in accessing table=" + table +
+                                   ", store=" + getStoreName();
+                logger.warning(lm(err + ", cause=" + exp));
+                throw new SubscriptionFailureException(sid, err);
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Sanity check of tables to stream transactions
+     * @param conf subscription configuration
+     */
+    private void sanityCheckStreamTxnTables(NoSQLSubscriptionConfig conf) {
+        final Set<String> txnTables = conf.getStreamTxnTables();
+        if (txnTables.isEmpty()) {
+            return;
+        }
+        final NoSQLSubscriberId sid = conf.getSubscriberId();
+        for (String table : txnTables) {
+            final TableImpl tb = getTableWithRetry(table);
+            if (tb == null) {
+                final String err = "Stream txn table=" + table + " not found";
+                logger.warning(lm(err));
+                throw new SubscriptionFailureException(sid, err);
+            }
+            if (!tb.isTop()) {
+                final String err =
+                    "Stream txn table=" + table + " is not a top table" +
+                    " at store=" + getStoreName();
+                logger.warning(lm(err));
+                throw new SubscriptionFailureException(sid, err);
+            }
+        }
+        logger.fine(() -> lm("Done checking stream txn tables=" + txnTables));
     }
 
     private void verifyCkptTable(NoSQLSubscriptionConfig conf) {
@@ -2033,7 +2216,7 @@ public class PublishingUnit {
             }
         }
 
-        long getCurrSizeBytes() {
+        public long getCurrSizeBytes() {
             return currSizeBytes;
         }
 
@@ -2045,7 +2228,7 @@ public class PublishingUnit {
             return boundedQueue.toArray();
         }
 
-        long getMaxSizeBytes() {
+        public long getMaxSizeBytes() {
             return maxSizeBytes;
         }
 

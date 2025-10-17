@@ -325,11 +325,18 @@ public class WriteOptions implements Cloneable {
      */
     public static final int TTL_MAX_DAYS = TTL_MAX_HOURS / 24;
 
+    /**
+     * The value of Creation Time when it is unknown, for records created
+     * before 25.4, and created before Creation Time was enabled.
+     */
+    public static final long CREATION_TIME_NOT_SET = 0L;
+
     private CacheMode cacheMode = null;
     private int ttl = 0;
     private TimeUnit ttlUnit = TimeUnit.DAYS;
     private long expirationTime = 0;
     private boolean updateTtl = false;
+    private long creationTime = 0;
     private long modificationTime = 0;
     private boolean tombstone = false;
     private TimeUnit beforeImageTTLUnit = TimeUnit.DAYS;
@@ -628,6 +635,34 @@ public class WriteOptions implements Cloneable {
     }
 
     /**
+     * Sets the creation time to be associated with a record that is
+     * inserted or updated, in order to override the default creation time.
+     *
+     * This feature is disabled and is a no-op.
+     *
+     * </p>
+     *
+     * @since 25.3
+     */
+    public WriteOptions setCreationTime(final long creationTime) {
+        //no-op
+        return this;
+    }
+
+    /**
+     * Returns the last creation time to be associated with a record that
+     * is inserted, updated or deleted by the operation, or
+     * {@link WriteOptions#CREATION_TIME_NOT_SET} if creation time was not
+     * enabled at record creation.
+     *
+     * @see #setCreationTime
+     * @since 25.3
+     */
+    public long getCreationTime() {
+        return creationTime;
+    }
+
+    /**
      * Sets the tombstone property to be associated with a record that is
      * inserted or updated.
      *
@@ -680,7 +715,7 @@ public class WriteOptions implements Cloneable {
     }
 
     /**
-     * If set to true, {@link OperationResult#isBeforeImageEnabled()} will 
+     * If set to true, {@link #isBeforeImageEnabled()} will 
      * return true. 
      * @since 25.1
      */

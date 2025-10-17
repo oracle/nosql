@@ -177,7 +177,6 @@ public class ParameterUtils {
 
         /* Replication.  Not all of these are documented publicly */
         ReplicationConfig.ENV_UNKNOWN_STATE_TIMEOUT + "=10 s;" +
-        ReplicationConfig.TXN_ROLLBACK_LIMIT + "=10;" +
         ReplicationConfig.REPLICA_ACK_TIMEOUT + "=5 s;" +
         ReplicationConfig.CONSISTENCY_POLICY + "=NoConsistencyRequiredPolicy;" +
         ReplicationMutableConfig.REPLAY_MAX_OPEN_DB_HANDLES + "=100;" +

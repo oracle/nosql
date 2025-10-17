@@ -46,6 +46,7 @@ public class DbInternal {
     public static OperationResult DEFAULT_RESULT =
         new OperationResult(
             0 /*expirationTime*/, false /*update*/,
+            0L /*creationTime*/,
             0L /*modificationTime*/,
             0 /*storageSize*/,
             false /*tombstone*/);
@@ -488,6 +489,21 @@ public class DbInternal {
     public static boolean getCheckpointUP(final EnvironmentConfig config) {
         return config.getCheckpointUP();
     }
+    
+    /**
+     * Proxy to EnvironmentConfig.setBImgIdx()
+     */
+    public static void setCreateBImgIdx(final EnvironmentConfig config,
+                                       final boolean bImgIdx) {
+        config.setCreateBImgIdx(bImgIdx);
+    }
+    
+    /**
+     * Proxy to EnvironmentConfig.getBImgIdx()
+     */
+    public static boolean getBImgIdx(final EnvironmentConfig config) {
+        return config.getBImgIdx();
+    }
 
     /**
      * Proxy to EnvironmentConfig.setTxnReadCommitted()
@@ -597,12 +613,13 @@ public class DbInternal {
 
     public static OperationResult makeResult(
         final long expirationTime,
+        final long creationTime,
         final long modificationTime,
         final int storageSize,
         final boolean tombstone) {
 
         return new OperationResult(
-            expirationTime, false /*update*/,
+            expirationTime, false /*update*/, creationTime,
             modificationTime, storageSize, tombstone);
     }
 
@@ -610,13 +627,14 @@ public class DbInternal {
         final int expiration,
         final boolean expirationInHours,
         final boolean update,
+        final long creationTime,
         final long modificationTime,
         final int storageSize,
         final boolean tombstone) {
 
         return new OperationResult(
             TTL.expirationToSystemTime(expiration, expirationInHours),
-            update, modificationTime, storageSize, tombstone);
+            update, creationTime,modificationTime, storageSize, tombstone);
     }
 
     public static ReadOptions getReadOptions(LockMode lockMode) {

@@ -40,6 +40,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiConsumer;
+import java.util.function.Supplier;
 import java.util.logging.Logger;
 
 import javax.net.ssl.SSLHandshakeException;
@@ -70,7 +71,6 @@ import oracle.kv.OperationExecutionException;
 import oracle.kv.OperationResult;
 import oracle.kv.ParallelScanIterator;
 import oracle.kv.ReauthenticateHandler;
-import oracle.kv.RequestTimeoutException;
 import oracle.kv.ReturnValueVersion;
 import oracle.kv.StatementResult;
 import oracle.kv.StoreIteratorConfig;
@@ -800,6 +800,7 @@ public class KVStoreImpl implements KVStore, Cloneable {
                     stringKeyResults[i] = new KeyValueVersion
                         (keySerializer.fromByteArray(entry.getKeyBytes()),
                          entry.getValue(), entry.getVersion(),
+                         entry.getCreationTime(),
                          entry.getModificationTime());
                 }
                 return stringKeyResults;
@@ -1071,11 +1072,12 @@ public class KVStoreImpl implements KVStore, Cloneable {
                     for (int i = 0; i < stringKeyResults.length; i += 1) {
                         final ResultKeyValueVersion entry =
                             byteKeyResults.get(i);
-                        stringKeyResults[i] = createKeyValueVersion
-                            (keySerializer.fromByteArray(entry.getKeyBytes()),
-                             entry.getValue(), entry.getVersion(),
-                             entry.getExpirationTime(),
-                             entry.getModificationTime());
+                        stringKeyResults[i] = createKeyValueVersion(
+                            keySerializer.fromByteArray(entry.getKeyBytes()),
+                            entry.getValue(), entry.getVersion(),
+                            entry.getExpirationTime(),
+                            entry.getCreationTime(),
+                            entry.getModificationTime());
                     }
                     return stringKeyResults;
                 }
@@ -1981,7 +1983,8 @@ public class KVStoreImpl implements KVStore, Cloneable {
         long expTime,
         boolean updateTTL,
         boolean isTombstone,
-        long timestamp,
+        long creationTime,
+        long lastModification,
         int regionId) {
         final byte[] keyBytes = keySerializer.toByteArray(key);
         final PartitionId partitionId = dispatcher.getPartitionId(keyBytes);
@@ -1989,7 +1992,9 @@ public class KVStoreImpl implements KVStore, Cloneable {
                                                      returnChoice,
                                                      expTime,
                                                      updateTTL,
-                                                     isTombstone, timestamp,
+                                                     isTombstone,
+                                                     creationTime,
+                                                     lastModification,
                                                      regionId);
 
         return makeWriteRequest(putResolve, partitionId, durability, timeout,
@@ -2041,7 +2046,8 @@ public class KVStoreImpl implements KVStore, Cloneable {
 
         final Request req = makeDeleteRequest(key, getReturnChoice(prevValue),
                                               durability, timeout, timeoutUnit,
-                                              tableId, false /* doTombstone */);
+                                              tableId, false /* doTombstone */,
+                                              null /* rowMetadata */);
         return executeRequestWithPrev(req, prevValue);
     }
 
@@ -2051,11 +2057,12 @@ public class KVStoreImpl implements KVStore, Cloneable {
                                      long timeout,
                                      TimeUnit timeoutUnit,
                                      long tableId,
-                                     boolean doTombstone) {
+                                     boolean doTombstone,
+                                     String rowMetadata) {
         final byte[] keyBytes = keySerializer.toByteArray(key);
         final PartitionId partitionId = dispatcher.getPartitionId(keyBytes);
         final Delete del = new Delete(keyBytes, returnChoice, tableId,
-                                      doTombstone);
+                                      doTombstone, rowMetadata);
         return makeWriteRequest(del, partitionId, durability, timeout,
                                 timeoutUnit);
     }
@@ -2110,7 +2117,8 @@ public class KVStoreImpl implements KVStore, Cloneable {
 
         final Request req = makeDeleteIfVersionRequest(
             key, matchVersion, getReturnChoice(prevValue), durability,
-            timeout, timeoutUnit, tableId, false /* doTombstone */);
+            timeout, timeoutUnit, tableId, false /* doTombstone */,
+            null /* rowMetadata */);
         return executeRequestWithPrev(req, prevValue);
     }
 
@@ -2122,13 +2130,14 @@ public class KVStoreImpl implements KVStore, Cloneable {
         long timeout,
         TimeUnit timeoutUnit,
         long tableId,
-        boolean doTombstone)
+        boolean doTombstone,
+        String rowMetadata)
     {
         final byte[] keyBytes = keySerializer.toByteArray(key);
         final PartitionId partitionId = dispatcher.getPartitionId(keyBytes);
         final Delete del = new DeleteIfVersion(keyBytes, returnChoice,
                                                matchVersion, tableId,
-                                               doTombstone);
+                                               doTombstone, rowMetadata);
         return makeWriteRequest(del, partitionId, durability, timeout,
                                 timeoutUnit);
     }
@@ -2719,10 +2728,9 @@ public class KVStoreImpl implements KVStore, Cloneable {
     private Response executeRequestInternal(Request request)
         throws FaultException {
 
-        final LoginManager requestLoginMgr = this.loginMgr;
         final boolean isUserSuppliedAuth = request.getAuthContext() != null;
-        try {
-            return dispatcher.execute(
+        return withReauthenticate(
+            () -> dispatcher.execute(
                 request,
                 /*
                  * If AuthContext is already supplied, which means externally
@@ -2731,22 +2739,8 @@ public class KVStoreImpl implements KVStore, Cloneable {
                  * For other cases, use login manager to handle auth retry
                  * within request dispatcher.
                  */
-                isUserSuppliedAuth ? null : loginMgr);
-        } catch (AuthenticationRequiredException are) {
-            /*
-             * Try to reauthenticate, but if the AuthContext was provided by
-             * the caller it needs to handle the  exception and reauthenticate.
-             */
-            if (!tryReauthenticate(requestLoginMgr, isUserSuppliedAuth)) {
-                throw are;
-            }
-
-            /*
-             * If the authentication completed, we assume we are ready to
-             * retry the operation.  No retry on the authentication here.
-             */
-            return dispatcher.execute(request, loginMgr);
-        }
+                isUserSuppliedAuth ? null : loginMgr),
+                isUserSuppliedAuth);
     }
 
     /**
@@ -2873,8 +2867,7 @@ public class KVStoreImpl implements KVStore, Cloneable {
 
     @Override
     public void login(LoginCredentials creds)
-        throws RequestTimeoutException, AuthenticationFailureException,
-               FaultException {
+        throws AuthenticationFailureException, FaultException {
 
         if (creds == null) {
             throw new IllegalArgumentException("No credentials provided");
@@ -2956,7 +2949,7 @@ public class KVStoreImpl implements KVStore, Cloneable {
 
     @Override
     public void logout()
-        throws RequestTimeoutException, FaultException {
+        throws FaultException {
 
         synchronized(loginLock) {
             if (loginMgr == null) {
@@ -3322,35 +3315,12 @@ public class KVStoreImpl implements KVStore, Cloneable {
      */
     private ExecutionFuture executeDdl(PreparedDdlStatementImpl statement)
         throws IllegalArgumentException, FaultException {
-        final LoginManager requestLoginMgr = this.loginMgr;
-        final ExecuteOptions options = statement.getExecuteOptions();
 
-        try {
-            return statementExecutor.executeDdl(statement.getQuery(),
-                                                statement.getNamespace(),
-                                                options,
-                                                null, /* TableLimits */
-                                                getLoginManager(this));
-        } catch (AuthenticationRequiredException are) {
-            /*
-             * Try to reauthenticate, but if the AuthContext was provided by
-             * the caller it needs to handle the  exception and reauthenticate.
-             */
-            if (!tryReauthenticate(requestLoginMgr,
-                                   options.getAuthContext() != null)) {
-                throw are;
-            }
-
-            /*
-             * If the authentication completed, we assume we are ready to
-             * retry the operation.  No retry on the authentication here.
-             */
-            return statementExecutor.executeDdl(statement.getQuery(),
-                                                statement.getNamespace(),
-                                                options,
-                                                null, /* TableLimits */
-                                                getLoginManager(this));
-        }
+        return withReauthenticate(
+            () -> statementExecutor.executeDdl(
+                statement.getQuery(), statement.getNamespace(),
+                statement.getExecuteOptions(), null /* TableLimits */),
+            statement.getExecuteOptions().getAuthContext() != null);
     }
 
     /**
@@ -3384,27 +3354,11 @@ public class KVStoreImpl implements KVStore, Cloneable {
                                           TableLimits limits)
         throws IllegalArgumentException, FaultException {
 
-        final LoginManager requestLoginMgr = this.loginMgr;
-        try {
-            return statementExecutor.setTableLimits(namespace,
-                                                    tableName,
-                                                    limits,
-                                                    getLoginManager(this));
-        } catch (AuthenticationRequiredException are) {
-            if (!tryReauthenticate(requestLoginMgr,
-                                   false /* isUserSuppliedAuth */)) {
-                throw are;
-            }
-
-            /*
-             * If the authentication completed, we assume we are ready to
-             * retry the operation.  No retry on the authentication here.
-             */
-            return statementExecutor.setTableLimits(namespace,
-                                                    tableName,
-                                                    limits,
-                                                    getLoginManager(this));
-        }
+        return withReauthenticate(
+            () -> statementExecutor.setTableLimits(
+                namespace, tableName, limits),
+            false /* isUserSuppliedAuth */
+        );
     }
 
     @Override
@@ -3507,31 +3461,16 @@ public class KVStoreImpl implements KVStore, Cloneable {
         if (options == null) {
             options = new ExecuteOptions();
         }
+        final ExecuteOptions executeOptions = options;
         if (statement instanceof PreparedDdlStatementImpl ||
             !getDispatcher().isAsync() ||
             !options.isAsync()) {
-            final LoginManager requestLoginMgr = this.loginMgr;
-            try {
-                return ((InternalStatement)statement).executeSync(this,
-                                                                  options);
-            } catch (AuthenticationRequiredException are) {
-                /*
-                 * Try to reauthenticate, but if the AuthContext was provided
-                 * by the caller it needs to handle the  exception and
-                 * reauthenticate.
-                 */
-                if (!tryReauthenticate(requestLoginMgr,
-                            options.getAuthContext() != null)) {
-                    throw are;
-                }
 
-                /*
-                 * If the authentication completed, we assume we are ready to
-                 * retry the operation.  No retry on the authentication here.
-                 */
-                return ((InternalStatement)statement).executeSync(this,
-                                                                  options);
-            }
+
+            return withReauthenticate(
+                () -> ((InternalStatement)statement).executeSync(
+                    this, executeOptions),
+                options.getAuthContext() != null);
         }
 
         /*
@@ -3622,28 +3561,11 @@ public class KVStoreImpl implements KVStore, Cloneable {
         if (options == null) {
             options = new ExecuteOptions();
         }
-
-        final LoginManager requestLoginMgr = this.loginMgr;
-        try {
-            return ((InternalStatement)statement).
-                   executeSyncShards(this, options, shards);
-        } catch (AuthenticationRequiredException are) {
-            /*
-             * Try to reauthenticate, but if the AuthContext was provided by
-             * the caller it needs to handle the  exception and reauthenticate.
-             */
-            if (!tryReauthenticate(requestLoginMgr,
-                                   options.getAuthContext() != null)) {
-                throw are;
-            }
-
-            /*
-             * If the authentication completed, we assume we are ready to
-             * retry the operation.  No retry on the authentication here.
-             */
-            return ((InternalStatement)statement).
-                   executeSyncShards(this, options, shards);
-        }
+        final ExecuteOptions executeOptions = options;
+        return withReauthenticate(
+            () -> ((InternalStatement)statement).executeSyncShards(
+                this, executeOptions, shards),
+            executeOptions.getAuthContext() != null);
     }
 
     /**
@@ -3722,26 +3644,41 @@ public class KVStoreImpl implements KVStore, Cloneable {
         throws FaultException, IllegalArgumentException {
 
         checkClosed();
-
         if (options == null) {
             options = new ExecuteOptions();
         }
-
+        final ExecuteOptions exeOptions = options;
         PreparedStatement ps = prepare(statement, options);
-
         if (ps instanceof PreparedDdlStatementImpl) {
-            String namespace = null;
-            if (options != null) {
-                namespace = options.getNamespace();
-            }
-            return statementExecutor.executeDdl(statement,
-                                                namespace,
-                                                options,
-                                                limits,
-                                                getLoginManager(this));
+            return withReauthenticate(
+                () -> statementExecutor.executeDdl(
+                    statement, exeOptions.getNamespace(), exeOptions, limits),
+                options.getAuthContext() != null);
         }
         throw new IllegalArgumentException(
             "Execute with TableLimits is restricted to DDL operations");
+    }
+
+    private <T> T withReauthenticate(Supplier<T> operation,
+                                     boolean isUserSuppliedAuth) {
+        final LoginManager requestLoginMgr = this.loginMgr;
+        try {
+            return operation.get();
+        } catch (AuthenticationRequiredException are) {
+            /*
+             * Try to reauthenticate, but if the AuthContext was provided by
+             * the caller it needs to handle the  exception and reauthenticate.
+             */
+            if (!tryReauthenticate(requestLoginMgr, isUserSuppliedAuth)) {
+                throw are;
+            }
+
+            /*
+             * If the authentication completed, we assume we are ready to
+             * retry the operation.  No retry on the authentication here.
+             */
+            return operation.get();
+        }
     }
 
     /**
@@ -3755,15 +3692,17 @@ public class KVStoreImpl implements KVStore, Cloneable {
         final Value value,
         final Version version,
         final long expirationTime,
+        final long creationTime,
         final long modificationTime) {
 
         if (expirationTime == 0) {
             return new KeyValueVersion(key, value, version,
-                                       modificationTime);
+                creationTime, modificationTime);
         }
         return new KeyValueVersionInternal(key, value,
                                            version,
                                            expirationTime,
+                                           creationTime,
                                            modificationTime);
     }
 

@@ -75,14 +75,15 @@ public class JsonCollectionReturnRowImpl
               ReturnValueVersion rvv,
               RowSerializer key,
               long prevExpirationTime,
+              long creationTime,
               long prevModificationTime,
               ValueReader<?> reader) {
         if (returnChoice == Choice.VALUE || returnChoice == Choice.ALL) {
             if (rvv.getValue() != null) {
                 table.readKeyFields(reader, key);
                 impl.getRowFromValueVersion(rvv, key, prevExpirationTime,
-                                            prevModificationTime, false,
-                                            false, reader);
+                    creationTime, prevModificationTime,
+                    false,false, reader);
             }
         }
 

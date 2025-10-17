@@ -69,6 +69,7 @@ class PutIfPresentHandler extends BasicPutHandler<PutIfPresent> {
 
         ResultValueVersion prevVal = null;
         long expTime = 0L;
+        long creationTime = 0L;
         long modificationTime = 0L;
         int storageSize = -1;
         Version version = null;
@@ -83,7 +84,11 @@ class PutIfPresentHandler extends BasicPutHandler<PutIfPresent> {
         DatabaseEntry dataEntry = valueDatabaseEntry(valueBytes);
 
         OperationResult opres;
-        WriteOptions jeOptions = makeOption(op.getTTL(), op.getUpdateTTL());
+        final WriteOptions jeOptions = makeOption(op.getTTL(),
+                                                  op.getUpdateTTL(),
+                                                  op.getTableId(),
+                                                  getOperationHandler(),
+                                                  false /* not a tombstone*/);
 
         final Database db = getRepNode().getPartitionDB(partitionId);
 
@@ -147,6 +152,7 @@ class PutIfPresentHandler extends BasicPutHandler<PutIfPresent> {
                 expTime = opres.getExpirationTime();
                 version = getVersion(cursor);
                 wasUpdate = true;
+                creationTime = opres.getCreationTime();
                 modificationTime = opres.getModificationTime();
                 storageSize = getStorageSize(cursor);
 
@@ -158,6 +164,7 @@ class PutIfPresentHandler extends BasicPutHandler<PutIfPresent> {
                 MigrationStreamHandle.get().addPut(keyEntry,
                                                    dataEntry,
                                                    version.getVLSN(),
+                                                   creationTime,
                                                    modificationTime,
                                                    expTime,
                                                    false /*isTombstone*/);
@@ -170,6 +177,7 @@ class PutIfPresentHandler extends BasicPutHandler<PutIfPresent> {
                                         version,
                                         expTime,
                                         wasUpdate,
+                                        creationTime,
                                         modificationTime,
                                         storageSize,
                                         getRepNode().getRepNodeId().

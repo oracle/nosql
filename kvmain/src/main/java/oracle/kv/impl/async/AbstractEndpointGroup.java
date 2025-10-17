@@ -22,8 +22,10 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
 
@@ -37,11 +39,6 @@ import org.checkerframework.checker.nullness.qual.Nullable;
  * Abstract class for the endpoint group.
  */
 public abstract class AbstractEndpointGroup implements EndpointGroup {
-
-    /**
-     * The maximum thread size of the back up executor.
-     */
-    private static final int BACKUP_EXECUTOR_NUM_CORE_THREADS = 1024;
 
     private final Logger logger;
     private final RateLimitingLogger<String> rateLimitingLogger;
@@ -72,7 +69,12 @@ public abstract class AbstractEndpointGroup implements EndpointGroup {
      * TODO: In the future when we provide thread-pool service for each
      * process, this backup executor should be replaced.
      */
-    private final ScheduledThreadPoolExecutor backupExecutor;
+    private final ExecutorService backupExecutor;
+    /**
+     * The schedueld back up executor. The purpose is the same as the
+     * backupExecutor.
+     */
+    private final ScheduledExecutorService backupSchedExecutor;
     /*
      * Creator and responder endpoints. Use ConcurrentHashMap for thread-safety
      * and high concurrency. Entries are removed when the underlying
@@ -144,49 +146,35 @@ public abstract class AbstractEndpointGroup implements EndpointGroup {
                                      logger);
         this.dialogResourceManager = new DialogResourceManager(
             numPermits, perfTracker.getDialogResourceManagerPerfTracker());
+        final ThreadFactory threadFactory = new KVThreadFactory(
+            String.format("%s.backup", getClass().getSimpleName()), logger) {
+            @Override
+            public UncaughtExceptionHandler makeUncaughtExceptionHandler() {
+                return exceptionHandler;
+            }
+        };
         /*
-         * Creates a ScheduledThreadPoolExecutor with
-         * BACKUP_EXECUTOR_NUM_CORE_THREADS core threads. Although a subclass of
-         * ThreadPoolExecutor, the ScheduledThreadPoolExecutor is a bit special.
-         * The executor has unbounded queue and its max thread size cannot be
-         * configured. Therefore the executor will create new threads when there
-         * are more tasks than the number of threads until the thread count
-         * reaches BACKUP_EXECUTOR_NUM_CORE_THREADS (i.e., 1024). After that, if
-         * more tasks are scheduled, they are enqueued until OOME happens.
-         *
-         * We also configure keep-alive time and allow core thread to timeout.
-         * This is because the back up executor is only used occasionally for
-         * various tasks that should not block the nio channel executor and
-         * therefore it seems undesirable to keep a lot of unused the threads
-         * around. The javadoc of ScheduledThreadPoolExecutor warns about such
-         * configuration. However, I think the reason for those warnings is for
-         * timely execution of the tasks: we need to spin out core threads for
-         * new tasks if they can be timed out. Since we do not expect back up
-         * executor to be used to its full capacity with timing sensitive tasks,
-         * such configuration should be OK.
-         *
-         * TODO: Currently using ScheduledThreadPoolExecutor but it is not
-         * satisfactory since its max thread number cannot be configured
-         * properly and its queue is unbounded. We want an executor that has a
-         * max thread size and bounded queue size with reject policy of
-         * restarting the process [KVSTORE-2265].
+         * Creates the backupExecutor with the newCachedThreadPool. This will
+         * reuse an idle thread when a new task is submitted, but create new one
+         * if none exists. There is no bound on maximum number of threads. This
+         * set up can prevent deadlock issues in the presense of blocking tasks
+         * ([KVSTORE-2260]). Furthermore, it will not start too many threads if
+         * not necessary ([KVSTORE-2719]). The only down side is that this will
+         * lead to OOM which is less satisfactory because ideally we want to cap
+         * the thread and restart the RN earlier.
          */
-        this.backupExecutor =
-            new ScheduledThreadPoolExecutor(
-                BACKUP_EXECUTOR_NUM_CORE_THREADS,
-                new KVThreadFactory(
-                    String.format("%s.backup", getClass().getSimpleName()),
-                    logger)
-                {
-                    @Override
-                    public UncaughtExceptionHandler
-                        makeUncaughtExceptionHandler()
-                    {
-                        return exceptionHandler;
-                    }
-                });
-        backupExecutor.setKeepAliveTime(1, TimeUnit.MINUTES);
-        backupExecutor.allowCoreThreadTimeOut(true);
+        this.backupExecutor = Executors.newCachedThreadPool(threadFactory);
+        /*
+         * Creates the backupSchedExecutor with the newScheduledThreadPool. Set
+         * a core thread number to eight. Currently only
+         * NioEndpointHandler$ChannelInputCloseOrRetryAfterRejection and
+         * NioChannelThreadPoolPerfTracker$HeartbeatCheckTask uses this
+         * executor. The tasks are non-blocking, not frequent and not
+         * performance critical. Therefore, eight core threads should be more
+         * than sufficient.
+         */
+        this.backupSchedExecutor =
+            Executors.newScheduledThreadPool(8, threadFactory);
     }
 
     public Logger getLogger() {
@@ -463,8 +451,13 @@ public abstract class AbstractEndpointGroup implements EndpointGroup {
     }
 
     @Override
-    public ScheduledExecutorService getBackupSchedExecService() {
+    public ExecutorService getBackupExecService() {
         return backupExecutor;
+    }
+
+    @Override
+    public ScheduledExecutorService getBackupSchedExecService() {
+        return backupSchedExecutor;
     }
 
     /**
@@ -673,12 +666,17 @@ public abstract class AbstractEndpointGroup implements EndpointGroup {
     /* For testing */
 
     /**
-     * Shuts down the backup executor, waits for termination.
+     * Shuts down the backup executors, waits for termination.
      */
     public boolean awaitBackupExecutorQuiescence(long timeout, TimeUnit unit)
         throws InterruptedException {
 
+        final long deadlineNanos = System.nanoTime() + unit.toNanos(timeout);
         backupExecutor.shutdown();
-        return backupExecutor.awaitTermination(timeout, unit);
+        backupSchedExecutor.shutdown();
+        return backupExecutor.awaitTermination(
+            deadlineNanos - System.nanoTime(), TimeUnit.NANOSECONDS) &&
+            backupSchedExecutor.awaitTermination(
+                deadlineNanos - System.nanoTime(), TimeUnit.NANOSECONDS);
     }
 }

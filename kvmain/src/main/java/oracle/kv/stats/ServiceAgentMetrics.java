@@ -85,6 +85,22 @@ public interface ServiceAgentMetrics {
     long getWinDels();
 
     /**
+     * Returns the total number of looped back put operations originated at
+     * the local region.
+     * @return the total number of looped back put operations originated at
+     * the local region.
+     */
+    long getLoopbackPuts();
+
+    /**
+     * Returns the total number of looped back delete operations originated at
+     * the local region.
+     * @return the total number of looped back delete operations originated at
+     * the local region.
+     */
+    long getLoopbackDels();
+
+    /**
      * Returns the total bytes received from source
      *
      * @return the total bytes received from source

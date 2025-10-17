@@ -14,6 +14,7 @@
 package oracle.kv.impl.api.ops;
 
 import static oracle.kv.impl.util.ObjectUtil.checkNull;
+import static oracle.kv.impl.util.SerialVersion.CREATION_TIME_VER;
 import static oracle.kv.impl.util.SerialVersion.QUERY_VERSION_14;
 import static oracle.kv.impl.util.SerializationUtil.toDeserializedForm;
 import static oracle.kv.impl.util.SerializationUtil.readByteArray;
@@ -263,6 +264,12 @@ public abstract class Result
     }
 
     @Override
+    public long getPreviousCreationTime() {
+        throw new IllegalStateException("result of type: " + getClass() +
+            " does not contain a previous creation time");
+    }
+
+    @Override
     public long getPreviousModificationTime() {
         throw new IllegalStateException("result of type: " + getClass() +
                                         " does not contain a " +
@@ -270,10 +277,17 @@ public abstract class Result
     }
 
     @Override
+    public long getNewCreationTime() {
+        throw new IllegalStateException("result of type: " + getClass() +
+            " does not contain a " +
+            "new creation time");
+    }
+
+    @Override
     public long getNewModificationTime() {
         throw new IllegalStateException("result of type: " + getClass() +
-                                        " does not contain a " +
-                                        "new modification time");
+            " does not contain a " +
+            "new modification time");
     }
 
     @Override
@@ -511,6 +525,8 @@ public abstract class Result
 
         private final Version newVersion;  /* of the new record */
         private final long newExpirationTime; /* of the new record */
+        // There is creationTime in prevValue, they should both be the same.
+        private final long newCreationTime;
         private final long newModificationTime;
         private final int newStorageSize;
         private final int shard;
@@ -543,6 +559,7 @@ public abstract class Result
                   Version version,
                   long expTime,
                   boolean wasUpdate,
+                  long creationTime,
                   long modificationTime,
                   int storageSize,
                   int shard) {
@@ -552,6 +569,7 @@ public abstract class Result
             this.wasUpdate = wasUpdate;
             newVersion = version;
             newExpirationTime = expTime;
+            newCreationTime = creationTime;
             newModificationTime = modificationTime;
             newStorageSize = storageSize;
             this.shard = shard;
@@ -563,6 +581,7 @@ public abstract class Result
             wasUpdate = other.wasUpdate;
             newVersion = other.newVersion;
             newExpirationTime = other.newExpirationTime;
+            newCreationTime = other.newCreationTime;
             newModificationTime = other.newModificationTime;
             newStorageSize = other.newStorageSize;
             shard = other.shard;
@@ -591,6 +610,11 @@ public abstract class Result
 
             newStorageSize = in.readInt();
             shard = in.readInt();
+            if (serialVersion >= CREATION_TIME_VER) {
+                newCreationTime = in.readLong();
+            } else {
+                newCreationTime = 0;
+            }
         }
 
         /**
@@ -609,6 +633,8 @@ public abstract class Result
          *      <i>whether newModificationTime is present</i>
          * <li> <i>[Optional]</i>({@link DataOutput#writeLong long})
          *      {@link #getNewModificationTime newModificationTime}
+         * <li> <i>[Contingent on serialVersion]</i>({@link DataOutput#writeLong long})
+         *      {@link #getNewCreationTime creationTime}
          * </ol>
          */
         @Override
@@ -618,8 +644,8 @@ public abstract class Result
             writeFastExternalOrNull(out, serialVersion, newVersion);
 
             writeTimestamp(out,
-                                newExpirationTime,
-                                serialVersion);
+                           newExpirationTime,
+                           serialVersion);
             out.writeBoolean(wasUpdate);
             writeTimestamp(out,
                            newModificationTime,
@@ -627,6 +653,9 @@ public abstract class Result
 
             out.writeInt(newStorageSize);
             out.writeInt(shard);
+            if (serialVersion >= CREATION_TIME_VER) {
+                out.writeLong(newCreationTime);
+            }
         }
 
         @Override
@@ -659,6 +688,11 @@ public abstract class Result
         }
 
         @Override
+        public long getNewCreationTime() {
+            return newCreationTime;
+        }
+
+        @Override
         public long getNewModificationTime() {
             return newModificationTime;
         }
@@ -681,6 +715,7 @@ public abstract class Result
             final PutResult other = (PutResult) obj;
             return Objects.equals(newVersion, other.newVersion) &&
                 (newExpirationTime == other.newExpirationTime) &&
+                (newCreationTime == other.newCreationTime) &&
                 (newModificationTime == other.newModificationTime) &&
                 (newStorageSize == other.newStorageSize) &&
                 (shard == other.shard) &&
@@ -690,7 +725,7 @@ public abstract class Result
 
         @Override
         public int hashCode() {
-            return Objects.hash(newVersion, newExpirationTime,
+            return Objects.hash(newVersion, newExpirationTime, newCreationTime,
                                 newModificationTime, newStorageSize, shard,
                                 wasUpdate, generatedValue);
         }
@@ -881,6 +916,7 @@ public abstract class Result
         private final ResultValue resultValue;
         protected Version version;
         private final long expirationTime;
+        protected long creationTime;
         private final long modificationTime;
         private final int storageSize;
 
@@ -896,12 +932,14 @@ public abstract class Result
                      null);
                 version = valueVersion.getVersion();
                 expirationTime = valueVersion.getExpirationTime();
+                creationTime = valueVersion.getCreationTime();
                 modificationTime = valueVersion.getModificationTime();
                 storageSize = valueVersion.getStorageSize();
             } else {
                 resultValue = null;
                 version = null;
                 expirationTime = 0;
+                creationTime = 0;
                 modificationTime = 0;
                 storageSize = -1;
             }
@@ -917,6 +955,7 @@ public abstract class Result
             resultValue = toDeserializedForm(other.resultValue, serialVersion);
             version = other.version;
             expirationTime = other.expirationTime;
+            creationTime = other.creationTime;
             modificationTime = other.modificationTime;
             storageSize = other.storageSize;
         }
@@ -945,6 +984,11 @@ public abstract class Result
             modificationTime = readTimestamp(in, serialVersion);
 
             storageSize = in.readInt();
+            if (serialVersion >= CREATION_TIME_VER) {
+                creationTime = in.readLong();
+            } else {
+                creationTime = 0;
+            }
         }
 
         /**
@@ -974,14 +1018,12 @@ public abstract class Result
             super.writeFastExternal(out, serialVersion);
             writeFastExternalOrNull(out, serialVersion, resultValue);
             writeFastExternalOrNull(out, serialVersion, version);
-            writeTimestamp(out,
-                                expirationTime,
-                                serialVersion);
-            writeTimestamp(out,
-                           modificationTime,
-                           serialVersion);
-
+            writeTimestamp(out, expirationTime, serialVersion);
+            writeTimestamp(out, modificationTime, serialVersion);
             out.writeInt(storageSize);
+            if (serialVersion >= CREATION_TIME_VER) {
+                out.writeLong(creationTime);
+            }
         }
 
         @Override
@@ -1001,6 +1043,11 @@ public abstract class Result
         @Override
         public long getPreviousExpirationTime() {
             return expirationTime;
+        }
+
+        @Override
+        public long getPreviousCreationTime() {
+            return creationTime;
         }
 
         @Override
@@ -1024,13 +1071,15 @@ public abstract class Result
                 Objects.equals(version, other.version) &&
                 (expirationTime == other.expirationTime) &&
                 (modificationTime == other.modificationTime) &&
+                (creationTime == other.creationTime) &&
                 (storageSize == other.storageSize);
         }
 
         @Override
         public int hashCode() {
             return Objects.hash(super.hashCode(), resultValue, version,
-                                expirationTime, modificationTime, storageSize);
+                                expirationTime, modificationTime, creationTime,
+                                storageSize);
         }
     }
 

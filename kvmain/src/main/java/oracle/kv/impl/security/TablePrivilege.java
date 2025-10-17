@@ -118,6 +118,42 @@ public abstract class TablePrivilege extends KVStorePrivilege {
             });
     }
 
+    /*
+     * A convenient map of table privilege label and the implying namespace
+     * privilege label.
+     */
+    private static final EnumMap<KVStorePrivilegeLabel, KVStorePrivilegeLabel>
+        tableNsPrivsMap = new EnumMap<>(KVStorePrivilegeLabel.class);
+    static {
+        tableNsPrivsMap.put(KVStorePrivilegeLabel.DELETE_TABLE,
+                            KVStorePrivilegeLabel.DELETE_IN_NAMESPACE);
+        tableNsPrivsMap.put(KVStorePrivilegeLabel.READ_TABLE,
+                            KVStorePrivilegeLabel.READ_IN_NAMESPACE);
+        tableNsPrivsMap.put(KVStorePrivilegeLabel.INSERT_TABLE,
+                            KVStorePrivilegeLabel.INSERT_IN_NAMESPACE);
+        tableNsPrivsMap.put(KVStorePrivilegeLabel.EVOLVE_TABLE,
+                            KVStorePrivilegeLabel.EVOLVE_TABLE_IN_NAMESPACE);
+        tableNsPrivsMap.put(KVStorePrivilegeLabel.CREATE_INDEX,
+                            KVStorePrivilegeLabel.CREATE_INDEX_IN_NAMESPACE);
+        tableNsPrivsMap.put(KVStorePrivilegeLabel.DROP_INDEX,
+                            KVStorePrivilegeLabel.DROP_INDEX_IN_NAMESPACE);
+    }
+
+    /**
+     * Get implying namespace privilege label of given table privilege label.
+     */
+    public static KVStorePrivilegeLabel
+        implyingNamespacePrivLabel(KVStorePrivilegeLabel tablePrivLabel) {
+        final KVStorePrivilegeLabel nsPrivLabel =
+            tableNsPrivsMap.get(tablePrivLabel);
+        if (nsPrivLabel == null) {
+            throw new IllegalStateException(
+                "Privilege implication code error, " + tablePrivLabel +
+                " doesn't have an implying namespace privilege label defined");
+        }
+        return nsPrivLabel;
+    }
+
     private TablePrivilege(KVStorePrivilegeLabel privLabel,
                            long tableId,
                            String tableNamespace,
@@ -158,11 +194,12 @@ public abstract class TablePrivilege extends KVStorePrivilege {
      * Gets a specific table privilege instance according to the specific
      * label and table information.  It is used in the case that builds a table
      * privilege instance according to user-input privilege name. In other
-     * cases, it is recommend to directly get the instances via constructors
+     * cases, it is recommended to directly get the instances via constructors
      * for efficiency.
      *
      * @param privLabel label of the privilege
      * @param tableId table id
+     * @param tableNamespace table namespace
      * @param tableName table name
      * @return table privilege instance specified by the label
      */

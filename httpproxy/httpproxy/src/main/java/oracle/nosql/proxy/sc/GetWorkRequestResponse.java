@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2011, 2024 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011, 2025 Oracle and/or its affiliates. All rights reserved.
  *
  * This file was distributed by Oracle as part of a version of Oracle NoSQL
  * Database made available at:
@@ -15,37 +15,35 @@ package oracle.nosql.proxy.sc;
 
 import oracle.nosql.common.json.JsonUtils;
 import oracle.nosql.util.fault.ErrorResponse;
-import oracle.nosql.util.tmi.DdlHistoryEntry;
+import oracle.nosql.util.tmi.WorkRequest;
 
 /**
  * Response to a TenantManager getWorkRequest operation.
  */
 public class GetWorkRequestResponse extends CommonResponse {
-    private final DdlHistoryEntry workRequestInfo;
+    private final WorkRequest workRequest;
 
-    public GetWorkRequestResponse(int httpResponse,
-                                  DdlHistoryEntry workRequestInfo) {
+    public GetWorkRequestResponse(int httpResponse, WorkRequest workRequest) {
         super(httpResponse);
-        this.workRequestInfo = workRequestInfo;
+        this.workRequest = workRequest;
     }
 
     public GetWorkRequestResponse(ErrorResponse err) {
         super(err);
-        workRequestInfo = null;
+        workRequest = null;
     }
 
     /**
-     * Returns a DdlHistoryEntry object describing the table on success, null
-     * on failure.
+     * Returns a WorkRequest object
      */
-    public DdlHistoryEntry getDdlEntry() {
-        return workRequestInfo;
+    public WorkRequest getWorkRequest() {
+        return workRequest;
     }
 
     @Override
     public String successPayload() {
         try {
-            return JsonUtils.print(workRequestInfo);
+            return JsonUtils.print(workRequest);
         } catch (IllegalArgumentException iae) {
             return ("Error serializing payload: " + iae.getMessage());
         }
@@ -53,7 +51,7 @@ public class GetWorkRequestResponse extends CommonResponse {
 
     @Override
     public String toString() {
-        return "GetWorkRequestResponse [workRequestInfo=" + workRequestInfo +
+        return "GetWorkRequestResponse [workRequest=" + workRequest +
                 ", toString()=" + super.toString() + "]";
     }
 }

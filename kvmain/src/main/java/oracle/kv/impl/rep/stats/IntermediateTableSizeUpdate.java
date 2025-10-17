@@ -20,9 +20,13 @@ import static oracle.kv.impl.systables.TableStatsPartitionDesc.COL_NAME_TABLE_SI
 import static oracle.kv.impl.systables.TableStatsPartitionDesc.COL_NAME_TABLE_SIZE_WITH_TOMBSTONES;
 import static oracle.kv.impl.systables.TableStatsPartitionDesc.TABLE_NAME;
 
+import java.util.Collections;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
+import java.util.stream.IntStream;
+
 import oracle.kv.Consistency;
 
 import oracle.kv.impl.api.table.TableImpl;
@@ -38,8 +42,31 @@ import oracle.kv.table.Table;
 import oracle.kv.table.TableAPI;
 
 /**
- * Updates the size field in table stats records from data collected during
- * operations by the resource collection framework.
+ * Updates the size field in table stats records from write deltas. The write
+ * delta is computed by accmulating the record size from put and delete
+ * operations which is collected in ResourceCollector.
+ *
+ * The update interval is controlled by
+ * KeyStatsCollector.statsSizeUpdateInterval.
+ *
+ * This class also updates the ResourceCollector.partitionOverages parameter,
+ * which is used to limit the partition size of a table.
+ *
+ * To further optimize and reduce the number of stats record operations, the
+ * update is skipped if the write delta is under POSITIVE_THRESHOLD_BYTES and
+ * NEGATIVE_THRESHOLD_BYTES. However, this could cause a problem that the
+ * ResourceCollecter.partitionOverages is not even eventually consistent. There
+ * are two sources of inconsistency: (1) The write deltas does not count for
+ * TTL. (2) The updates done by this class do not tolerate RN failure and master
+ * transfer. Such inconsistency can only be resolved by reading from the stats
+ * records which is recently updated by a partition stats scan regardless of the
+ * write delta value. Because partition stats scan can be done by any RN holding
+ * a lease, we cannot resolve this issue according to local states within this
+ * RN. Hence, we will need resort to a periodic forced update approach. To
+ * optimize and reduce the number of forced update as well, the interval of the
+ * forced update should be set corresponding to the partition stats scan
+ * interval. This is controlled by
+ * KeyStatsCollector.statsSizeForceUpdateInterval.
  */
 class IntermediateTableSizeUpdate {
 
@@ -47,7 +74,7 @@ class IntermediateTableSizeUpdate {
                             new ReadOptions(Consistency.ABSOLUTE, 0, null);
 
     private final static long MB = 1024L * 1024L;
-    
+
     /*
      * Thresholds for how much delta bytes need to be before we fo an update.
      * The thresholds are meant reduce the load of intermediate updates. The
@@ -57,10 +84,12 @@ class IntermediateTableSizeUpdate {
      */
     final static long POSITIVE_THRESHOLD_BYTES = 1 * MB;
     final static long NEGATIVE_THRESHOLD_BYTES = 2 * -MB;
-    
+
     private final RepNode repNode;
     private final TableAPI tableAPI;
     private final Logger logger;
+
+    private long lastForcedUpdateNanos = System.nanoTime();
 
     private volatile boolean stop = false;
 
@@ -75,7 +104,7 @@ class IntermediateTableSizeUpdate {
     /*
      * Do an intermediate table size update.
      */
-    void runUpdate() {
+    void runUpdate(long forcedUpdateIntervalMillis) {
         final TableManager tm = repNode.getTableManager();
         final TableImpl tableStatsTable = tm.getTable(null, TABLE_NAME, 0);
         if (tableStatsTable == null) {
@@ -89,6 +118,10 @@ class IntermediateTableSizeUpdate {
         }
         logger.fine("Running IntermediateTableSizeUpdate");
 
+        final long sinceLastForcedUpdateMillis = TimeUnit.NANOSECONDS
+            .toMillis(System.nanoTime() - lastForcedUpdateNanos);
+        final boolean forceUpdate =
+            sinceLastForcedUpdateMillis > forcedUpdateIntervalMillis;
         /*
          * For each table hierarchy that has a resource collector, update the
          * table size in each tables stats record.
@@ -103,9 +136,13 @@ class IntermediateTableSizeUpdate {
                 continue;
             }
             if (table.isTop()) {
-                updateSize(table, (TopCollector)entry.getValue(),
-                           collectorMap, tableStatsTable);
+                updateSize(table, (TopCollector) entry.getValue(), collectorMap,
+                    tableStatsTable, forceUpdate);
             }
+        }
+
+        if (forceUpdate) {
+            lastForcedUpdateNanos = System.nanoTime();
         }
     }
 
@@ -116,34 +153,58 @@ class IntermediateTableSizeUpdate {
     private void updateSize(TableImpl topTable,
                             TopCollector tc,
                             Map<Long, ResourceCollector> collectorMap,
-                            Table tableStatsTable) {
-        /*
-         * For each partition that had activity, update the stats record
-         * and check for partition limits.
-         */
-        for (int pid : tc.getActivePartitions()) {
-            final long totalDelta = tc.getTotalSizeDelta(pid);
-            
+                            Table tableStatsTable,
+                            boolean forceUpdate) {
+
+        final IntStream updatePids;
+        if (tc.getActivePartitions().isEmpty()) {
             /*
-             * Update only when the change is over a threshold.
+             * If there is no write delta, the active partitions will be empty
+             * (see ResourceCollector#getTotalSizeDelta). In this case, we
+             * update all partitions on this shard. Always obatin the topology
+             * considering partition migrations.
              */
-            if ((totalDelta < POSITIVE_THRESHOLD_BYTES) &&
-                (totalDelta > NEGATIVE_THRESHOLD_BYTES)) {
-                continue;
-            }
-            
-            /*
-             * Since we are doing an update we can reset the total delta. The
-             * individual table deltas are reset in updateTable().
-             */
-            tc.resetTotalSizeDelta(pid);
-            final TableSizeResult res =
-                updateTable(topTable, pid, collectorMap, tableStatsTable);
-            /* use the table size with tombstone to check the limit */
-            tc.checkPartitionLimit(res.sizeTb, pid);
+            updatePids = repNode.getTopology()
+                .getPartitionsInShard(repNode.getRepNodeId().getGroupId(),
+                    Collections.emptySet())
+                .stream().mapToInt(p -> p.getPartitionId());
+        } else {
+            updatePids =
+                tc.getActivePartitions().stream().mapToInt(i -> i);
         }
+        updatePids.forEach(i -> updatePartitionSize(topTable, tc, collectorMap,
+            tableStatsTable, forceUpdate, i));
     }
-    
+
+    private void updatePartitionSize(TableImpl topTable,
+                                     TopCollector tc,
+                                     Map<Long, ResourceCollector> collectorMap,
+                                     Table tableStatsTable,
+                                     boolean forceUpdate,
+                                     int pid) {
+
+        final long totalDelta = tc.getTotalSizeDelta(pid);
+        /*
+         * Update only when the change is over a threshold or is a force update.
+         */
+        if ((totalDelta < POSITIVE_THRESHOLD_BYTES) &&
+            (totalDelta > NEGATIVE_THRESHOLD_BYTES) &&
+            !forceUpdate)
+        {
+            return;
+        }
+
+        /*
+         * Since we are doing an update we can reset the total delta. The
+         * individual table deltas are reset in updateTable().
+         */
+        tc.resetTotalSizeDelta(pid);
+        final TableSizeResult res =
+            updateTable(topTable, pid, collectorMap, tableStatsTable);
+        /* Use the table size with tombstone to check the limit. */
+        tc.checkPartitionLimit(res.sizeTb, pid);
+    }
+
     /**
      * Updates the stats records for the specified table and its children
      * if there has been activity on the specified partition. Returns the
@@ -163,7 +224,7 @@ class IntermediateTableSizeUpdate {
         /*
          * Size of the partition based on the stats record adjusted by
          * a size delta from the resource collector.
-         */   
+         */
         long size = 0L;
         long sizeTb;
 
@@ -174,9 +235,9 @@ class IntermediateTableSizeUpdate {
         final PrimaryKey key = tableStatsTable.createPrimaryKey();
         key.put(COL_NAME_TABLE_NAME, table.getFullNamespaceName());
         key.put(COL_NAME_PARTITION_ID, pid);
-        
+
         final ResourceCollector rc = collectorMap.get(table.getId());
-        
+
         /*
          * The row could be null if this is a new table and a
          * partition scan hasn't run since creation.

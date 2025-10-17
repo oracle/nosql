@@ -66,43 +66,40 @@ compiled-query-plan
           "field name" : "row_size",
           "field expression" : 
           {
-            "iterator kind" : "MULTIPLY_DIVIDE",
-            "operations and operands" : [
+            "iterator kind" : "AND",
+            "input iterators" : [
               {
-                "operation" : "*",
-                "operand" :
+                "iterator kind" : "GREATER_OR_EQUAL",
+                "left operand" :
                 {
-                  "iterator kind" : "MULTIPLY_DIVIDE",
-                  "operations and operands" : [
-                    {
-                      "operation" : "*",
-                      "operand" :
-                      {
-                        "iterator kind" : "FUNC_ROW_STORAGE_SIZE",
-                        "input iterator" :
-                        {
-                          "iterator kind" : "VAR_REF",
-                          "variable" : "$f"
-                        }
-                      }
-                    },
-                    {
-                      "operation" : "/",
-                      "operand" :
-                      {
-                        "iterator kind" : "CONST",
-                        "value" : 10
-                      }
-                    }
-                  ]
+                  "iterator kind" : "FUNC_ROW_STORAGE_SIZE",
+                  "input iterator" :
+                  {
+                    "iterator kind" : "VAR_REF",
+                    "variable" : "$f"
+                  }
+                },
+                "right operand" :
+                {
+                  "iterator kind" : "CONST",
+                  "value" : 319
                 }
               },
               {
-                "operation" : "*",
-                "operand" :
+                "iterator kind" : "LESS_OR_EQUAL",
+                "left operand" :
+                {
+                  "iterator kind" : "FUNC_ROW_STORAGE_SIZE",
+                  "input iterator" :
+                  {
+                    "iterator kind" : "VAR_REF",
+                    "variable" : "$f"
+                  }
+                },
+                "right operand" :
                 {
                   "iterator kind" : "CONST",
-                  "value" : 10
+                  "value" : 457
                 }
               }
             ]
