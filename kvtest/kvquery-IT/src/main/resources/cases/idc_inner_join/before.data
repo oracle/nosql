@@ -1,0 +1,421 @@
+
+################## Data for Functional Testing ################
+
+Table : company
+
+{
+  "company_id": 1,
+  "name": "TechCorp",
+  "head_office_location": {"city": "NY", "country": "USA"},
+  "founders": ["Alice", "Bob"]
+}
+{
+  "company_id": 2,
+  "name": "InnovateX",
+  "head_office_location": {"city": "San Francisco", "country": "USA"},
+  "founders": ["Charlie", "David"]
+}
+{
+  "company_id": 3,
+  "name": "NextGen Solutions",
+  "head_office_location": {"city": "London", "country": "UK"},
+  "founders": ["Emma", "Frank"]
+}
+{
+  "company_id": 4,
+  "name": "FutureTech",
+  "head_office_location": {"city": "Berlin", "country": "Germany"},
+  "founders": ["Grace", "Henry"]
+}
+{
+  "company_id": 5,
+  "name": "Oracle",
+  "head_office_location": null,
+  "founders": ["Larry", "Safra"]
+}
+
+Table : company.department
+
+{
+  "company_id": 1,
+  "department_id": 1,
+  "name": "Engineering",
+  "budget_breakdown": {"RnD": 500000.78, "Infrastructure": 200000.0},
+  "established": "2024-05-20T00:00:00"
+}
+{
+  "company_id": 2,
+  "department_id": 1,
+  "name": "Engineering",
+  "budget_breakdown": {"RnD": 600000.798, "Infrastructure": 250000.879},
+  "established": "2021-02-28T23:59:59"
+}
+{
+  "company_id": 2,
+  "department_id": 2,
+  "name": "Marketing",
+  "budget_breakdown": {"Advertising": 300000.25, "Market Research": 150000.75},
+  "established": "2016-10-19T09:18:05.5555"
+}
+{
+  "company_id": 3,
+  "department_id": 1,
+  "name": "Engineering",
+  "budget_breakdown": {"RnD": 700000.367, "Infrastructure": 300000.776},
+  "established": "2020-02-28T23:59:59.123456"
+}
+{
+  "company_id": 3,
+  "department_id": 2,
+  "name": "Sales",
+  "budget_breakdown": {"Salaries": 400000.4, "Training": 100000.68688},
+  "established": "2023-05-28T00:13:12"
+}
+
+
+Table : company.reviews
+
+{
+  "company_id": 1,
+  "review_id": 1,
+  "emp_id": 1,
+  "feedback": {
+    "reviewer_emp_id": 1,
+    "rating": 4.8,
+    "comments": "Excellent AI model development",
+    "history": [{ "date": "2025-02-15", "previous_rating": "4.5" }]
+  }
+}
+{
+  "company_id": 2,
+  "review_id": 1,
+  "emp_id": 1,
+  "feedback": {
+    "reviewer_emp_id": 2,
+    "rating": 4.7,
+    "comments": "Great contributions to software architecture",
+    "history": [{ "date": "2025-01-10", "previous_rating": "4.5" }]
+  }
+}
+{
+  "company_id": 2,
+  "review_id": 2,
+  "emp_id": 2,
+  "feedback": {
+    "reviewer_emp_id": 1,
+    "rating": 4.5,
+    "comments": "Strong leadership in digital marketing campaigns",
+    "history": [{ "date": "2025-02-05", "previous_rating": "4.2" }]
+  }
+}
+{
+  "company_id": 3,
+  "review_id": 3,
+  "emp_id": 1,
+  "feedback": {
+    "reviewer_emp_id": 2,
+    "rating": 4.9,
+    "comments": "Outstanding performance in cloud security",
+    "history": [{ "date": "2025-01-20", "previous_rating": "4.6" }]
+  }
+}
+{
+  "company_id": 3,
+  "review_id": 4,
+  "emp_id": 2,
+  "feedback": {
+    "reviewer_emp_id": 1,
+    "rating": 4.6,
+    "comments": "Excellent client relationship management",
+    "history": [{ "date": "2025-02-08", "previous_rating": "4.3" }]
+  }
+}
+
+Table : company.department.team
+
+{
+  "company_id": 1,
+  "department_id": 1,
+  "team_id": 1,
+  "name": "AI Research",
+  "technologies_used": ["Python", "TensorFlow"]
+}
+{
+  "company_id": 2,
+  "department_id": 1,
+  "team_id": 1,
+  "name": "Software Development",
+  "technologies_used": ["Java"]
+}
+{
+  "company_id": 2,
+  "department_id": 2,
+  "team_id": 2,
+  "name": "Digital Marketing",
+  "technologies_used": ["Google Ads", "SEO Tools"]
+}
+{
+  "company_id": 3,
+  "department_id": 1,
+  "team_id": 1,
+  "name": "Cloud Engineering",
+  "technologies_used": ["AWS", "Docker", "Kubernetes"]
+}
+{
+  "company_id": 3,
+  "department_id": 2,
+  "team_id": 2,
+  "name": "Enterprise Sales",
+  "technologies_used": ["Salesforce", "HubSpot"]
+}
+
+Table : company.department.team.employee
+
+{
+  "company_id": 1,
+  "department_id": 1,
+  "team_id": 1,
+  "emp_id": 1,
+  "name": "Alice",
+  "projects": [1, 2, 5],
+  "skills": [1, 2, 3],
+  "contact_info": {"phone": "1234567890", "email": "alice@techcorp.com"}
+}
+{
+  "company_id": 2,
+  "department_id": 1,
+  "team_id": 1,
+  "emp_id": 1,
+  "name": "Charlie",
+  "projects": [3, 4],
+  "skills": [4, 6],
+  "contact_info": {"phone": "2345678901", "email": "charlie@innovatex.com"}
+}
+{
+  "company_id": 2,
+  "department_id": 2,
+  "team_id": 2,
+  "emp_id": 2,
+  "name": "David",
+  "projects": [7],
+  "skills": [4, 5, 6],
+  "contact_info": {"phone": "3456789012", "email": "david@innovatex.com"}
+}
+{
+  "company_id": 3,
+  "department_id": 1,
+  "team_id": 1,
+  "emp_id": 1,
+  "name": "Emma",
+  "projects": [5, 7],
+  "skills": [7, 8],
+  "contact_info": {"phone": "4567890123", "email": "emma@nextgensolutions.com"}
+}
+{
+  "company_id": 3,
+  "department_id": 2,
+  "team_id": 2,
+  "emp_id": 2,
+  "name": "Frank",
+  "projects": [5],
+  "skills": [9],
+  "contact_info": {"phone": "5678901234", "email": "frank@nextgensolutions.com"}
+}
+
+Table : company.project
+
+{
+  "company_id": 1,
+  "project_id": 1,
+  "client_id": 1,
+  "name": "AI Chatbot",
+  "project_milestones":  {"Phase1": "Completed", "Phase2": "Ongoing"}
+}
+{
+  "company_id": 1,
+  "project_id": 2,
+  "client_id": 2,
+  "name": "E-commerce Recommendation System",
+  "project_milestones": {"Phase1": "Completed", "Phase2": "Testing", "Phase3": "Pending"}
+}
+{
+  "company_id": 1,
+  "project_id": 5,
+  "client_id": 1,
+  "name": "Messaging App",
+  "project_milestones":  {"Phase1": "Completed", "Phase2": "Ongoing"}
+}
+{
+  "company_id": 2,
+  "project_id": 3,
+  "client_id": 3,
+  "name": "Cloud Migration",
+  "project_milestones": {"Phase1": "Ongoing", "Phase2": "Pending"}
+}
+{
+  "company_id": 2,
+  "project_id": 4,
+  "client_id": 4,
+  "name": "Healthcare Analytics Dashboard",
+  "project_milestones": {"Phase1": "Completed", "Phase2": "Completed", "Phase3": "Deployment"}
+}
+{
+  "company_id": 2,
+  "project_id": 7,
+  "client_id": 1,
+  "name": "Fine Grain Auth",
+  "project_milestones":  {"Phase1": "Completed", "Phase2": "Completed"}
+}
+{
+  "company_id": 3,
+  "project_id": 5,
+  "client_id": 5,
+  "name": "Cybersecurity Threat Detection",
+  "project_milestones": {"Phase1": "Research", "Phase2": "Implementation"}
+}
+{
+  "company_id": 3,
+  "project_id": 7,
+  "client_id": 5,
+  "name": "Firewall",
+  "project_milestones": {"Phase1": "Ongoing"}
+}
+
+Table : company.client
+
+{
+  "company_id": 1,
+  "client_id": 1,
+  "name": "RetailCorp",
+  "preferred_contact_methods": ["Email", "Phone"]
+}
+{
+  "company_id": 1,
+  "client_id": 2,
+  "name": "HealthPlus",
+  "preferred_contact_methods": ["Phone", "Video Call"]
+}
+{
+  "company_id": 2,
+  "client_id": 3,
+  "name": "FinTech Solutions",
+  "preferred_contact_methods": ["Email", "Chat"]
+}
+{
+  "company_id": 2,
+  "client_id": 4,
+  "name": "EduLearn",
+  "preferred_contact_methods": ["Email", "In-Person Meeting"]
+}
+{
+  "company_id": 3,
+  "client_id": 5,
+  "name": "AutoMotive AI",
+  "preferred_contact_methods": ["Phone", "Chat"]
+}
+
+Table : company.skill
+
+{
+  "company_id": 1,
+  "skill_id": 1,
+  "skill_value": 10,
+  "name": "Machine Learning"
+}
+{
+  "company_id": 1,
+  "skill_id": 2,
+  "skill_value": 20,
+  "name": "Data Analysis"
+}
+{
+  "company_id": 1,
+  "skill_id": 3,
+  "skill_value": 30,
+  "name": "Programming"
+}
+{
+  "company_id": 2,
+  "skill_id": 4,
+  "skill_value": 40,
+  "name": "Cloud Computing"
+}
+{
+  "company_id": 2,
+  "skill_id": 5,
+  "skill_value": 50,
+  "name": "Cybersecurity"
+}
+{
+  "company_id": 2,
+  "skill_id": 6,
+  "skill_value": 60,
+  "name": "AI"
+}
+{
+  "company_id": 3,
+  "skill_id": 7,
+  "skill_value": 70,
+  "name": "Software Development"
+}
+{
+  "company_id": 3,
+  "skill_id": 8,
+  "skill_value": 80,
+  "name": "Project Management"
+}
+{
+  "company_id": 3,
+  "skill_id": 9,
+  "skill_value": 90,
+  "name": "Web Development"
+}
+
+Table : company.null_records
+
+{
+  "company_id": 1,
+  "record_id": 1,
+  "value": null
+}
+{
+  "company_id": 2,
+  "record_id": 2,
+  "value": null
+}
+{
+  "company_id": 2,
+  "record_id": 1,
+  "value": 2147483647
+}
+{
+  "company_id": 3,
+  "record_id": 3,
+  "value": 2147483647
+}
+{
+  "company_id": 4,
+  "record_id": 4,
+  "value": -2147483648
+}
+{
+  "company_id": 5,
+  "record_id": 5,
+  "value": null
+}
+
+Table : org
+
+{
+  "company_id": 1,
+  "name": "Oracle"
+}
+{
+  "company_id": 2,
+  "name": "Google"
+}
+{
+  "company_id": 3,
+  "name": "Apple"
+}
+

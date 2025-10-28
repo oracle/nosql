@@ -6,16 +6,9 @@
  */
 package oracle.kv.impl.api.security;
 
-import static oracle.kv.impl.security.KVStorePrivilegeLabel.CREATE_ANY_INDEX;
-import static oracle.kv.impl.security.KVStorePrivilegeLabel.CREATE_ANY_TABLE;
-import static oracle.kv.impl.security.KVStorePrivilegeLabel.DELETE_ANY_TABLE;
-import static oracle.kv.impl.security.KVStorePrivilegeLabel.DELETE_TABLE;
-import static oracle.kv.impl.security.KVStorePrivilegeLabel.INSERT_ANY_TABLE;
-import static oracle.kv.impl.security.KVStorePrivilegeLabel.INSERT_TABLE;
-import static oracle.kv.impl.security.KVStorePrivilegeLabel.READ_ANY;
-import static oracle.kv.impl.security.KVStorePrivilegeLabel.READ_ANY_TABLE;
-import static oracle.kv.impl.security.KVStorePrivilegeLabel.READ_TABLE;
-import static oracle.kv.impl.security.KVStorePrivilegeLabel.WRITE_ANY;
+import static oracle.kv.impl.api.security.OpAccessCheckTestUtils.testDeniedTableDeleteOps;
+import static oracle.kv.impl.api.security.OpAccessCheckTestUtils.testValidTableDeleteOps;
+import static oracle.kv.impl.security.KVStorePrivilegeLabel.*;
 import static oracle.kv.util.DDLTestUtils.execStatement;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.not;
@@ -23,8 +16,11 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -46,7 +42,9 @@ import oracle.kv.impl.api.table.TableKey;
 import oracle.kv.impl.security.KVStorePrivilege.PrivilegeType;
 import oracle.kv.impl.security.KVStorePrivilegeLabel;
 import oracle.kv.impl.security.SecureTestBase;
+import oracle.kv.query.ExecuteOptions;
 import oracle.kv.table.IndexKey;
+import oracle.kv.table.MultiRowOptions;
 import oracle.kv.table.PrimaryKey;
 import oracle.kv.table.Row;
 import oracle.kv.table.Table;
@@ -96,6 +94,11 @@ public class SecureTableOpsTest extends SecureTestBase {
 
     private static final String TEST_TABLE_B_ROW_JSON_STR =
         "{\"id\":1, \"name\":\"jim\", \"salary\":3000}";
+    private static final String NS = "ns";
+    private static final String NS_TEST_TABLE = NS + ":" + TEST_TABLE;
+    private static final String NS_TEST_CHILD_TABLE =
+        NS + ":" + TEST_CHILD_TABLE;
+    private static final String NS_TEST_TTL_TABLE = NS + ":" + TEST_TTL_TABLE;
 
     private static final Map<String, String> tableRowMap =
         new HashMap<String, String>();
@@ -105,6 +108,9 @@ public class SecureTableOpsTest extends SecureTestBase {
         tableRowMap.put(TEST_TABLE, TEST_TABLE_ROW_JSON_STR);
         tableRowMap.put(TEST_TTL_TABLE, TEST_TABLE_ROW_JSON_STR);
         tableRowMap.put(TEST_TABLE_B, TEST_TABLE_B_ROW_JSON_STR);
+        tableRowMap.put(NS_TEST_TABLE, TEST_TABLE_ROW_JSON_STR);
+        tableRowMap.put(NS_TEST_CHILD_TABLE, TEST_CHILD_TABLE_ROW_JSON_STR);
+        tableRowMap.put(NS_TEST_TTL_TABLE, TEST_TABLE_ROW_JSON_STR);
     }
 
     private static final String TEST_ROLE = "testrole";
@@ -282,6 +288,131 @@ public class SecureTableOpsTest extends SecureTestBase {
         }
     }
 
+    private static String RMD = "{\"row metadata\":1}";
+
+    @Test
+    public void testTableRowMetadata() throws Exception {
+        final Row row = createOneRowForTable(NS_TEST_TABLE);
+        final PrimaryKey pk = row.createPrimaryKey();
+        pk.setRowMetadata(RMD);
+
+        /* Removed all privileges */
+        revokePrivFromRole(TEST_ROLE, INSERT_ANY_TABLE, DELETE_ANY_TABLE);
+        revokePrivFromRole(TEST_ROLE, NS_TEST_TABLE, INSERT_TABLE, DELETE_TABLE);
+
+        row.setRowMetadata(RMD);
+        /* all inserts and deletes with row_metadata ops are denied */
+        testDeniedInsertOps(testUserStore, row);
+        testDeniedTableDeleteOps(testUserStore, pk);
+
+        /* tests table privileges */
+        try {
+            /* grant INSERT_TABLE, insert with row_metadata should work */
+            grantPrivToRole(TEST_ROLE, NS_TEST_TABLE, INSERT_TABLE);
+            testValidInsertOps(row);
+            testDeniedTableDeleteOps(testUserStore, pk);
+            revokePrivFromRole(TEST_ROLE, NS_TEST_TABLE, INSERT_TABLE);
+
+            /* grant DELETE_TABLE, delete with row_metadata should work */
+            grantPrivToRole(TEST_ROLE, NS_TEST_TABLE, DELETE_TABLE);
+            testDeniedInsertOps(testUserStore, row);
+            populateTableWithOneRow(superUserStore, row);
+            testValidTableDeleteOps(testUserStore, superUserStore, pk);
+            cleanOneRowFromTable(superUserStore, row);
+            revokePrivFromRole(TEST_ROLE, NS_TEST_TABLE, DELETE_TABLE);
+
+            /*
+             * grant INSERT_TABLE and DELETE_TABLE, both insert and
+             * delete with row_metadata should work
+             */
+            grantPrivToRole(TEST_ROLE, NS_TEST_TABLE, INSERT_TABLE,
+                            DELETE_TABLE);
+            testValidInsertOps(row);
+            populateTableWithOneRow(superUserStore, row);
+            testValidTableDeleteOps(testUserStore, superUserStore, pk);
+            cleanOneRowFromTable(superUserStore, row);
+            revokePrivFromRole(TEST_ROLE, NS_TEST_TABLE, INSERT_TABLE,
+                               DELETE_TABLE);
+        } finally {
+            revokePrivFromRole(TEST_ROLE, NS_TEST_TABLE, INSERT_TABLE,
+                               DELETE_TABLE);
+            testDeniedInsertOps(testUserStore, row);
+            testDeniedTableDeleteOps(testUserStore, pk);
+            cleanOneRowFromTable(superUserStore, row);
+        }
+
+        /* test namespace privileges */
+        try {
+            /* grant INSERT_IN_NAMESPACE, insert with row_metadata should work */
+            grantNsPrivToRole(TEST_ROLE, NS, INSERT_IN_NAMESPACE);
+            testValidInsertOps(row);
+            testDeniedTableDeleteOps(testUserStore, pk);
+            revokeNsPrivFromRole(TEST_ROLE, NS, INSERT_IN_NAMESPACE);
+
+            /* grant DELETE_IN_NAMESPACE, delete with row_metadata should work */
+            grantNsPrivToRole(TEST_ROLE, NS, DELETE_IN_NAMESPACE);
+            testDeniedInsertOps(testUserStore, row);
+            populateTableWithOneRow(superUserStore, row);
+            testValidTableDeleteOps(testUserStore, superUserStore, pk);
+            cleanOneRowFromTable(superUserStore, row);
+            revokeNsPrivFromRole(TEST_ROLE, NS, DELETE_IN_NAMESPACE);
+
+            /*
+             * grant INSERT_IN_NAMESPACE and DELETE_IN_NAMESPACE, both insert
+             * and delete with row_metadata should work
+             */
+            grantNsPrivToRole(TEST_ROLE, NS, INSERT_IN_NAMESPACE,
+                DELETE_IN_NAMESPACE);
+            testValidInsertOps(row);
+            populateTableWithOneRow(superUserStore, row);
+            testValidTableDeleteOps(testUserStore, superUserStore, pk);
+            cleanOneRowFromTable(superUserStore, row);
+            revokeNsPrivFromRole(TEST_ROLE, NS, INSERT_IN_NAMESPACE,
+                DELETE_IN_NAMESPACE);
+        } finally {
+            revokeNsPrivFromRole(TEST_ROLE, NS, INSERT_IN_NAMESPACE,
+                DELETE_IN_NAMESPACE);
+            testDeniedInsertOps(testUserStore, row);
+            testDeniedDeleteOps(testUserStore, row);
+            cleanOneRowFromTable(superUserStore, row);
+        }
+
+        /* test system privileges */
+        try {
+            revokePrivFromRole(TEST_ROLE, INSERT_ANY_TABLE, DELETE_ANY_TABLE);
+
+            /* grant INSERT_ANY_TABLE, insert with row_metadata should work */
+            grantPrivToRole(TEST_ROLE, INSERT_ANY_TABLE);
+            testValidInsertOps(row);
+            testDeniedTableDeleteOps(testUserStore, pk);
+            revokePrivFromRole(TEST_ROLE, INSERT_ANY_TABLE);
+
+            /* grant DELETE_ANY_TABLE, delete with row_metadata should work */
+            grantPrivToRole(TEST_ROLE, DELETE_ANY_TABLE);
+            testDeniedInsertOps(testUserStore, row);
+            populateTableWithOneRow(superUserStore, row);
+            testValidTableDeleteOps(testUserStore, superUserStore, pk);
+            cleanOneRowFromTable(superUserStore, row);
+            revokePrivFromRole(TEST_ROLE, DELETE_ANY_TABLE);
+
+            /*
+             * grant INSERT_ANY_TABLE and DELETE_ANY_TABLE, both insert and
+             * delete with row_metadata should work
+             */
+            grantPrivToRole(TEST_ROLE, INSERT_ANY_TABLE, DELETE_ANY_TABLE);
+            testValidInsertOps(row);
+            populateTableWithOneRow(superUserStore, row);
+            testValidTableDeleteOps(testUserStore, superUserStore, pk);
+            cleanOneRowFromTable(superUserStore, row);
+            revokePrivFromRole(TEST_ROLE, INSERT_ANY_TABLE, DELETE_ANY_TABLE);
+        } finally {
+            revokePrivFromRole(TEST_ROLE, INSERT_ANY_TABLE, DELETE_ANY_TABLE);
+            testDeniedInsertOps(testUserStore, row);
+            testDeniedDeleteOps(testUserStore, row);
+            cleanOneRowFromTable(superUserStore, row);
+        }
+    }
+
     @Test
     public void testTableDeletePermission() throws Exception {
         final Row row = createOneRowForTable(TEST_TABLE);
@@ -328,10 +459,154 @@ public class SecureTableOpsTest extends SecureTestBase {
     }
 
     @Test
+    public void testMultiDelete() throws Exception {
+        final Row parentRow = createOneRowForTable(NS_TEST_TABLE);
+        final Row childRow = createOneRowForTable(NS_TEST_CHILD_TABLE);
+        final PrimaryKey parentKey = parentRow.createPrimaryKey();
+        final PrimaryKey childKey = childRow.createPrimaryKey();
+
+        populateTableWithOneRow(superUserStore, parentRow);
+        populateTableWithOneRow(superUserStore, childRow);
+
+        revokePrivFromRole(TEST_ROLE, WRITE_ANY, DELETE_ANY_TABLE);
+        revokePrivFromRole(TEST_ROLE, NS_TEST_TABLE, DELETE_TABLE);
+        revokePrivFromRole(TEST_ROLE, NS_TEST_CHILD_TABLE, DELETE_TABLE);
+
+        try {
+            testMultiDeleteInternal(parentRow, childRow, parentKey, childKey,
+                                    DELETE_TABLE, DELETE_IN_NAMESPACE,
+                                    DELETE_ANY_TABLE);
+        } finally {
+            cleanOneRowFromTable(superUserStore, parentRow);
+            cleanOneRowFromTable(superUserStore, childRow);
+        }
+    }
+
+    private void testMultiDeleteInternal(Row parentRow,
+                                         Row childRow,
+                                         PrimaryKey parentKey,
+                                         PrimaryKey childKey,
+                                         KVStorePrivilegeLabel tablePriv,
+                                         KVStorePrivilegeLabel nsPriv,
+                                         KVStorePrivilegeLabel sysPriv)
+        throws Exception {
+
+        final String parentTable = parentRow.getTable().getFullNamespaceName();
+        final String childTable = childRow.getTable().getFullNamespaceName();
+
+        testDeniedMultiDelete(parentKey, childKey);
+
+        grantPrivToRole(TEST_ROLE, parentTable, tablePriv);
+        try {
+            testDeniedMultiDeleteChild(parentKey, childKey);
+        } finally {
+            revokePrivFromRole(TEST_ROLE, parentTable, tablePriv);
+        }
+
+        grantPrivToRole(TEST_ROLE, childTable, tablePriv);
+        try {
+            testDeniedMultiDeleteParent(parentKey, childKey);
+        } finally {
+            revokePrivFromRole(TEST_ROLE, childTable, tablePriv);
+        }
+
+        grantPrivToRole(TEST_ROLE, parentTable, tablePriv);
+        grantPrivToRole(TEST_ROLE, childTable, tablePriv);
+        try {
+            testValidMultiDelete(parentRow, childRow);
+        } finally {
+            revokePrivFromRole(TEST_ROLE, parentTable, tablePriv);
+            revokePrivFromRole(TEST_ROLE, childTable, tablePriv);
+        }
+
+        grantNsPrivToRole(TEST_ROLE, NS, nsPriv);
+        try {
+            testValidMultiDelete(parentRow, childRow);
+        } finally {
+            revokeNsPrivFromRole(TEST_ROLE, NS, nsPriv);
+        }
+
+        grantPrivToRole(TEST_ROLE, sysPriv);
+        try {
+            testValidMultiDelete(parentRow, childRow);
+        } finally {
+            revokePrivFromRole(TEST_ROLE, sysPriv);
+        }
+    }
+
+    private void testDeniedMultiDelete(PrimaryKey parentKey,
+                                       PrimaryKey childKey) {
+        final TableAPI testTableAPI = testUserStore.getTableAPI();
+        new OpAccessCheckTestUtils.TestDeniedExecution() {
+            @Override
+            void perform() {
+                testTableAPI.multiDelete(parentKey, null, null);
+            }
+        }.exec();
+        new OpAccessCheckTestUtils.TestDeniedExecution() {
+            @Override
+            void perform() {
+                testTableAPI.multiDelete(childKey, null, null);
+            }
+        }.exec();
+    }
+
+    private void testDeniedMultiDeleteChild(PrimaryKey parentKey,
+                                            PrimaryKey childKey) {
+        final MultiRowOptions includeChild = new MultiRowOptions(
+            null, null, Arrays.asList(childKey.getTable()));
+        new OpAccessCheckTestUtils.TestDeniedExecution() {
+            @Override
+            void perform() {
+                testUserStore.getTableAPI().multiDelete(
+                    parentKey, includeChild, null);
+            }
+        }.exec();
+    }
+
+    private void testDeniedMultiDeleteParent(PrimaryKey parentKey,
+                                             PrimaryKey childKey) {
+        final MultiRowOptions includeParent = new MultiRowOptions(
+            null, Arrays.asList(parentKey.getTable()), null);
+        new OpAccessCheckTestUtils.TestDeniedExecution() {
+            @Override
+            void perform() {
+                testUserStore.getTableAPI().multiDelete(
+                    childKey, includeParent, null);
+            }
+        }.exec();
+    }
+
+    private void testValidMultiDelete(Row parentRow, Row childRow) {
+        final PrimaryKey parentKey = parentRow.createPrimaryKey();
+        final PrimaryKey childKey = childRow.createPrimaryKey();
+        final TableAPI testTableAPI = testUserStore.getTableAPI();
+        final MultiRowOptions includeParent = new MultiRowOptions(
+            null, Arrays.asList(parentRow.getTable()), null);
+        final MultiRowOptions includeChild = new MultiRowOptions(
+            null, null, Arrays.asList(childRow.getTable()));
+        try {
+            assertEquals(2, testTableAPI.multiDelete(
+                parentKey, includeChild,null));
+        } finally {
+            populateTableWithOneRow(superUserStore, parentRow);
+            populateTableWithOneRow(superUserStore, childRow);
+        }
+        try {
+            assertEquals(2, testTableAPI.multiDelete(
+                childKey, includeParent, null));
+        } finally {
+            populateTableWithOneRow(superUserStore, parentRow);
+            populateTableWithOneRow(superUserStore, childRow);
+        }
+    }
+
+    @Test
     public void testPrivOnParentAndChildTable() throws Exception {
         final Row row = createOneRowForTable(TEST_CHILD_TABLE);
         final IndexKey idxKey =
-            row.getTable().getIndex(TEST_CHILD_TABLE_INDEX).createIndexKey();
+            row.getTable().getIndex(TEST_CHILD_TABLE_INDEX)
+                .createIndexKey();
 
         /* Test table read */
         revokePrivFromRole(TEST_ROLE, READ_ANY, READ_ANY_TABLE);
@@ -387,7 +662,8 @@ public class SecureTableOpsTest extends SecureTestBase {
             testValidInsertOps(row);
 
         } finally {
-            revokePrivFromRole(TEST_ROLE, TEST_TABLE, INSERT_TABLE, READ_TABLE);
+            revokePrivFromRole(TEST_ROLE, TEST_TABLE, INSERT_TABLE,
+                READ_TABLE);
             revokePrivFromRole(TEST_ROLE, TEST_CHILD_TABLE, INSERT_TABLE);
         }
 
@@ -414,7 +690,8 @@ public class SecureTableOpsTest extends SecureTestBase {
             testValidDeleteOps(row);
 
         } finally {
-            revokePrivFromRole(TEST_ROLE, TEST_TABLE, DELETE_TABLE, READ_TABLE);
+            revokePrivFromRole(TEST_ROLE, TEST_TABLE, DELETE_TABLE,
+                READ_TABLE);
             cleanOneRowFromTable(superUserStore, row);
         }
     }
@@ -573,8 +850,282 @@ public class SecureTableOpsTest extends SecureTestBase {
     }
 
     @Test
-    public void testTTLAccessControl() throws Exception {
-        Row row = createOneRowForTable(TEST_TTL_TABLE);
+    public void testTTLTableAccessControl() throws Exception {
+        testTTLAccessControl(TEST_TTL_TABLE, TEST_TABLE);
+    }
+
+    @Test
+    public void testTTLNamespaceAccessControl() throws Exception {
+        testTTLAccessControl(NS_TEST_TTL_TABLE, NS_TEST_TABLE);
+    }
+
+    private void testTTLAccessControl(String ttlTable, String nonTtlTable)
+        throws Exception {
+
+        Row ttlRow = createOneRowForTable(ttlTable);
+        Row nonTTLRow = createOneRowForTable(nonTtlTable);
+
+        /* Removed all privileges enabling table insert */
+        revokePrivFromRole(TEST_ROLE, WRITE_ANY,
+                           INSERT_ANY_TABLE, DELETE_ANY_TABLE);
+        revokePrivFromRole(TEST_ROLE, ttlTable,
+                           INSERT_TABLE, DELETE_TABLE);
+        revokePrivFromRole(TEST_ROLE, nonTtlTable,
+                           INSERT_TABLE, DELETE_TABLE);
+        revokeNsPrivFromRole(TEST_ROLE, NS, INSERT_IN_NAMESPACE,
+                             DELETE_IN_NAMESPACE);
+
+        /* all insert ops are denied */
+        testDeniedInsertOps(testUserStore, ttlRow);
+
+        /*
+         * test insert_table only, all insert ops against a table
+         * having ttl defined are denied
+         */
+        testDeniedTTLWithoutDelete(ttlRow, nonTTLRow);
+
+        /*
+         * test insert_table only, all insert ops with explicitly set ttl
+         * as zero against a table having default ttl defined are passed
+         */
+        ttlRow.setTTL(TimeToLive.DO_NOT_EXPIRE);
+        testValidNoTTL(ttlRow);
+
+        /*
+         * test insert_table and delete_table, all insert ops against a table
+         * having ttl defined are passed
+         */
+        ttlRow = createOneRowForTable(ttlTable);
+        testValidTTLWithDelete(ttlRow);
+
+        /*
+         * test insert_table only, try perform inserts with explicitly TTL
+         * setting against a table having TTL default defined.
+         */
+        ttlRow.setTTL(TimeToLive.ofDays(10));
+        testDeniedTTLWithoutDelete(ttlRow, nonTTLRow);
+
+        /*
+         * test insert_table and delete_table, try perform inserts with
+         * explicitly TTL setting against a table having TTL default passed.
+         */
+        testValidTTLWithDelete(ttlRow);
+
+        /*
+         * test insert_table only, try perform inserts without TTL setting
+         * against a table not having TTL default defined are passed.
+         */
+        nonTTLRow = createOneRowForTable(nonTtlTable);
+        testValidNoTTL(nonTTLRow);
+
+        /*
+         * test insert_table only, try perform inserts with TTL as zero setting
+         * against a table not having TTL default defined are passed.
+         */
+        nonTTLRow.setTTL(TimeToLive.ofDays(0));
+        testValidNoTTL(nonTTLRow);
+
+        /*
+         * test insert_table only, try perform inserts with TTL setting against
+         * a table not having TTL default defined are denied.
+         */
+        ttlRow = createOneRowForTable(ttlTable);
+        ttlRow.setTTL(TimeToLive.ofDays(10));
+        testDeniedTTLWithoutDelete(ttlRow, nonTTLRow);
+
+        /*
+         * test insert_table and delete_table only, try perform inserts with
+         * TTL setting against a table not having TTL default defined are passed.
+         */
+        testValidTTLWithDelete(ttlRow);
+    }
+
+    private void testDeniedTTLWithoutDelete(Row ttlRow, Row nonTTLRow)
+        throws Exception {
+        String ttlTable = ttlRow.getTable().getFullNamespaceName();
+        String nonTTLTable = nonTTLRow.getTable().getFullNamespaceName();
+        try {
+            grantPrivToRole(TEST_ROLE, ttlTable, INSERT_TABLE);
+            testDeniedTTLInsertOps(testUserStore, ttlRow);
+
+            grantPrivToRole(TEST_ROLE, nonTTLTable, INSERT_TABLE);
+            testValidInsertOps(nonTTLRow);
+        } finally {
+            revokePrivFromRole(TEST_ROLE, ttlTable, INSERT_TABLE);
+            testDeniedInsertOps(testUserStore, ttlRow);
+
+            revokePrivFromRole(TEST_ROLE, nonTTLTable, INSERT_TABLE);
+            testDeniedInsertOps(testUserStore, nonTTLRow);
+        }
+        if (ttlRow.getTable().getNamespace().equals(NS)) {
+            try {
+                grantNsPrivToRole(TEST_ROLE, NS, INSERT_IN_NAMESPACE);
+                testDeniedTTLInsertOps(testUserStore, ttlRow);
+                testValidInsertOps(nonTTLRow);
+            } finally {
+                revokeNsPrivFromRole(TEST_ROLE, NS, INSERT_IN_NAMESPACE);
+                testDeniedInsertOps(testUserStore, ttlRow);
+                testDeniedInsertOps(testUserStore, nonTTLRow);
+            }
+        }
+        try {
+            grantPrivToRole(TEST_ROLE, INSERT_ANY_TABLE);
+            testDeniedTTLInsertOps(testUserStore, ttlRow);
+
+            grantPrivToRole(TEST_ROLE, INSERT_ANY_TABLE);
+            testValidInsertOps(nonTTLRow);
+        } finally {
+            revokePrivFromRole(TEST_ROLE, INSERT_ANY_TABLE);
+            testDeniedInsertOps(testUserStore, ttlRow);
+
+            revokePrivFromRole(TEST_ROLE, INSERT_ANY_TABLE);
+            testDeniedInsertOps(testUserStore, nonTTLRow);
+        }
+        try {
+            grantPrivToRole(TEST_ROLE, WRITE_ANY);
+            testValidInsertOps(ttlRow);
+            grantPrivToRole(TEST_ROLE, WRITE_ANY);
+            testValidInsertOps(nonTTLRow);
+        } finally {
+            revokePrivFromRole(TEST_ROLE, WRITE_ANY);
+            testDeniedInsertOps(testUserStore, ttlRow);
+            revokePrivFromRole(TEST_ROLE, WRITE_ANY);
+            testDeniedInsertOps(testUserStore, nonTTLRow);
+        }
+    }
+
+    private void testValidNoTTL(Row nonTtlRow) throws Exception {
+        String table = nonTtlRow.getTable().getFullNamespaceName();
+        try {
+            grantPrivToRole(TEST_ROLE, table, INSERT_TABLE);
+            testValidInsertOps(nonTtlRow);
+        } finally {
+            revokePrivFromRole(TEST_ROLE, table, INSERT_TABLE);
+            testDeniedInsertOps(testUserStore, nonTtlRow);
+        }
+        if (nonTtlRow.getTable().getNamespace().equals(NS)) {
+            try {
+                grantNsPrivToRole(TEST_ROLE, NS, INSERT_IN_NAMESPACE);
+                testValidInsertOps(nonTtlRow);
+            } finally {
+                revokeNsPrivFromRole(TEST_ROLE, NS, INSERT_IN_NAMESPACE);
+                testDeniedInsertOps(testUserStore, nonTtlRow);
+            }
+        }
+        try {
+            grantPrivToRole(TEST_ROLE, INSERT_ANY_TABLE);
+            testValidInsertOps(nonTtlRow);
+        } finally {
+            revokePrivFromRole(TEST_ROLE, INSERT_ANY_TABLE);
+            testDeniedInsertOps(testUserStore, nonTtlRow);
+        }
+        try {
+            grantPrivToRole(TEST_ROLE, WRITE_ANY);
+            testValidInsertOps(nonTtlRow);
+        } finally {
+            revokePrivFromRole(TEST_ROLE, WRITE_ANY);
+            testDeniedInsertOps(testUserStore, nonTtlRow);
+        }
+    }
+
+    private void testValidTTLWithDelete(Row ttlRow) throws Exception {
+        String table = ttlRow.getTable().getFullNamespaceName();
+        try {
+            grantPrivToRole(TEST_ROLE, table, INSERT_TABLE, DELETE_TABLE);
+            testValidInsertOps(ttlRow);
+        } finally {
+            revokePrivFromRole(TEST_ROLE, table, INSERT_TABLE, DELETE_TABLE);
+            testDeniedInsertOps(testUserStore, ttlRow);
+        }
+        if (ttlRow.getTable().getNamespace().equals(NS)) {
+            try {
+                grantNsPrivToRole(TEST_ROLE, NS, INSERT_IN_NAMESPACE,
+                                  DELETE_IN_NAMESPACE);
+                testValidInsertOps(ttlRow);
+            } finally {
+                revokeNsPrivFromRole(TEST_ROLE, NS, INSERT_IN_NAMESPACE,
+                                     DELETE_IN_NAMESPACE);
+                testDeniedInsertOps(testUserStore, ttlRow);
+            }
+        }
+        try {
+            grantPrivToRole(TEST_ROLE, INSERT_ANY_TABLE, DELETE_ANY_TABLE);
+            testValidInsertOps(ttlRow);
+        } finally {
+            revokePrivFromRole(TEST_ROLE, INSERT_ANY_TABLE, DELETE_ANY_TABLE);
+            testDeniedInsertOps(testUserStore, ttlRow);
+        }
+        try {
+            grantPrivToRole(TEST_ROLE, WRITE_ANY);
+            testValidInsertOps(ttlRow);
+        } finally {
+            revokePrivFromRole(TEST_ROLE, WRITE_ANY);
+            testDeniedInsertOps(testUserStore, ttlRow);
+        }
+    }
+
+    @Test
+    public void testBulkPutTTLAccessControl()
+        throws Exception {
+
+        /*
+         * Test against a table without default TTL setting.
+         */
+        Row row = createOneRowForTable(TEST_TABLE);
+
+        /* Removed all privileges enabling table insert */
+        revokePrivFromRole(TEST_ROLE, WRITE_ANY,
+                           INSERT_ANY_TABLE, DELETE_ANY_TABLE);
+        revokePrivFromRole(TEST_ROLE, TEST_TABLE,
+                           INSERT_TABLE, DELETE_TABLE);
+        testDeniedInsertOps(testUserStore, row);
+
+        Table testTable = superUserStore.getTableAPI().getTable(TEST_TABLE);
+        TableAPI superUserTableAPI = superUserStore.getTableAPI();
+        assertNotNull(testTable);
+
+        Row ttlRow = testTable.createRow();
+        ttlRow.put("id", 2);
+        ttlRow.put("name", "bob");
+        ttlRow.setTTL(TimeToLive.ofDays(10));
+
+        TableAPI tableAPI = testUserStore.getTableAPI();
+        OpAccessCheckTestUtils.TestRowStream stream =
+            new OpAccessCheckTestUtils.TestRowStream(row, ttlRow);
+
+        /*
+         * Stream has two rows, one with valid TTL, the other not, without
+         * DELETE_TABLE privilege, the operation should fail.
+         */
+        try {
+            grantPrivToRole(TEST_ROLE, TEST_TABLE, INSERT_TABLE);
+            tableAPI.put(Collections.singletonList(stream), null);
+            fail("expected");
+        } catch (FaultException fe) {
+            assertTrue(fe.getCause() instanceof UnauthorizedException);
+            assertTrue(stream.isCaughtException());
+        } finally {
+            revokePrivFromRole(TEST_ROLE, TEST_TABLE, INSERT_TABLE);
+            testDeniedInsertOps(testUserStore, row);
+        }
+
+        try {
+            grantPrivToRole(TEST_ROLE, TEST_TABLE,
+                            INSERT_TABLE, DELETE_TABLE);
+            tableAPI.put(Collections.singletonList(stream), null);
+            assertTrue(stream.isCompleted());
+        } finally {
+            revokePrivFromRole(TEST_ROLE, TEST_TABLE,
+                               INSERT_TABLE, DELETE_TABLE);
+            testDeniedInsertOps(testUserStore, row);
+            superUserTableAPI.delete(row.createPrimaryKey(), null, null);
+            superUserTableAPI.delete(ttlRow.createPrimaryKey(), null, null);
+        }
+
+        /*
+         * Test against a table with default TTL setting.
+         */
+        ttlRow = createOneRowForTable(TEST_TTL_TABLE);
 
         /* Removed all privileges enabling table insert */
         revokePrivFromRole(TEST_ROLE, WRITE_ANY,
@@ -585,125 +1136,43 @@ public class SecureTableOpsTest extends SecureTestBase {
                            INSERT_TABLE, DELETE_TABLE);
 
         /* all insert ops are denied */
-        testDeniedInsertOps(testUserStore, row);
+        testDeniedInsertOps(testUserStore, ttlRow);
+        testTable = superUserStore.getTableAPI().getTable(TEST_TABLE);
+        assertNotNull(testTable);
 
-        /*
-         * test insert_table only, all insert ops against a table
-         * having ttl defined are denied
-         */
-        try {
-            grantPrivToRole(TEST_ROLE, TEST_TTL_TABLE, INSERT_TABLE);
-            testDeniedTTLInsertOps(testUserStore, row);
-        } finally {
-            revokePrivFromRole(TEST_ROLE, TEST_TTL_TABLE, INSERT_TABLE);
-            testDeniedInsertOps(testUserStore, row);
-        }
-
-        /*
-         * test insert_table only, all insert ops with explicitly set ttl
-         * as zero against a table having default ttl defined are passed
-         */
+        row = testTable.createRow();
+        row.put("id", 2);
+        row.put("name", "bob");
         row.setTTL(TimeToLive.DO_NOT_EXPIRE);
+        stream = new OpAccessCheckTestUtils.TestRowStream(row, ttlRow);
+
+        /*
+         * Stream has two rows, one with valid default TTL, the other has TTL
+         * as 0, without DELETE_TABLE privilege, the operation should fail.
+         */
         try {
             grantPrivToRole(TEST_ROLE, TEST_TTL_TABLE, INSERT_TABLE);
-            testValidInsertOps(row);
+            tableAPI.put(Collections.singletonList(stream), null);
+            fail("expected");
+        } catch (FaultException fe) {
+            assertTrue(fe.getCause() instanceof UnauthorizedException);
+            assertTrue(stream.isCaughtException());
         } finally {
             revokePrivFromRole(TEST_ROLE, TEST_TTL_TABLE, INSERT_TABLE);
             testDeniedInsertOps(testUserStore, row);
         }
 
-        /*
-         * test insert_table and delete_table, all insert ops against a table
-         * having ttl defined are passed
-         */
-        row = createOneRowForTable(TEST_TTL_TABLE);
         try {
             grantPrivToRole(TEST_ROLE, TEST_TTL_TABLE,
                             INSERT_TABLE, DELETE_TABLE);
-            testValidInsertOps(row);
+            tableAPI.put(Collections.singletonList(stream), null);
+            assertTrue(stream.isCompleted());
         } finally {
             revokePrivFromRole(TEST_ROLE, TEST_TTL_TABLE,
                                INSERT_TABLE, DELETE_TABLE);
             testDeniedInsertOps(testUserStore, row);
-        }
-
-        /*
-         * test insert_table only, try perform inserts with explicitly TTL
-         * setting against a table having TTL default defined.
-         */
-        row.setTTL(TimeToLive.ofDays(10));
-        try {
-            grantPrivToRole(TEST_ROLE, TEST_TTL_TABLE, INSERT_TABLE);
-            testDeniedTTLInsertOps(testUserStore, row);
-        } finally {
-            revokePrivFromRole(TEST_ROLE, TEST_TTL_TABLE, INSERT_TABLE);
-            testDeniedInsertOps(testUserStore, row);
-        }
-
-        /*
-         * test insert_table and delete_table, try perform inserts with
-         * explicitly TTL setting against a table having TTL default passed.
-         */
-        try {
-            grantPrivToRole(TEST_ROLE, TEST_TTL_TABLE,
-                            INSERT_TABLE, DELETE_TABLE);
-            testValidInsertOps(row);
-        } finally {
-            revokePrivFromRole(TEST_ROLE, TEST_TTL_TABLE,
-                               INSERT_TABLE, DELETE_TABLE);
-            testDeniedInsertOps(testUserStore, row);
-        }
-
-        /*
-         * test insert_table only, try perform inserts without TTL setting
-         * against a table not having TTL default defined are passed.
-         */
-        row = createOneRowForTable(TEST_TABLE);
-        try {
-            grantPrivToRole(TEST_ROLE, TEST_TABLE, INSERT_TABLE);
-            testValidInsertOps(row);
-        } finally {
-            revokePrivFromRole(TEST_ROLE, TEST_TABLE, INSERT_TABLE);
-            testDeniedInsertOps(testUserStore, row);
-        }
-
-        /*
-         * test insert_table only, try perform inserts with TTL as zero setting
-         * against a table not having TTL default defined are passed.
-         */
-        row.setTTL(TimeToLive.ofDays(0));
-        try {
-            grantPrivToRole(TEST_ROLE, TEST_TABLE, INSERT_TABLE);
-            testValidInsertOps(row);
-        } finally {
-            revokePrivFromRole(TEST_ROLE, TEST_TABLE, INSERT_TABLE);
-            testDeniedInsertOps(testUserStore, row);
-        }
-
-        /*
-         * test insert_table only, try perform inserts with TTL setting against
-         * a table not having TTL default defined are denied.
-         */
-        row.setTTL(TimeToLive.ofDays(10));
-        try {
-            grantPrivToRole(TEST_ROLE, TEST_TABLE, INSERT_TABLE);
-            testDeniedTTLInsertOps(testUserStore, row);
-        } finally {
-            revokePrivFromRole(TEST_ROLE, TEST_TABLE, INSERT_TABLE);
-            testDeniedInsertOps(testUserStore, row);
-        }
-        /*
-         * test insert_table and delete_table only, try perform inserts with
-         * TTL setting against a table not having TTL default defined are passed.
-         */
-        try {
-            grantPrivToRole(TEST_ROLE, TEST_TABLE,
-                            INSERT_TABLE, DELETE_TABLE);
-            testValidInsertOps(row);
-        } finally {
-            revokePrivFromRole(TEST_ROLE, TEST_TABLE,
-                               INSERT_TABLE, DELETE_TABLE);
-            testDeniedInsertOps(testUserStore, row);
+            superUserTableAPI.delete(row.createPrimaryKey(), null, null);
+            superUserTableAPI.delete(ttlRow.createPrimaryKey(), null, null);
         }
     }
 
@@ -750,6 +1219,7 @@ public class SecureTableOpsTest extends SecureTestBase {
      * Prepares test tables and roles.
      */
     private static void prepareTest() throws Exception {
+        execStatement(superUserStore, "create namespace " + NS);
         execStatement(superUserStore,
                       "create table " + TEST_TABLE + TEST_TABLE_DEF);
         execStatement(superUserStore,
@@ -773,6 +1243,19 @@ public class SecureTableOpsTest extends SecureTestBase {
                       "grant " + TEST_ROLE + " to user " + TEST_USER);
         execStatement(superUserStore,
                       "grant readwrite to user " + SUPER_USER);
+
+        final ExecuteOptions options = new ExecuteOptions().setNamespace(NS);
+        execStatement(superUserStore,
+                      "create table " + TEST_TABLE + TEST_TABLE_DEF,
+                      options);
+        execStatement(superUserStore,
+                      "create table " + TEST_CHILD_TABLE +
+                      TEST_CHILD_TABLE_DEF,
+                      options);
+        execStatement(superUserStore,
+                      "create table " + TEST_TTL_TABLE + TEST_TABLE_DEF +
+                      " using ttl 5 days",
+                      options);
     }
 
     /* Creates a row for test table */
@@ -818,6 +1301,18 @@ public class SecureTableOpsTest extends SecureTestBase {
         }
     }
 
+    private static void revokeNsPrivFromRole(String role,
+                                             String ns,
+                                             KVStorePrivilegeLabel... nsPriv)
+        throws Exception {
+        for (KVStorePrivilegeLabel label : nsPriv) {
+            execStatement(superUserStore,
+                          "revoke " + label + " on NAMESPACE " + ns +
+                          " from " + role);
+            assertRoleHasNoPriv(role, toNamespacePrivStr(label, ns));
+        }
+    }
+
     private static void grantPrivToRole(String role,
                                         KVStorePrivilegeLabel... sysPriv)
         throws Exception {
@@ -837,6 +1332,18 @@ public class SecureTableOpsTest extends SecureTestBase {
                           "grant " + label + " on " + table + " to " +
                           role);
             assertRoleHasPriv(role, toTablePrivStr(label, table));
+        }
+    }
+
+    private static void grantNsPrivToRole(String role,
+                                          String ns,
+                                          KVStorePrivilegeLabel... nsPriv)
+        throws Exception {
+        for (KVStorePrivilegeLabel label : nsPriv) {
+            execStatement(superUserStore,
+                          "grant " + label + " on NAMESPACE " + ns +
+                          " to " + role);
+            assertRoleHasPriv(role, toNamespacePrivStr(label, ns));
         }
     }
 
@@ -863,7 +1370,7 @@ public class SecureTableOpsTest extends SecureTestBase {
     /* Keep this method around in case we need it some time */
     @SuppressWarnings("unused")
     private static String toNamespacePrivStr(KVStorePrivilegeLabel nsPriv,
-        String namespace) {
+                                             String namespace) {
         assertEquals(nsPriv.getType(), PrivilegeType.NAMESPACE);
         return String.format("%s(%s)", nsPriv, namespace);
     }

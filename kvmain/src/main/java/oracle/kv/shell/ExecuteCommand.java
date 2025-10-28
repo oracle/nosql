@@ -86,8 +86,7 @@ public class ExecuteCommand extends ShellCommand {
                             exec.executeDdl(statement.toCharArray(),
                                             cmd.getNamespace(),
                                             null, /* ExecuteOptions */
-                                            null, /* TableLimits */
-                                            cmd.getLoginManager()));
+                                            null /* TableLimits */));
                     return displayResults(cmd, sr);
                 } catch (RemoteException e) {
                     throw new FaultException(e.getMessage(), e, false);

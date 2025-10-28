@@ -56,8 +56,10 @@ public class LockResult {
         int abortExpiration,
         boolean abortExpirationInHours,
         long abortModificationTime,
+        long abortCreationTime,
         boolean abortTombstone,
-        DatabaseImpl db) {
+        DatabaseImpl db,
+        boolean obsolete) {
 
         /*
          * Do not overwrite abort info if this locker has logged the
@@ -72,9 +74,11 @@ public class LockResult {
                 wli.setAbortVLSN(abortVLSN);
                 wli.setAbortExpiration(abortExpiration, abortExpirationInHours);
                 wli.setAbortModificationTime(abortModificationTime);
+                wli.setAbortCreationTime(abortCreationTime);
                 wli.setAbortTombstone(abortTombstone);
                 wli.setDb(db);
             }
+            wli.setObsolete(obsolete || wli.getObsolete());
             wli.setNeverLocked(false);
         }
     }

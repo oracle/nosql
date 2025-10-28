@@ -10,6 +10,7 @@ package oracle.kv.impl.api.ops;
 import static java.util.Collections.singletonList;
 import static oracle.kv.impl.util.SerialTestUtils.serialVersionChecker;
 import static oracle.kv.impl.util.SerialVersion.CLOUD_MR_TABLE;
+import static oracle.kv.impl.util.SerialVersion.ROW_METADATA_VERSION;
 
 import java.util.Collections;
 import java.util.List;
@@ -47,16 +48,19 @@ public class OpsSerialTest extends OpsSerialTestBase {
         checkOps(serialVersionChecker(
                      new Delete(KEY_BYTES, Choice.VALUE),
                      SerialVersion.MINIMUM, 0x4c952989d59e23a1L,
-                     CLOUD_MR_TABLE, 0xa0dada8a5d6bb4cbL),
+                     CLOUD_MR_TABLE, 0xa0dada8a5d6bb4cbL,
+                     ROW_METADATA_VERSION, 0x22fe249ac2907e8L),
                  serialVersionChecker(
                      new Delete(KEY_BYTES, Choice.ALL, TABLE_ID,
-                                false /* doTombstone */),
+                                false /* doTombstone */, null /* rowMetadata */),
                      SerialVersion.MINIMUM, 0xc10e687be7c11fd7L,
-                     CLOUD_MR_TABLE, 0xb5e3328ea7588e25L),
+                     CLOUD_MR_TABLE, 0xb5e3328ea7588e25L,
+                     ROW_METADATA_VERSION, 0x57e5ff46962347ceL),
                  serialVersionChecker(
                      new Delete(KEY_BYTES, Choice.ALL, TABLE_ID,
-                                true /* doTombstone */),
-                     CLOUD_MR_TABLE, 0x86c55edb51d0e544L));
+                                true /* doTombstone */, null /* rowMetadata */),
+                     CLOUD_MR_TABLE, 0x86c55edb51d0e544L,
+                     ROW_METADATA_VERSION, 0x670ce448218a0a40L));
     }
 
     @Test
@@ -64,16 +68,21 @@ public class OpsSerialTest extends OpsSerialTestBase {
         checkOps(serialVersionChecker(
                      new DeleteIfVersion(KEY_BYTES, Choice.VALUE, VERSION),
                      SerialVersion.MINIMUM, 0xb6a2cf000c45c209L,
-                     CLOUD_MR_TABLE, 0xc0d34f8c460721feL),
+                     CLOUD_MR_TABLE, 0xc0d34f8c460721feL,
+                     ROW_METADATA_VERSION, 0x7c9feb5f08881e80L),
                  serialVersionChecker(
                      new DeleteIfVersion(KEY_BYTES, Choice.VALUE, VERSION,
-                                         TABLE_ID, false /* doTombstone */),
+                                         TABLE_ID, false /* doTombstone */,
+                             null /* rowMetadata */),
                      SerialVersion.MINIMUM, 0x971cbeda8ede03bL,
-                     CLOUD_MR_TABLE, 0x79a3aef8e614aeffL),
+                     CLOUD_MR_TABLE, 0x79a3aef8e614aeffL,
+                     ROW_METADATA_VERSION, 0x2511a05b1b53e6f7L),
                  serialVersionChecker(
                      new DeleteIfVersion(KEY_BYTES, Choice.VALUE, VERSION,
-                                         TABLE_ID, true /* doTombstone */),
-                     CLOUD_MR_TABLE, 0xdac26edb2c1e6c91L));
+                                         TABLE_ID, true /* doTombstone */,
+                                         null /* rowMetadata */),
+                     CLOUD_MR_TABLE, 0xdac26edb2c1e6c91L,
+                     ROW_METADATA_VERSION, 0x4672dca893599b70L));
     }
 
     @Test
@@ -294,6 +303,7 @@ public class OpsSerialTest extends OpsSerialTestBase {
                        VALUE_BYTES,
                        1 /* ttlVal */,
                        TimeToLive.HOURS_ORDINAL,
+                       0 /* creationTime */,
                        0 /* mod time */,
                        false /* isTombstone */,
                        -1 /* streamId */);
@@ -302,6 +312,7 @@ public class OpsSerialTest extends OpsSerialTestBase {
                        VALUE_BYTES,
                        1 /* ttlVal */,
                        TimeToLive.HOURS_ORDINAL,
+                       0 /* creationTime */,
                        12345L /* mod time */,
                        true /* isTombstone */,
                        -1 /* streamId */);
@@ -314,7 +325,8 @@ public class OpsSerialTest extends OpsSerialTestBase {
                              0     /* localRegionId */
                              ),
                 SerialVersion.MINIMUM, 0xc44845d191603b9bL,
-                SerialVersion.BULK_PUT_RESOLVE, 0xe6eb825dae9ba8c5L),
+                SerialVersion.BULK_PUT_RESOLVE, 0xe6eb825dae9ba8c5L,
+                SerialVersion.CREATION_TIME_VER, 0x64137f6745c83c26L),
             serialVersionChecker(
                 new PutBatch(singletonList(kvPair),
                              new long[] { TABLE_ID },
@@ -323,7 +335,8 @@ public class OpsSerialTest extends OpsSerialTestBase {
                              0     /* localRegionId */
                              ),
                 SerialVersion.MINIMUM, 0xf6c32911ff2ba5b4L,
-                SerialVersion.BULK_PUT_RESOLVE, 0xbdeb11e582a8e7f7L),
+                SerialVersion.BULK_PUT_RESOLVE, 0xbdeb11e582a8e7f7L,
+                SerialVersion.CREATION_TIME_VER, 0xb891815470aab01cL),
             serialVersionChecker(
                 new PutBatch(singletonList(kvPair),
                              new long[] { TABLE_ID },
@@ -331,7 +344,8 @@ public class OpsSerialTest extends OpsSerialTestBase {
                              true  /* usePutResolve */,
                              1     /* localRegionId */
                              ),
-                SerialVersion.BULK_PUT_RESOLVE, 0x533dbaa3e1916793L),
+                SerialVersion.BULK_PUT_RESOLVE, 0x533dbaa3e1916793L,
+                SerialVersion.CREATION_TIME_VER, 0xb678c859b775c2d4L),
             serialVersionChecker(
                 new PutBatch(singletonList(kvPairNew),
                              new long[] { TABLE_ID },
@@ -339,7 +353,8 @@ public class OpsSerialTest extends OpsSerialTestBase {
                              true  /* usePutResolve */,
                              1     /* localRegionId */
                              ),
-                SerialVersion.BULK_PUT_RESOLVE, 0x3ee4206c17be7b5bL));
+                SerialVersion.BULK_PUT_RESOLVE, 0x3ee4206c17be7b5bL,
+                SerialVersion.CREATION_TIME_VER, 0xa3a29583759a1173L));
     }
 
     @Test
@@ -389,10 +404,12 @@ public class OpsSerialTest extends OpsSerialTestBase {
                                     1 /* expirationTimeMs */,
                                     true /* updateTTL */,
                                     false /* isTombstone */,
+                                    0 /* creationTime */,
                                     2 /* timestamp */,
                                     Region.NULL_REGION_ID),
                      SerialVersion.MINIMUM, 0x20e1758fb369dcf5L,
-                     CLOUD_MR_TABLE, 0x3606734cab6b7d93L),
+                     CLOUD_MR_TABLE, 0x3606734cab6b7d93L,
+                     SerialVersion.CREATION_TIME_VER, 0x3d59d52bacc906baL),
                  serialVersionChecker(
                      new PutResolve(KEY_BYTES,
                                     VALUE,
@@ -401,9 +418,11 @@ public class OpsSerialTest extends OpsSerialTestBase {
                                     1 /* expirationTimeMs */,
                                     true /* updateTTL */,
                                     false /* isTombstone */,
+                                    0 /* creationTime */,
                                     2 /* timestamp */,
                                     regionId),
-                     CLOUD_MR_TABLE, 0x6c1ddf4968294fe2L));
+                     CLOUD_MR_TABLE, 0x6c1ddf4968294fe2L,
+                     SerialVersion.CREATION_TIME_VER, 0x61e5b0df88952406L));
     }
 
     @Test

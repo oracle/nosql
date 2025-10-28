@@ -291,7 +291,7 @@ public class FieldValueFactory {
      *     schema. Such fields will remain unset in the record value.
      * If type is BINARY then the value must be a base64 encoded value.
      *
-     * Note: This methods doesn't handle arbitrary JSON, it has to comply to
+     * Note: This method doesn't handle arbitrary JSON, it has to comply to
      * the given type. Also, top level null is not supported.
      *
      * @param type the type definition of the instance.

@@ -131,7 +131,7 @@ compiled-query-plan
             "right operand" :
             {
               "iterator kind" : "CONST",
-              "value" : 145
+              "value" : 150
             }
           }
         ]

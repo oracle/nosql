@@ -124,6 +124,16 @@ public interface OperationResult {
      */
     FieldValue getGeneratedValue();
 
+
+    /**
+     * Internal use only
+     * @hidden
+     *
+     * For a put or delete operation, returns the creation time of the
+     * previous record in milliseconds.
+     */
+    long getPreviousCreationTime();
+
     /**
      * Internal use only
      * @hidden
@@ -132,6 +142,16 @@ public interface OperationResult {
      * previous record in milliseconds.
      */
     long getPreviousModificationTime();
+
+
+    /**
+     * Internal use only
+     * @hidden
+     *
+     * For a put or delete operation, returns the creation time of the
+     * record in milliseconds.
+     */
+    long getNewCreationTime();
 
     /**
      * Internal use only

@@ -22,7 +22,6 @@ import oracle.kv.FaultException;
 import oracle.kv.ReturnValueVersion.Choice;
 import oracle.kv.UnauthorizedException;
 import oracle.kv.Value;
-import oracle.kv.Value.Format;
 import oracle.kv.Version;
 import oracle.kv.impl.api.KVStoreImpl;
 import oracle.kv.impl.api.ops.InternalOperation.OpCode;
@@ -50,11 +49,10 @@ import com.sleepycat.je.OperationResult;
 import com.sleepycat.je.Put;
 import com.sleepycat.je.Transaction;
 import com.sleepycat.je.WriteOptions;
-import com.sleepycat.util.PackedInteger;
 
 /**
  * Server handler for {@link PutResolve}.
- *
+ * <p>
  * Throughput calculation
  * +------------------------------------------------------------------------------+
  * |    Op         | Choice | # |          Read        | * |     Write            |
@@ -100,12 +98,13 @@ class PutResolveHandler extends BasicPutHandler<PutResolve> {
         byte[] valueBytes = op.getValueBytes();
         assert (keyBytes != null) && (valueBytes != null);
 
-        PutHandler.checkTombstoneLength(op.isTombstone(), valueBytes.length);
+        PutHandler.checkTombstone(op.isTombstone(), valueBytes);
 
         final DatabaseEntry keyEntry = new DatabaseEntry(keyBytes);
         final DatabaseEntry dataEntry = valueDatabaseEntry(valueBytes);
 
         final WriteOptions writeOptions = getWriteOptions(op);
+        writeOptions.setCreationTime(op.getCreationTime());
         writeOptions.setModificationTime(op.getTimestamp());
 
         final TableImpl table = getAndCheckTable(op.getTableId());
@@ -207,14 +206,16 @@ class PutResolveHandler extends BasicPutHandler<PutResolve> {
 
     private WriteOptions getWriteOptions(PutResolve op) {
         WriteOptions writeOptions;
+        final long tableId = op.getTableId();
         if (op.isTombstone()) {
             writeOptions =
                 makeOption(getRepNode().getRepNodeParams().getTombstoneTTL(),
-                           true);
-            writeOptions.setTombstone(true);
+                           true, tableId, getOperationHandler(), true);
         } else {
             writeOptions = makeExpirationTimeOption(op.getExpirationTimeMs(),
-                                                    op.getUpdateTTL());
+                                                    op.getUpdateTTL(),
+                                                    tableId,
+                                                    getOperationHandler());
         }
         return writeOptions;
     }
@@ -236,6 +237,7 @@ class PutResolveHandler extends BasicPutHandler<PutResolve> {
         ResultValueVersion prevVal = null;
         Version version = null;
         long expTime = 0L;
+        long creationTime = 0L;
         long modificationTime = 0L;
         int storageSize = -1;
         boolean wasUpdate = false;
@@ -244,8 +246,10 @@ class PutResolveHandler extends BasicPutHandler<PutResolve> {
             OperationResult opres = putEntry(cursor, keyEntry, dataEntry,
                                              NO_OVERWRITE, writeOptions);
             if (opres != null) {
+                /* This is when there is no row in the local store */
                 version = getVersion(cursor);
                 expTime = opres.getExpirationTime();
+                creationTime = opres.getCreationTime();
                 modificationTime = opres.getModificationTime();
                 storageSize = getStorageSize(cursor);
 
@@ -253,6 +257,7 @@ class PutResolveHandler extends BasicPutHandler<PutResolve> {
                 op.addWriteBytes(storageSize, getNIndexWrites(cursor),
                                  partitionId, storageSize);
             } else {
+                /* This is when there is a row in the local store */
                 final Choice choice = op.getReturnValueVersionChoice();
                 final DatabaseEntry localDataEntry = new DatabaseEntry();
 
@@ -313,10 +318,15 @@ class PutResolveHandler extends BasicPutHandler<PutResolve> {
                                               Value.Format.fromFirstByte(
                                                   remoteValue[0]));
                     } else {
+                        /* local row wins */
                         /* Only merge the CRDTs. */
                         dataEntry = mergeCRDT(remoteRow, localRow, table, store,
                                               Value.Format.fromFirstByte(
                                                   localValue[0]));
+
+                        /* This set the creation time of the winning row  which
+                           is local, basically keeping the same creation time */
+                        writeOptions.setCreationTime(opres.getCreationTime());
                         /*
                          * The modification time should not be changed
                          * since except the CRDTs, other fields are not changed.
@@ -342,6 +352,7 @@ class PutResolveHandler extends BasicPutHandler<PutResolve> {
                     version = getVersion(cursor);
                     expTime = opres.getExpirationTime();
                     wasUpdate = true;
+                    creationTime = opres.getCreationTime();
                     modificationTime = opres.getModificationTime();
                     storageSize = getStorageSize(cursor);
 
@@ -349,13 +360,13 @@ class PutResolveHandler extends BasicPutHandler<PutResolve> {
                                      partitionId, storageSize);
                 }
                 reserializeResultValue(op, prevVal);
-
             }
 
             if (version != null) {
                 MigrationStreamHandle.get().addPut(keyEntry,
                                                    dataEntry,
                                                    version.getVLSN(),
+                                                   creationTime,
                                                    modificationTime,
                                                    expTime,
                                                    op.isTombstone());
@@ -367,6 +378,7 @@ class PutResolveHandler extends BasicPutHandler<PutResolve> {
                                         version,
                                         expTime,
                                         wasUpdate,
+                                        creationTime,
                                         modificationTime,
                                         storageSize,
                                         getRepNode().getRepNodeId().
@@ -382,9 +394,7 @@ class PutResolveHandler extends BasicPutHandler<PutResolve> {
          * Local value can be empty value for tombstone put locally or value
          * with non MULTI_REGION_TABLE format.
          */
-        Value.Format format = (valueBytes.length > 0) ?
-                              Value.Format.fromFirstByte(valueBytes[0]) : null;
-        if (format != Format.MULTI_REGION_TABLE) {
+        if (!Value.hasRegionId(valueBytes)) {
             if (Region.isMultiRegionId(localRegionId)) {
                 /*
                  * If local row is not multi-region format, then it is a local
@@ -395,7 +405,7 @@ class PutResolveHandler extends BasicPutHandler<PutResolve> {
             throw new IllegalArgumentException("This is not a record of " +
                 "multiregion tables.");
         }
-        int regionId = PackedInteger.readInt(valueBytes, 1);
+        int regionId = Value.getRegionIdFromByteArray(valueBytes);
         return new PrimaryKeyMetadata(updateTime, regionId);
     }
 

@@ -33,6 +33,7 @@ import oracle.kv.impl.security.TablePrivilege;
 import oracle.kv.impl.security.login.LoginToken;
 import oracle.kv.impl.util.RateLimitingLogger;
 
+import com.sleepycat.je.rep.net.DataChannel;
 import com.sleepycat.je.rep.subscription.StreamAuthenticator;
 
 /**
@@ -41,6 +42,12 @@ import com.sleepycat.je.rep.subscription.StreamAuthenticator;
  */
 public class StreamServerAuthHandler implements StreamAuthenticator {
 
+    /**
+     * Null channel id for configured the authenticator passed down to JE.
+     * During handshake, each data channel will create a clone authenticator
+     * with its own channel id
+     */
+    private static final String NULL_CHANNEL_ID = "NullChannelId";
     /**
      * Rate limiting logger max objects
      */
@@ -76,20 +83,33 @@ public class StreamServerAuthHandler implements StreamAuthenticator {
      * rate limiting logger
      */
     private final RateLimitingLogger<String> rl;
+    /**
+     * Channel associated with the authenticator mainly used for logging,
+     * useful in presence of multiple streams
+     */
+    private final String channelId;
 
-    private StreamServerAuthHandler(AccessChecker accessChecker,
+    private StreamServerAuthHandler(String channelId,
+                                    AccessChecker accessChecker,
                                     Logger logger) {
 
         if (accessChecker == null) {
             throw new IllegalArgumentException("Null access checker");
         }
 
+        this.channelId = channelId;
         this.accessChecker = accessChecker;
         this.logger = logger;
         authCtx = null;
         tableIdStr = null;
         lastCheckTime = 0;
         rl = new RateLimitingLogger<>(RL_INTV_MS, RL_MAX_OBJS, logger);
+    }
+
+    @Override
+    public String toString() {
+        return "StreamServerAuthHandler of channelId=" + channelId +
+               ", tableIdStr=" + Arrays.toString(tableIdStr) ;
     }
 
     /**
@@ -102,15 +122,25 @@ public class StreamServerAuthHandler implements StreamAuthenticator {
      *
      * @throws IllegalArgumentException if access checker is null
      */
-    public static StreamServerAuthHandler getAuthHandler(AccessChecker ac,
-                                                         Logger logger)
-        throws IllegalArgumentException {
+    public static StreamServerAuthHandler getAuthHandler(
+        AccessChecker ac, Logger logger) throws IllegalArgumentException {
+        return new StreamServerAuthHandler(NULL_CHANNEL_ID, ac, logger);
+    }
 
+    @Override
+    public StreamAuthenticator getInstance(DataChannel channel) {
         final StreamServerAuthHandler ret =
-            new StreamServerAuthHandler(ac, logger);
-
-        logger.fine(() -> lm("Server authenticator created."));
+            new StreamServerAuthHandler(channel.getChannelId(),
+                                        accessChecker,
+                                        logger);
+        logger.info(lm("Create a new instance of StreamServerAuthHandler, " +
+                       "channel id=" + ret.getChannelId()));
         return ret;
+    }
+
+    @Override
+    public String getChannelId() {
+        return channelId;
     }
 
     /**
@@ -265,17 +295,13 @@ public class StreamServerAuthHandler implements StreamAuthenticator {
 
         final SubscriptionOpsCtx opCtx = new SubscriptionOpsCtx(tableIdStr);
         try {
-            final ExecutionContext ec =
-                ExecutionContext.create(accessChecker, authCtx, opCtx);
-
             /*
              * Calling ExecutionContext.create has checked if execution ctx
              * has all privileges, and raise exception if it fails.
              */
-            logger.fine(() -> lm("Privilege check passed for=" +
-                                 opCtx.describe() +
-                                 ", requestor client host=" +
-                                 ec.requestorContext().getClientHost()));
+            ExecutionContext.create(accessChecker, authCtx, opCtx);
+            logger.finest(() -> lm("Privilege check passed for=" +
+                                   opCtx.describe()));
             return true;
         } catch (AuthenticationRequiredException | UnauthorizedException |
             SessionAccessException exp) {
@@ -300,8 +326,8 @@ public class StreamServerAuthHandler implements StreamAuthenticator {
                 System.currentTimeMillis());
     }
 
-    private static String lm(String msg) {
-        return "[StreamServerAuth] " + msg;
+    private String lm(String msg) {
+        return "[StreamServerAuth][ChannelId=" + channelId + "] " + msg;
     }
 
     /**
@@ -316,10 +342,8 @@ public class StreamServerAuthHandler implements StreamAuthenticator {
 
         @Override
         public String describe() {
-            return "Table subscription request of " +
-                ((ids == null || ids.length == 0) ?
-                 " all tables" :
-                 " tables IDs=" + Arrays.toString(ids));
+            return "Subscription of" + ((ids == null || ids.length == 0) ?
+                " all user tables" : " tables IDs=" + Arrays.toString(ids));
         }
 
         @Override

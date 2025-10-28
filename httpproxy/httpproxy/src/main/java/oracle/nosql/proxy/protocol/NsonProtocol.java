@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2011, 2024 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011, 2025 Oracle and/or its affiliates. All rights reserved.
  *
  * Licensed under the Universal Permissive License v 1.0 as shown at
  *  https://oss.oracle.com/licenses/upl/
@@ -12,26 +12,18 @@ import static oracle.nosql.proxy.ProxySerialization.getReplicaState;
 import static oracle.nosql.proxy.ProxySerialization.getTableState;
 import static oracle.nosql.proxy.protocol.BinaryProtocol.ON_DEMAND;
 import static oracle.nosql.proxy.protocol.BinaryProtocol.PROVISIONED;
-import static oracle.nosql.proxy.protocol.BinaryProtocol.QUERY_V1;
 import static oracle.nosql.proxy.protocol.BinaryProtocol.QUERY_V4;
 import static oracle.nosql.proxy.protocol.BinaryProtocol.QUERY_V5;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.TreeMap;
 
 import oracle.kv.Consistency;
 import oracle.kv.StatementResult;
 import oracle.kv.Version;
-import oracle.kv.table.FieldValue;
-import oracle.kv.table.ReturnRow;
-import oracle.kv.table.TableOpExecutionException;
-import oracle.kv.table.TableOperation;
-import oracle.kv.table.TableOperationResult;
 import oracle.kv.impl.api.ops.Result;
 import oracle.kv.impl.api.query.PreparedStatementImpl;
 import oracle.kv.impl.api.query.QueryStatementResultImpl;
@@ -44,6 +36,11 @@ import oracle.kv.impl.query.runtime.ResumeInfo.VirtualScan;
 import oracle.kv.impl.query.runtime.RuntimeControlBlock;
 import oracle.kv.impl.topo.RepGroupId;
 import oracle.kv.impl.topo.Topology;
+import oracle.kv.table.FieldValue;
+import oracle.kv.table.ReturnRow;
+import oracle.kv.table.TableOpExecutionException;
+import oracle.kv.table.TableOperation;
+import oracle.kv.table.TableOperationResult;
 import oracle.nosql.common.json.JsonUtils;
 import oracle.nosql.nson.Nson.NsonSerializer;
 import oracle.nosql.nson.util.NettyByteOutputStream;
@@ -161,6 +158,7 @@ public class NsonProtocol {
     public static String LIST_MAX_TO_READ = "lx";
     public static String LIST_START_INDEX = "ls";
     public static String MATCH_VERSION = "mv";
+    public static String MAX_QUERY_PARALLELISM = "mp";
     public static String MAX_READ_KB = "mr";
     public static String MAX_SHARD_USAGE_PERCENT = "ms";
     public static String MAX_WRITE_KB = "mw";
@@ -168,6 +166,7 @@ public class NsonProtocol {
     public static String NAMESPACE = "ns";
     public static String NUMBER_LIMIT = "nl";
     public static String NUM_OPERATIONS = "no";
+    public static String NUM_QUERY_OPERATIONS = "nq";
     public static String OPERATION = "op";
     public static String OPERATIONS = "os";
     public static String OPERATION_ID = "od";
@@ -181,6 +180,7 @@ public class NsonProtocol {
     public static String QUERY = "q";
     public static String QUERY_BATCH_TRACES = "qts";
     public static String QUERY_NAME = "qn";
+    public static String QUERY_OPERATION_NUM = "on";
     public static String QUERY_VERSION = "qv";
     public static String RANGE = "rg";
     public static String RANGE_PATH = "rp";
@@ -190,6 +190,7 @@ public class NsonProtocol {
     public static String RESOURCE = "ro";
     public static String RESOURCE_ID = "rd";
     public static String RETURN_ROW = "rr";
+    public static String ROW_METADATA = "mt";
     public static String SHARD_ID = "si";
     public static String SERVER_MEMORY_CONSUMPTION = "sm";
     public static String START = "sr";
@@ -266,6 +267,7 @@ public class NsonProtocol {
 
     /* row metadata */
     public static String EXPIRATION = "xp";
+    public static String CREATION_TIME = "ct";
     public static String MODIFIED = "md";
     public static String ROW = "r";
     public static String ROW_VERSION = "rv";
@@ -274,6 +276,7 @@ public class NsonProtocol {
     public static String EXISTING_MOD_TIME = "em";
     public static String EXISTING_VALUE = "el";
     public static String EXISTING_VERSION = "ev";
+    public static String EXISTING_ROW_METADATA = "ed";
     public static String GENERATED = "gn";
     public static String RETURN_INFO = "ri";
 
@@ -636,10 +639,13 @@ public class NsonProtocol {
                 ns.endMapField(EXISTING_VALUE);
 
                 Version version = opResult.getPreviousVersion();
+                long creationTime = row.getCreationTime();
                 long modTime = row.getLastModificationTime();
 
+                writeMapField(ns, CREATION_TIME, creationTime);
                 writeMapField(ns, EXISTING_MOD_TIME, modTime);
                 writeMapField(ns, EXISTING_VERSION, version.toByteArray());
+                writeMapField(ns, EXISTING_ROW_METADATA, row.getRowMetadata());
                 endMap(ns, RETURN_INFO);
             }
         }
@@ -1078,7 +1084,8 @@ public class NsonProtocol {
     private static void writePreparedQuery(NsonSerializer ns,
                                            NioByteOutputStream buf,
                                            PrepareCB cbInfo,
-                                           PreparedStatementImpl prep)
+                                           PreparedStatementImpl prep,
+                                           Topology topo)
         throws IOException {
 
         if (buf.isDirect()) {
@@ -1094,6 +1101,8 @@ public class NsonProtocol {
         writeMapField(ns, TABLE_NAME, cbInfo.getTableName());
         writeMapField(ns, QUERY_OPERATION,
                       (int)cbInfo.getOperation().ordinal());
+        int maxParallelism = computeMaxParallelism(prep, topo);
+        writeMapField(ns, MAX_QUERY_PARALLELISM, maxParallelism);
 
         /*
          * serialize the table access info and prepared query into a
@@ -1111,6 +1120,30 @@ public class NsonProtocol {
         writeMapField(ns, PREPARED_QUERY, buf.array(), 0, buf.getOffset());
     }
 
+    /*
+     * Single partition, along with any query that requires sorting or
+     * aggregation on client: 0 (indicates no parallelism possible)
+     * All shards: num shards
+     * All partitions: number of partitions
+     */
+    private static int computeMaxParallelism(PreparedStatementImpl prep,
+                                             Topology topo) {
+        if (prep.getDistributionKind() == null) {
+            /* this happens for update queries */
+            return 0;
+        }
+
+        if (!prep.isSimpleQuery() || prep.getDistributionKind().equals(
+                PreparedStatementImpl.DistributionKind.SINGLE_PARTITION)) {
+            return 0;
+        }
+        if (prep.getDistributionKind().equals(
+                PreparedStatementImpl.DistributionKind.ALL_SHARDS)) {
+            return topo.getNumRepGroups();
+        }
+        /* else ALL_PARTITIONS */
+        return topo.getNumPartitions();
+    }
 
     public static void writeQueryFinish(NsonSerializer ns,
                                         DataServiceHandler handler,
@@ -1153,7 +1186,7 @@ public class NsonProtocol {
 
         if (isPrepared == false) {
             /* Write the proxy-side query plan. */
-            writePreparedQuery(ns, buf, cbInfo, prep);
+            writePreparedQuery(ns, buf, cbInfo, prep, topo);
             /* Write the driver-side query plan. */
             FieldValueWriterImpl valWriter = new FieldValueWriterImpl();
             buf.setWriteIndex(0); // reset to beginning
@@ -1276,10 +1309,13 @@ public class NsonProtocol {
 
         startMap(ns, ROW);
         /* row metadata */
+        writeMapField(ns, CREATION_TIME, result.getPreviousCreationTime());
         writeMapField(ns, MODIFIED, result.getPreviousModificationTime());
         writeMapField(ns, EXPIRATION, result.getPreviousExpirationTime());
         writeMapField(ns, ROW_VERSION,
                       result.getPreviousVersion().toByteArray());
+        writeMapField(ns, ROW_METADATA, result.getPreviousValue() != null ?
+            result.getPreviousValue().getRowMetadata() : null);
         /* row value is last */
         /* TODO: when available, direct Avro to NSON? */
         ns.startMapField(VALUE);
@@ -1317,11 +1353,19 @@ public class NsonProtocol {
         ns.endMapField(EXISTING_VALUE);
 
         Version version = reader.getVersion();
-        long modTime = result.getPreviousModificationTime();
 
+        long creationTime = result.getPreviousCreationTime();
+        writeMapField(ns, CREATION_TIME, creationTime);
+
+        long modTime = result.getPreviousModificationTime();
         writeMapField(ns, EXISTING_MOD_TIME, modTime);
+
         if (version != null) {
             writeMapField(ns, EXISTING_VERSION, version.toByteArray());
+        }
+        String prevRowMetadata = result.getPreviousValue().getRowMetadata();
+        if (prevRowMetadata != null) {
+            writeMapField(ns, EXISTING_ROW_METADATA, prevRowMetadata);
         }
         endMap(ns, RETURN_INFO);
     }

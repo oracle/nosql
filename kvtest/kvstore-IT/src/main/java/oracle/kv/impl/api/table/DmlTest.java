@@ -17,6 +17,7 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.junit.Assume.assumeTrue;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -29,6 +30,7 @@ import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
@@ -57,15 +59,18 @@ import oracle.kv.Version;
 import oracle.kv.WriteThroughputException;
 import oracle.kv.impl.api.KVStoreImpl;
 import oracle.kv.impl.api.ops.Result;
+import oracle.kv.impl.api.query.QueryPublisher.QuerySubscription;
 import oracle.kv.impl.api.query.PreparedStatementImpl;
 import oracle.kv.impl.api.query.PreparedStatementImpl.DistributionKind;
 import oracle.kv.impl.api.query.QueryStatementResultImpl;
 import oracle.kv.impl.query.compiler.CompilerAPI;
 import oracle.kv.impl.query.runtime.CloudSerializer.FieldValueWriter;
 import oracle.kv.impl.query.runtime.PlanIter;
+import oracle.kv.impl.topo.RepGroupId;
 import oracle.kv.impl.util.PollCondition;
 import oracle.kv.impl.util.SerialVersion;
 import oracle.kv.impl.util.contextlogger.LogContext;
+import oracle.kv.impl.util.registry.AsyncControl;
 import oracle.kv.impl.xregion.XRegionTestBase;
 import oracle.kv.query.BoundStatement;
 import oracle.kv.query.ExecuteOptions;
@@ -1473,7 +1478,6 @@ public class DmlTest extends TableTestBase {
                                             ExecuteOptions options,
                                             int expRB,
                                             int expWB) {
-
         if (showResult) {
             System.out.println("\n" +
                 String.valueOf(((PreparedStatementImpl)stmt).getQueryString()));
@@ -4405,10 +4409,10 @@ public class DmlTest extends TableTestBase {
         assertTrue(gen1.getDDL().contains("points"));
         assertTrue(gen2.getDDL().contains("polygons"));
         for (String s : gen1.getAllIndexDDL()) {
-            assertTrue(s.contains("POINT"));
+            assertTrue(s.contains("Point"));
         }
         for (String s : gen2.getAllIndexDDL()) {
-            assertTrue(s.contains("GEOMETRY"));
+            assertTrue(s.contains("Geometry"));
         }
     }
 
@@ -4838,6 +4842,191 @@ public class DmlTest extends TableTestBase {
             results.add(iter.next());
         }
         assertTrue(results.size() == 1);
+    }
+
+    @Test
+    public void testPartitionedQueries() throws Exception {
+        assumeTrue("Only when testing async", AsyncControl.serverUseAsync);
+        final int numRows = 1000;
+        final int partitionsPerSplit = 2;
+        final String tableName = "ParallelQuery";
+        final String createTable = "create table " + tableName +
+            "(id integer, primary key(id)) as json collection";
+        final String createIndex = "create index idx on " + tableName +
+            "(name as string)";
+        final String query = "select * from " + tableName;
+        final String indexQuery = "select * from " + tableName +
+            " where name > 'm'";
+        final String forcePrimary = "select /*+ FORCE_PRIMARY_INDEX(" +
+            tableName + ") */  * from " + tableName + " where name > 'm'";
+        executeDdl(createTable, null, true);
+        executeDdl(createIndex, null, true);
+        TableLimits limits = new TableLimits(5000, 10000, 1);
+        ExecutionFuture f =
+            ((KVStoreImpl)store).setTableLimits(null, tableName, limits);
+        assertTrue(f.get().isSuccessful());
+        TableImpl table = (TableImpl) tableImpl.getTable(tableName);
+        assertNotNull(table);
+
+        for (int i = 0; i < numRows; i++) {
+            Row row = table.createRow();
+            row.put("id", i);
+            row.put("name", ("name_" + i));
+            row.put("age", (i % 25));
+            assertNotNull(tableImpl.put(row, null, null));
+        }
+
+        /*
+         * driver version and cloud query are needed to track throughput.
+         * setting is simple query is needed for use of the execute variant
+         * that uses Set<RepGroupId>
+         */
+        ExecuteOptions options =
+            new ExecuteOptions().setResultsBatchSize(1).setAsync(false).
+            setDriverQueryVersion(5).setIsCloudQuery(true).setIsSimpleQuery(true);
+        PreparedStatementImpl ps =
+            (PreparedStatementImpl) store.prepare(query, options);
+        assertTrue(ps.getDistributionKind().equals(
+                       PreparedStatementImpl.DistributionKind.ALL_PARTITIONS));
+        assertTrue(ps.isSimpleQuery());
+        int numPartitions =
+            ((KVStoreImpl)store).getTopology().getNumPartitions();
+
+        ArrayList<HashSet<Integer>> splits = new ArrayList<>();
+        HashSet<Integer> currentSplit = new HashSet<>();
+        splits.add(currentSplit);
+        for (int i = 0; i < numPartitions; i++) {
+            if (i > 0 && (i % partitionsPerSplit) == 0) {
+                currentSplit = new HashSet<>();
+                splits.add(currentSplit);
+            }
+            currentSplit.add(i + 1); /* partition ids are 1-based */
+        }
+
+        int count = 0;
+        int readKB = 0;
+        for (HashSet<Integer> s : splits) {
+            QueryStatementResultImpl result =
+                (QueryStatementResultImpl) ps.executeSyncPartitions(
+                    (KVStoreImpl)store, options, s);
+            Iterator<RecordValue> iter = result.iterator();
+            while (iter.hasNext()) {
+                count++;
+                iter.next();
+            }
+            readKB += result.getReadKB();
+        }
+        assertEquals(numRows, count);
+        assertEquals(numRows, readKB);
+
+        /*
+         * all shard query
+         */
+        ps = (PreparedStatementImpl) store.prepare(indexQuery, options);
+        assertTrue(ps.getDistributionKind().equals(
+                       PreparedStatementImpl.DistributionKind.ALL_SHARDS));
+        assertTrue(ps.isSimpleQuery());
+        int numShards =
+            ((KVStoreImpl)store).getTopology().getNumRepGroups();
+
+        /* use one set of size numShards */
+        HashSet<RepGroupId> currentSsplit = new HashSet<>();
+        for (int i = 0; i < numShards; i++) {
+            currentSsplit.add(new RepGroupId(i+1));
+        }
+
+        MySubscriber qsub = new MySubscriber(options.getResultsBatchSize());
+        execShardsAsync(ps, options, currentSsplit, qsub);
+        assertEquals(numRows, qsub.numResults);
+        assertEquals(numRows, qsub.readKB);
+
+        /* use numShard splits, each with a single entry */
+        count = 0;
+        readKB = 0;
+        for (int i = 0; i < numShards; i++) {
+            HashSet<RepGroupId> split = new HashSet<>();
+            split.add(new RepGroupId(i+1));
+            qsub = new MySubscriber(options.getResultsBatchSize());
+            execShardsAsync(ps, options, split, qsub);
+            count += qsub.numResults;
+            readKB += qsub.readKB;
+        }
+        assertEquals(numRows, count);
+        assertEquals(numRows, readKB);
+
+        /* make sure forcing use of primary index results in ALL_PARTITIONS */
+        ps = (PreparedStatementImpl) store.prepare(forcePrimary, options);
+        assertTrue(ps.getDistributionKind().equals(
+                       PreparedStatementImpl.DistributionKind.ALL_PARTITIONS));
+    }
+
+    private void execShardsAsync(PreparedStatementImpl ps,
+                                 ExecuteOptions options,
+                                 HashSet<RepGroupId> split,
+                                 MySubscriber qsub) {
+
+        Publisher<RecordValue> qpub =
+            ((KVStoreImpl)store).executeAsync(ps, options, split);
+
+        qpub.subscribe(qsub);
+
+        synchronized (qsub) {
+            while (!qsub.isDone) {
+                try {
+                    qsub.wait();
+                } catch (InterruptedException e) {
+                    fail("Interrupted while waiting for async query");
+                }
+            }
+        }
+        if (qsub.err != null) {
+            throw new RuntimeException(qsub.err);
+        }
+    }
+
+    private class MySubscriber implements Subscriber<RecordValue> {
+        int numResults;
+        int readKB;
+        Throwable err;
+        Subscription subscription;
+        final int batchSize;
+        volatile boolean isDone = false;
+
+        MySubscriber(int batchSize) {
+            this.batchSize = batchSize;
+        }
+
+        @Override
+        public void onSubscribe(Subscription s) {
+            subscription = s;
+            s.request(batchSize);
+        }
+
+        @Override
+        public void onNext(RecordValue value) {
+            numResults++;
+            if (numResults % batchSize == 0) {
+                subscription.request(batchSize);
+            }
+        }
+
+        @Override
+        public void onError(Throwable e) {
+            err = e;
+            isDone = true;
+            notifyAll();
+        }
+
+        @SuppressWarnings("null")
+        @Override
+        public synchronized void onComplete() {
+            QueryStatementResultImpl qres =
+                ((QuerySubscription)subscription).
+                getAsyncIterator().getQueryStatementResult();
+            readKB = qres.getReadKB();
+            isDone = true;
+            notifyAll();
+        }
     }
 
     private void runPrepareSizeLimit(String statement,

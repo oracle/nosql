@@ -31,7 +31,7 @@ public class NioChannelThreadPool {
     private final int id;
     private final AtomicInteger childSequencer = new AtomicInteger(0);
     private final AtomicReferenceArray<NioChannelExecutor> executors;
-    private final ScheduledExecutorService backupExecutor;
+    private final ScheduledExecutorService backupSchedExecutor;
     private final int maxQuiescentSeconds;
     private final AtomicInteger index = new AtomicInteger(0);
     private final KVThreadFactory threadFactory;
@@ -52,7 +52,7 @@ public class NioChannelThreadPool {
                                 int num,
                                 int maxQuiescentSeconds,
                                 AsyncEndpointGroupFaultHandler faultHandler,
-                                ScheduledExecutorService backupExecutor) {
+                                ScheduledExecutorService backupSchedExecutor) {
 
         if (num <= 0) {
             throw new IllegalArgumentException(String.format(
@@ -61,13 +61,13 @@ public class NioChannelThreadPool {
         this.logger = logger;
         this.id = poolSequencer.getAndIncrement();
         this.executors = new AtomicReferenceArray<NioChannelExecutor>(num);
-        this.backupExecutor = backupExecutor;
+        this.backupSchedExecutor = backupSchedExecutor;
         this.maxQuiescentSeconds = maxQuiescentSeconds;
         this.threadFactory = new KVThreadFactory(
             NioChannelThreadPool.class.getName(), logger);
         this.faultHandler = faultHandler;
-        this.perfTracker =
-            new NioChannelThreadPoolPerfTracker(this, logger, backupExecutor);
+        this.perfTracker = new NioChannelThreadPoolPerfTracker(this, logger,
+            backupSchedExecutor);
         /*
          * TODO: should we have core threads that we start at the beginning and
          * keep active? If we do care about efficiency of using threads and
@@ -193,8 +193,8 @@ public class NioChannelThreadPool {
         }
     }
 
-    public ScheduledExecutorService getBackupExecutor() {
-        return backupExecutor;
+    public ScheduledExecutorService getBackupSchedExecutor() {
+        return backupSchedExecutor;
     }
 
     /**

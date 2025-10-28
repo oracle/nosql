@@ -399,6 +399,7 @@ public class TableBuilder extends TableBuilderBase {
                           getShardKey(),
                           fields,
                           ttl,
+                          beforeImageTTL,
                           null, /*limits*/
                           r2compat,
                           0,
@@ -460,6 +461,7 @@ public class TableBuilder extends TableBuilderBase {
                                     getShardKey(),
                                     fields,
                                     ttl,
+                                    beforeImageTTL,
                                     null, /*limits*/
                                     r2compat,
                                     0,

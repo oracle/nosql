@@ -1,0 +1,2 @@
+unordered-result
+{"sid1":2,"sid2":3,"pid1":2,"pid2":1,"name":"Caitlin","age":37,"seqNo":1,"info":{"address":{"state":"Wisconsin","street":"360 Herkimer Court Bethany","zipcode":35536},"email":"caitlinsmith@yahoo.com","favoriteColor":"blue","friends":["Kidd"],"height":160,"phones":[{"areacode":424,"kind":"office","number":5455450},{"areacode":424,"kind":"mobile","number":4545521},{"areacode":645,"kind":"home","number":5545450}]}}

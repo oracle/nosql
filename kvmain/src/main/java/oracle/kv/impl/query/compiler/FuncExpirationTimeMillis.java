@@ -21,7 +21,7 @@ import oracle.kv.impl.query.runtime.FuncExpirationTimeMillisIter;
 import oracle.kv.impl.query.types.TypeManager;
 
 /**
- * Function to return the current system time in millisecods since the epoch
+ * Function to return the current system time in milliseconds since the epoch
  */
 public class FuncExpirationTimeMillis extends Function {
 

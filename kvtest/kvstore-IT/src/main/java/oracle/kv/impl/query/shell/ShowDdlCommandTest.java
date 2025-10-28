@@ -33,7 +33,7 @@ public class ShowDdlCommandTest extends ShellTestBase {
         "create index idx1 on %s(" + IDX1_FIELD +")";
 
     private final static String IDX2_FIELDS =
-        "info.age as Integer,info.address[].zipcode as String";
+        "info.age AS Integer, info.address[].zipcode AS String";
     private final static String IDX2_DDL =
         "create index idx2 on %s(" + IDX2_FIELDS + ")";
 

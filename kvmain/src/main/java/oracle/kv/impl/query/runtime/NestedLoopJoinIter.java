@@ -141,11 +141,14 @@ public class NestedLoopJoinIter extends PlanIter {
         NestedLoopJoinState state = (NestedLoopJoinState)rcb.getState(theStatePos);
         state.reset(this);
 
+        ResumeInfo ri = rcb.getResumeInfo();
+        for (int i = 0; i < theBranches.length; ++i) {
+            ri.ensureTableRI(i);
+        }
+
         for (int i = 0; i < theBranches.length; ++i) {
             theBranches[i].reset(rcb);
         }
-
-        ResumeInfo ri = rcb.getResumeInfo();
 
         for (int i = 0; i < theBranches.length - 1; ++i) {
             if (ri.getPrimResumeKey(i+1) != null) {
@@ -201,7 +204,7 @@ public class NestedLoopJoinIter extends PlanIter {
                     rcb.trace("Value for join branch " + branch +
                               " = " + branchRes);
                 }
- 
+
                 for (JoinPred pred : theJoinPreds) {
                     if (pred.theOuterBranch != branch) {
                         continue;

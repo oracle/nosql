@@ -65,16 +65,16 @@ compiled-query-plan
           "field name" : "row_size",
           "field expression" : 
           {
-            "iterator kind" : "MULTIPLY_DIVIDE",
-            "operations and operands" : [
-              {
-                "operation" : "*",
-                "operand" :
+            "iterator kind" : "LESS_OR_EQUAL",
+            "left operand" :
+            {
+              "iterator kind" : "ABS",
+              "input iterators" : [
                 {
-                  "iterator kind" : "MULTIPLY_DIVIDE",
+                  "iterator kind" : "ADD_SUBTRACT",
                   "operations and operands" : [
                     {
-                      "operation" : "*",
+                      "operation" : "+",
                       "operand" :
                       {
                         "iterator kind" : "FUNC_ROW_STORAGE_SIZE",
@@ -86,25 +86,22 @@ compiled-query-plan
                       }
                     },
                     {
-                      "operation" : "/",
+                      "operation" : "-",
                       "operand" :
                       {
                         "iterator kind" : "CONST",
-                        "value" : 10
+                        "value" : 382
                       }
                     }
                   ]
                 }
-              },
-              {
-                "operation" : "*",
-                "operand" :
-                {
-                  "iterator kind" : "CONST",
-                  "value" : 10
-                }
-              }
-            ]
+              ]
+            },
+            "right operand" :
+            {
+              "iterator kind" : "CONST",
+              "value" : 1
+            }
           }
         },
         {

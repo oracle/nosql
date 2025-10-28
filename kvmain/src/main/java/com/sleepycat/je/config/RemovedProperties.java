@@ -83,6 +83,8 @@ public class RemovedProperties {
         constants.add("java.util.logging.level.recovery");
         constants.add("java.util.logging.level.evictor");
         constants.add("java.util.logging.level.cleaner");
+        constants.add("je.rep.txnRollbackLimit");
+        constants.add("je.rep.txnRollbackDisabled");
 
         properties = Collections.unmodifiableSet(constants);
     }

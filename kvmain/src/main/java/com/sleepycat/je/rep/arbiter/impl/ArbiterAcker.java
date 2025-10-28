@@ -40,7 +40,6 @@ import com.sleepycat.je.dbi.DbConfigManager;
 import com.sleepycat.je.log.entry.LogEntry;
 import com.sleepycat.je.rep.GroupShutdownException;
 import com.sleepycat.je.rep.NodeType;
-import com.sleepycat.je.rep.ReplicaRetryException;
 import com.sleepycat.je.rep.ReplicaConnectRetryException;
 import com.sleepycat.je.rep.ReplicatedEnvironment;
 import com.sleepycat.je.rep.UnknownMasterException;
@@ -72,7 +71,6 @@ import com.sleepycat.je.txn.TxnCommit;
 import com.sleepycat.je.util.TimeSupplier;
 import com.sleepycat.je.utilint.LoggerUtils;
 import com.sleepycat.je.utilint.LongStat;
-import com.sleepycat.je.utilint.NotSerializable;
 import com.sleepycat.je.utilint.StatGroup;
 import com.sleepycat.je.utilint.StoppableThread;
 import com.sleepycat.je.utilint.StringStat;
@@ -229,15 +227,44 @@ class ArbiterAcker {
 
     private void initializeConnection()
         throws ReplicaConnectRetryException,
-               IOException,
-               ReplicaConnectRetryException {
+               IOException {
             createArbiterFeederChannel();
+            /*
+             * Invoked to refresh the Helper Host information in the
+             * Replication Group Admin. In this way, it is avoided that the
+             * 'refreshCachedGroup' method repeatedly fails due to:
+             *
+             * 'Arbiter exception: com.sleepycat.je.rep.UnknownMasterException:
+             * Could not determine master from helpers at: [here it will be
+             * listed the Helper Hosts, for instance, localhost/127.0.0.1:5001,
+             * localhost/127.0.0.1:5002]'.
+             *
+             * That repeated exception could lead to delaying the start of the
+             * handshake and to cause a quorum loss [KVSTORE-2654].
+             */
+            arbiterImpl.refreshHelperHosts();
+            /*
+             * Invoked to update the information of the Replication Group
+             * before performing the handshake. If it is not called, the
+             * creation of RepFeederHandshakeConfig fails because that
+             * information does not exist, or that information is not
+             * current.
+             */
             arbiterImpl.refreshCachedGroup();
+            LoggerUtils.fine(logger, repImpl,
+                    "Cache group updated before the handshake");
             ReplicaFeederHandshake handshake =
                 new ReplicaFeederHandshake(new RepFeederHandshakeConfig());
             protocol = handshake.execute();
-
+            /*
+             * Invoked to update the information of the Replication Group
+             * after performing the handshake. Otherwise, a
+             * com.sleepycat.je.rep.UnknownMasterException is repeatedly
+             * thrown when calling this method again.
+             */
             arbiterImpl.refreshCachedGroup();
+            LoggerUtils.fine(logger, repImpl,
+                    "Cache group updated after the handshake");
 
             /* read heartbeat and respond */
             masterHeartbeatId = protocol.
@@ -288,16 +315,15 @@ class ArbiterAcker {
                DatabaseException,
                GroupShutdownException {
 
-        Class<? extends ReplicaRetryException> retryExceptionClass = null;
+        Class<? extends ReplicaConnectRetryException> retryExceptionClass = null;
         int retryCount = 0;
         try {
-
             while (true) {
                 try {
                     runArbiterAckLoopInternal();
                     /* Normal exit */
                     break;
-                } catch (ReplicaRetryException e) {
+                } catch (ReplicaConnectRetryException e) {
                     if (!arbiterImpl.getMasterStatus().inSync()) {
                         LoggerUtils.fine(logger, repImpl,
                                          "Retry terminated, out of sync.");
@@ -358,7 +384,7 @@ class ArbiterAcker {
 
     private void runArbiterAckLoopInternal()
         throws InterruptedException,
-               ReplicaRetryException {
+            ReplicaConnectRetryException {
 
         shutdownException = null;
         LoggerUtils.info(logger, repImpl,
@@ -387,9 +413,11 @@ class ArbiterAcker {
              * it and return to the outer node level loop.
              */
             LoggerUtils.fine(logger, repImpl,
-                             "Arbiter exception: " + e.getMessage() +
-                             "\n" + LoggerUtils.getStackTrace(e));
-        } catch (ReplicaRetryException e) {
+                    "Arbiter exception: " + e + " channel: "
+                            + ((arbiterFeederChannel == null) ? "null"
+                            : arbiterFeederChannel.getChannel().toString())
+                            + "\n" + LoggerUtils.getStackTrace(e));
+        } catch (ReplicaConnectRetryException e) {
             /* Propagate it outwards. Node does not need to shutdown. */
             throw e;
         } catch (GroupShutdownException e) {
@@ -521,7 +549,7 @@ class ArbiterAcker {
     private void loopExitCleanup() {
 
         if (shutdownException != null) {
-            if (shutdownException instanceof ReplicaRetryException) {
+            if (shutdownException instanceof ReplicaConnectRetryException) {
                 LoggerUtils.fine(logger, repImpl,
                                  "Retrying connection to feeder. Message: " +
                                  shutdownException.getMessage());
@@ -574,8 +602,12 @@ class ArbiterAcker {
                                             dataChannel,
                                             timeoutMs);
 
+            LoggerUtils.fine(logger, repImpl,
+                    "starting service dispatcher handshake");
             ServiceDispatcher.doServiceHandshake
                 (dataChannel, FeederManager.FEEDER_SERVICE);
+            LoggerUtils.fine(logger, repImpl,
+                    "service dispatcher handshake done");
         } catch (ConnectException e) {
 
             /*

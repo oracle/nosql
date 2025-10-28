@@ -112,9 +112,10 @@ public class TableQueryHandler extends InternalOperationHandler<TableQuery> {
                    PartitionId partitionId) {
 
         TableMetadataHelper mdHelper = getMetadataHelper();
-        ExecuteOptions options = new ExecuteOptions().
-                                 setRegionId(op.getLocalRegionId()).
-                                 setDoTombstone(op.doTombstone());
+        ExecuteOptions options = new ExecuteOptions()
+            .setRegionId(op.getLocalRegionId())
+            .setDoTombstone(op.doTombstone())
+            .setRowMetadata(op.getRowMetadata());
 
         /*
          * Save the ResumeInfo before execution.

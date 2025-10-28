@@ -26,7 +26,6 @@ import oracle.kv.Value.Format;
 import oracle.kv.impl.util.FastExternalizable;
 import oracle.kv.impl.util.UserDataControl;
 
-import com.sleepycat.util.PackedInteger;
 
 /**
  * Holds a Value for a request, optimized to avoid array allocations/copies.
@@ -106,9 +105,16 @@ public class RequestValue implements FastExternalizable {
 
     int getRegionId() {
         if (value == null) {
-            return PackedInteger.readInt(bytes, 1);
+            return Value.getRegionIdFromByteArray(bytes);
         }
         return value.getRegionId();
+    }
+
+    String getRowMetadata() {
+        if (value == null) {
+            return Value.fromByteArray(bytes).getRowMetadata();
+        }
+        return value.getRowMetadata();
     }
 
     Format getValueFormat() {

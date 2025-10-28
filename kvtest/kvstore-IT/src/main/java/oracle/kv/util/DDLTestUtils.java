@@ -15,6 +15,7 @@ import static org.junit.Assert.assertTrue;
 import oracle.kv.ExecutionFuture;
 import oracle.kv.KVStore;
 import oracle.kv.StatementResult;
+import oracle.kv.query.ExecuteOptions;
 import oracle.kv.table.RecordValue;
 
 public class DDLTestUtils {
@@ -36,6 +37,16 @@ public class DDLTestUtils {
         assertTrue(result.isDone());
         assertFalse(result.isCancelled());
         assertNotNull(result.toString(), result.getInfo());
+    }
+
+    public static void execStatement(KVStore store,
+                                     String statement,
+                                     ExecuteOptions options)
+        throws Exception {
+
+        ExecutionFuture future = store.execute(statement, options);
+        StatementResult result = future.get();
+        checkSuccess(future, result);
     }
 
     public static void execStatement(KVStore store, String statement)

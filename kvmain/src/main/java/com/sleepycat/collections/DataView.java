@@ -520,7 +520,7 @@ final class DataView implements Cloneable {
                 DatabaseEntry valueThang = new DatabaseEntry();
                 entityBinding.objectToData(value, valueThang);
                 secKeyCreator.createSecondaryKey(secDb, primaryKeyThang,
-                                                 valueThang, 0, 0, 0, keyThang);
+                                                 valueThang, 0, 0, 0, 0, keyThang);
             } else {
                 entityBinding.objectToKey(value, keyThang);
             }

@@ -46,4 +46,8 @@ create index idx_city_phones on Boo (
     address.city as string,
     address.phones[].work as integer)
 
+create index idx_creation_time on Boo (creation_time())
+
+create index idx_creation_time_millis on Boo (creation_time_millis())
+
 create index idx_mod_time on Boo (modification_time())

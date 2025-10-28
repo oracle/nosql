@@ -2274,7 +2274,19 @@ class IndexAnalyzer implements Comparable<IndexAnalyzer> {
                 trace("Replacing expr:\n" + etr.theExpr.display());
             }
 
-            if (etr.theExpr.getNumParents() > 1) {
+            int numParents = etr.theExpr.getNumParents();
+            
+            if (numParents == 0) {
+                /* This can happen if the expr was added twice to the rewrite
+                 * map and has already been rewritten in an earlier iteration
+                 * of this for loop */
+                if (theTrace >= 3) {
+                    trace("expr has no parents");
+                }
+                continue;
+            }
+            
+            if (numParents > 1) {
                 parent = expr.findSubExpr(etr.theExpr);
                 if (parent == null) {
                     throw new QueryStateException(
@@ -5037,21 +5049,19 @@ class IndexAnalyzer implements Comparable<IndexAnalyzer> {
          * is not sorting by prim key columns, we must mark the prim index as
          * not covering.
          */
-        if (theTablePos == theTargetTablePos) {
-            int numSortExprs = sfw.getNumSortExprs();
+        int numSortExprs = sfw.getNumSortExprs();
 
-            for (int i = 0; i < numSortExprs; ++i) {
-                Expr expr = sfw.getSortExpr(i);
-                if (!isIndexOnlyExpr(expr, true, true)) {
-                    isCovering = false;
-                    if (theTrace >= 2) {
-                        trace("Index is not covering: it does " +
-                              "not cover the " + i + "-th ORDER BY expr");
-                    }
+        for (int i = 0; i < numSortExprs; ++i) {
+            Expr expr = sfw.getSortExpr(i);
+            if (!isIndexOnlyExpr(expr, false, true)) {
+                isCovering = false;
+                if (theTrace >= 2) {
+                    trace("Index is not covering: it does " +
+                          "not cover the " + i + "-th ORDER BY expr");
+                }
 
-                    if (!theIsUnnestingIndex) {
-                        return false;
-                    }
+                if (!theIsUnnestingIndex) {
+                    return false;
                 }
             }
         }
@@ -5290,6 +5300,8 @@ class IndexAnalyzer implements Comparable<IndexAnalyzer> {
                     case FN_PARTITION:
                     case FN_SHARD:
                         break;
+                    case FN_CREATION_TIME:
+                    case FN_CREATION_TIME_MILLIS:
                     case FN_MOD_TIME:
                         return false;
                     case FN_VERSION:
@@ -5312,6 +5324,8 @@ class IndexAnalyzer implements Comparable<IndexAnalyzer> {
                              theSFW.checkOptimizeMKIndexSizeCall(theIndex))) {
                             break;
                         }
+                        return false;
+                    case FN_ROW_METADATA:
                         return false;
                     default:
                         break;
@@ -5383,9 +5397,18 @@ class IndexAnalyzer implements Comparable<IndexAnalyzer> {
         boolean desc = false;
         boolean nullsLast = false;
         int i;
+        int e;
+
+        if (!hasSort && !hasGroupBy) {
+            return;
+        }
 
         int numPkCols = theTable.getPrimaryKeySize();
         int numShardKeys = theTable.getShardKeySize();
+        int numTables = theTableExpr.getNumTables();
+        int numAncestors = theTableExpr.getNumAncestors();
+        int numDescendants = theTableExpr.getNumDescendants();
+
         int numExprs = (hasGroupBy ?
                         theSFW.getNumGroupExprs() :
                         theSFW.getNumSortExprs());
@@ -5415,36 +5438,90 @@ class IndexAnalyzer implements Comparable<IndexAnalyzer> {
          * are a prefix of the primary key columns. */
         if (theIsPrimary) {
 
-            for (i = 0; i < numPkCols && i < numExprs; ++i) {
-
-                Expr expr = (hasGroupBy ?
-                             theSFW.getFieldExpr(i) :
-                             theSFW.getSortExpr(i));
-
-                if (!ExprUtils.
-                     isPrimKeyColumnRef(theTableExpr, theTable, i, expr)) {
-                    break;
-                }
-
-                if (hasGroupBy && i == numShardKeys - 1) {
-                    theSFW.setGroupByExprCompleteShardKey();
-                }
+            if (hasSort && desc && numDescendants > 0) {
+                /* In the current implementation, it is not possible to use
+                 * an index to order by primary key columns in descending
+                 * order when the NESTED TABLES clause contains descendants */
+                return;
             }
 
-            if (i == numExprs) {
+            for (i = 0, e = 0; i < numPkCols && e < numExprs; ++i) {
 
-                if (hasSort) {
+                Expr expr = (hasGroupBy ?
+                             theSFW.getFieldExpr(e) :
+                             theSFW.getSortExpr(e));
 
-                    if (desc && theTableExpr.getNumDescendants() > 0) {
-                        /* In the current implementation, it is not possible to use
-                         * an index to order by primary key columns in descending
-                         * order when the NESTED TABLES clause contains descendants */
-                        return;
+                if (ExprUtils.
+                    isPrimKeyColumnRef(theTableExpr, theTable, i, expr)) {
+
+                    if (hasGroupBy && i == numShardKeys - 1) {
+                        theSFW.setGroupByExprCompleteShardKey();
                     }
+
+                    ++e;
+                    continue;
                 }
 
+                /* The currest expr does not match with the current pk column.
+                 * Check whether we have an equality predicate on the current
+                 * pk column. If so, skip the current pk column. */
+                ArrayList<PredInfo> startstopPIs = theStartStopPreds.get(i);
+                if (startstopPIs != null && startstopPIs.size() == 1) {
+                    PredInfo pi = startstopPIs.get(0);
+                    if (pi.isEq()) {
+                        continue;
+                    }
+                }
+                
+                break;
+            }
+
+            if (e == numExprs) {
                 theSFW.addSortingIndex(null);
                 theTableExpr.setDirection(direction);
+                return;
+            }
+
+            /* If the pk columns of the target table are a prefix of the 
+             * sort/group exprs, check if the remaining sort/group exprs
+             * are the pk columns of the descendant tables. Inheritted
+             * pk columns may or may not be among the sort/group exprs. */
+            if (i == numPkCols && numDescendants > 0 && !desc) {
+
+                int numAncestorPkCols = numPkCols;
+
+                for (int t = numAncestors + 1; t < numTables; ++t) {
+
+                    TableImpl descendant = theTableExpr.getTable(t);
+                    numPkCols = descendant.getPrimaryKeySize();
+
+                    for (int pkPos = 0;
+                         e < numExprs && pkPos < numPkCols;
+                         ++e, ++pkPos) {
+                        Expr expr = (hasGroupBy ?
+                                     theSFW.getFieldExpr(e) :
+                                     theSFW.getSortExpr(e));
+                        if (!ExprUtils.isPrimKeyColumnRef(theTableExpr,
+                                                          descendant,
+                                                          pkPos,
+                                                          expr)) {
+                            if (pkPos < numAncestorPkCols) {
+                                --e;
+                                continue;
+                            }
+
+                            return;
+                        }
+                    }
+
+                    if (e == numExprs) {
+                        theSFW.addSortingIndex(null);
+                        theTableExpr.setDirection(direction);
+                        break;
+                    }
+
+                    numAncestorPkCols = numPkCols;
+                }
             }
 
             return;
@@ -5461,14 +5538,13 @@ class IndexAnalyzer implements Comparable<IndexAnalyzer> {
 
         /* Check whether the sort exprs are a prefix of the index paths. */
         List<IndexField> indexPaths = theIndex.getIndexFields();
-        int k;
 
-        for (i = 0, k = 0; i < indexPaths.size() && k < numExprs; ++i) {
+        for (i = 0, e = 0; i < indexPaths.size() && e < numExprs; ++i) {
 
             IndexField ipath = indexPaths.get(i);
             Expr expr = (hasGroupBy ?
-                         theSFW.getFieldExpr(k) :
-                         theSFW.getSortExpr(k));
+                         theSFW.getFieldExpr(e) :
+                         theSFW.getSortExpr(e));
             IndexExpr epath = expr.getIndexExpr();
 
             if (ipath.isGeometry() || epath == null) {
@@ -5481,10 +5557,13 @@ class IndexAnalyzer implements Comparable<IndexAnalyzer> {
                     break;
                 }
 
-                ++k;
+                ++e;
                 continue;
             }
 
+            /* The currest expr does not match with the current ipath. Check
+             * whether we have an equality predicate on the current ipath. If
+             * so, skip the current ipath. */
             ArrayList<PredInfo> startstopPIs = theStartStopPreds.get(i);
             if (startstopPIs != null && startstopPIs.size() == 1) {
                 PredInfo pi = startstopPIs.get(0);
@@ -5496,33 +5575,76 @@ class IndexAnalyzer implements Comparable<IndexAnalyzer> {
             break;
         }
 
-        if (numExprs > 0 && k == numExprs) {
+        if (numExprs > 0 && e == numExprs) {
             theSFW.addSortingIndex(theIndex);
             theTableExpr.setDirection(direction);
             return;
         }
 
+        if (i != indexPaths.size()) {
+            return;
+        }
+
         /* Check if the remaining sort exprs are primary-key columns
          * (which exist in the index as well). */
-        if (i == indexPaths.size()) {
+        int pkPos = 0;
+        for (; pkPos < numPkCols && e < numExprs; ++e, ++pkPos) {
 
-            for (int j = 0;
-                 j < numPkCols && k < numExprs;
-                 ++k, ++j) {
+            Expr expr = (hasGroupBy ?
+                         theSFW.getFieldExpr(e) :
+                         theSFW.getSortExpr(e));
 
-                Expr expr = (hasGroupBy ?
-                             theSFW.getFieldExpr(k) :
-                             theSFW.getSortExpr(k));
-
-                if (!ExprUtils.
-                     isPrimKeyColumnRef(theTableExpr, theTable, j, expr)) {
-                    break;
-                }
+            if (!ExprUtils.
+                isPrimKeyColumnRef(theTableExpr, theTable, pkPos, expr)) {
+                break;
             }
+        }
 
-            if (k == numExprs) {
-                theSFW.addSortingIndex(theIndex);
-                theTableExpr.setDirection(direction);
+        if (e == numExprs) {
+            theSFW.addSortingIndex(theIndex);
+            theTableExpr.setDirection(direction);
+            return;
+        }
+
+        if (theTrace >= 2) {
+            trace("checkIsSortingIndex: Checking for descendant pk cols. " +
+                  "exprPos = " + e + " pkPos = " + pkPos);
+        }
+
+        if (numDescendants > 0 && !desc) {
+
+            int numAncestorPkCols = pkPos+1;
+
+            for (int t = numAncestors + 1; t < numTables; ++t) {
+
+                TableImpl descendant = theTableExpr.getTable(t);
+                numPkCols = descendant.getPrimaryKeySize();
+
+                for (pkPos = 0;
+                     e < numExprs && pkPos < numPkCols;
+                     ++e, ++pkPos) {
+                    Expr expr = (hasGroupBy ?
+                                 theSFW.getFieldExpr(e) :
+                                 theSFW.getSortExpr(e));
+                    if (!ExprUtils.isPrimKeyColumnRef(theTableExpr,
+                                                      descendant,
+                                                      pkPos,
+                                                      expr)) {
+                        if (pkPos < numAncestorPkCols) {
+                            --e;
+                            continue;
+                        }
+                        return;
+                    }
+                }
+
+                if (e == numExprs) {
+                    theSFW.addSortingIndex(theIndex);
+                    theTableExpr.setDirection(direction);
+                    return;
+                }
+
+                numAncestorPkCols = numPkCols;
             }
         }
     }

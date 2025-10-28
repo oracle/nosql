@@ -14,12 +14,12 @@
 package com.sleepycat.je.rep.utilint.net;
 
 import java.io.IOException;
-import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.SocketAddress;
 import java.nio.channels.SocketChannel;
 
 import com.sleepycat.je.rep.net.DataChannel;
+import com.sleepycat.je.rep.subscription.StreamAuthenticator;
 
 /**
  * An abstract class that utilizes a delegate socketChannel for network
@@ -46,6 +46,10 @@ abstract public class AbstractDataChannel implements DataChannel {
      */
     protected final SocketChannel socketChannel;
     protected final String addressPair;
+    /**
+     * Stream authenticator for secure store, or null otherwise
+     */
+    private volatile StreamAuthenticator authenticator;
 
     /**
      * Constructor for sub-classes.
@@ -57,6 +61,8 @@ abstract public class AbstractDataChannel implements DataChannel {
         this.socketChannel = socketChannel;
         this.configuredBlocking = socketChannel.isBlocking();
         this.addressPair = getAddressPair();
+        /* no authenticator by default */
+        authenticator = null;
     }
 
     /**
@@ -113,6 +119,20 @@ abstract public class AbstractDataChannel implements DataChannel {
         return socketChannel;
     }
 
+    @Override
+    public void setStreamAuthenticator(StreamAuthenticator auth) {
+        if (authenticator != null) {
+            throw new IllegalStateException(
+                "StreamAuthenticator already set to=" + authenticator);
+        }
+        authenticator = auth;
+    }
+
+    @Override
+    public StreamAuthenticator getStreamAuthenticator() {
+        return authenticator;
+    }
+
     /**
      * Ensures this channel is in blocking mode when calling close.
      */
@@ -131,6 +151,11 @@ abstract public class AbstractDataChannel implements DataChannel {
             throw new IllegalStateException(
                     "Calling closeAsync on blocking channel");
         }
+    }
+
+    @Override
+    public String getChannelId() {
+        return addressPair;
     }
 
     /**

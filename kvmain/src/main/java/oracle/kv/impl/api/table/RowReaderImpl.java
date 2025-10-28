@@ -61,7 +61,17 @@ class RowReaderImpl extends FieldValueReaderImpl<RowImpl> {
     }
 
     @Override
+    public void setCreationTime(long creationTime) {
+        getValue().setCreationTime(creationTime);
+    }
+
+    @Override
     public void setTombstone(boolean isTombstone) {
         getValue().setTombstone(isTombstone);
+    }
+
+    @Override
+    public void setRowMetadata(String rowMetadata) {
+        getValue().setRowMetadata(rowMetadata);
     }
 }

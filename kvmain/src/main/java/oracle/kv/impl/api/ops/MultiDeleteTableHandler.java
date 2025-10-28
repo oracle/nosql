@@ -24,6 +24,7 @@ import oracle.kv.Value;
 import oracle.kv.Version;
 import oracle.kv.impl.api.ops.InternalOperation.OpCode;
 import oracle.kv.impl.api.table.Region;
+import oracle.kv.impl.api.table.TableImpl;
 import oracle.kv.impl.rep.migration.MigrationStreamHandle;
 import oracle.kv.impl.security.KVStorePrivilege;
 import oracle.kv.impl.security.NamespacePrivilege;
@@ -110,11 +111,13 @@ class MultiDeleteTableHandler
                          * and here a duplicate tombstone will be inserted.
                          * This is harmless and it's ok to overcount the
                          * deletions.*/
+                        final long tid = tableInfo.currentTable.getId();
                         insertTombstoneHelper(cursor,
                                               keyEntry,
                                               op,
                                               partitionId,
-                                              isMR);
+                                              isMR,
+                                              tid);
                         nDeletions++;
                         /* delete ancestor keys if needed */
                         nDeletions +=
@@ -125,7 +128,8 @@ class MultiDeleteTableHandler
                                                           ancestorKey,
                                                           op,
                                                           partitionId,
-                                                          isMR));
+                                                          isMR,
+                                                          tid));
                     } else {
 
                         /*
@@ -133,7 +137,12 @@ class MultiDeleteTableHandler
                          * in the delete path.  If the record is gone the
                          * delete below will fail.
                          */
-                        if (cursor.delete(null) != null) {
+                        final TableImpl tb = tableInfo.getCurrentTable();
+                        final long tid = tb.getId();
+                        final WriteOptions jeOptions =
+                            makeOption(null, false, tid, operationHandler,
+                                       false);
+                        if (cursor.delete(jeOptions) != null) {
                             nDeletions++;
                             /*
                              * Gets the migration stream to forward the
@@ -186,7 +195,8 @@ class MultiDeleteTableHandler
                                                   DatabaseEntry key,
                                                   MultiDeleteTable op,
                                                   PartitionId partitionId,
-                                                  boolean isMR) {
+                                                  boolean isMR,
+                                                  long tableId) {
         final int oldRecordSize = getStorageSize(cursor);
         final TimeToLive ttl = getTombstoneTTL();
         return insertTombstone(cursor,
@@ -196,7 +206,9 @@ class MultiDeleteTableHandler
                                op,
                                oldRecordSize,
                                partitionId,
-                               isMR);
+                               isMR,
+                               tableId,
+                               op.getRowMetadata());
     }
 
     @Override
@@ -216,21 +228,24 @@ class MultiDeleteTableHandler
     /**
      * Put a tombstone at current position of the cursor.
      */
-    protected static OperationResult
-        insertTombstone(Cursor cursor,
-                        OperationHandler operationHandler,
-                        DatabaseEntry keyEntry,
-                        TimeToLive tombstoneTTL,
-                        InternalOperation op,
-                        int oldRecordSize,
-                        PartitionId partitionId,
-                        boolean isMultiRegion) {
-        WriteOptions jeOptions = makeOption(tombstoneTTL, true);
-        jeOptions.setTombstone(true);
+    static OperationResult insertTombstone(Cursor cursor,
+                                           OperationHandler operationHandler,
+                                           DatabaseEntry keyEntry,
+                                           TimeToLive tombstoneTTL,
+                                           InternalOperation op,
+                                           int oldRecordSize,
+                                           PartitionId partitionId,
+                                           boolean isMultiRegion,
+                                           long tableId,
+                                           String rowMetadata) {
+        final WriteOptions jeOptions =
+            makeOption(tombstoneTTL, true, tableId, operationHandler,
+                       true/* tombstone */);
 
-        Value value = isMultiRegion ?
-                Value.createTombstoneValue(Region.LOCAL_REGION_ID) :
-                Value.createTombstoneNoneValue();
+        int regionId = isMultiRegion ? Region.LOCAL_REGION_ID :
+            Region.NULL_REGION_ID;
+        Value value = Value.createTombstoneValue(regionId,
+            rowMetadata);
 
         byte[] valueBytes = value.toByteArray();
         final DatabaseEntry dataEntry = valueDatabaseEntry(valueBytes);
@@ -242,6 +257,7 @@ class MultiDeleteTableHandler
         Version version = operationHandler.getVersion(cursor);
         MigrationStreamHandle.get().addPut(keyEntry, dataEntry,
                                            version.getVLSN(),
+                                           result.getCreationTime(),
                                            result.getModificationTime(),
                                            expTime,
                                            true /*isTombstone*/);

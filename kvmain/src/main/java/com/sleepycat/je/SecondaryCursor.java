@@ -594,7 +594,7 @@ public class SecondaryCursor extends Cursor {
 
             return retrieveNext(
                 key, pKey, data, lockMode, cacheMode, getMode,
-                getLockPrimaryOnly(lockMode, data));
+                getNonDirtyReadPrimary(lockMode, data));
         }
 
         if (getType == Get.CURRENT) {
@@ -608,7 +608,7 @@ public class SecondaryCursor extends Cursor {
 
         return position(
             key, pKey, data, lockMode, cacheMode, getType == Get.FIRST,
-            getLockPrimaryOnly(lockMode, data));
+            getNonDirtyReadPrimary(lockMode, data));
     }
 
     /**
@@ -1479,10 +1479,11 @@ public class SecondaryCursor extends Cursor {
                                                final DatabaseEntry data,
                                                final LockMode lockMode,
                                                final CacheMode cacheMode) {
-        final boolean lockPrimaryOnly = getLockPrimaryOnly(lockMode, data);
+        final boolean nonDirtyReadPrimary =
+            getNonDirtyReadPrimary(lockMode, data);
 
         final LockMode searchLockMode =
-            lockPrimaryOnly ? LockMode.READ_UNCOMMITTED_ALL : lockMode;
+            getSearchModeOnSecondary(nonDirtyReadPrimary, lockMode);
 
         final OperationResult result = getCurrentInternal(
             key, pKey, searchLockMode, false /*excludeTombstones*/, cacheMode);
@@ -1493,7 +1494,7 @@ public class SecondaryCursor extends Cursor {
 
         return readPrimaryAfterGet(
             key, pKey, data, lockMode, isReadUncommittedMode(searchLockMode),
-            lockPrimaryOnly, result);
+            nonDirtyReadPrimary, result);
     }
 
     /**
@@ -1509,10 +1510,12 @@ public class SecondaryCursor extends Cursor {
                            final CacheMode cacheMode,
                            final SearchMode searchMode) {
 
-        final boolean lockPrimaryOnly = getLockPrimaryOnly(lockMode, data);
+        final boolean nonDirtyReadPrimary =
+            getNonDirtyReadPrimary(lockMode, data);
 
         final LockMode searchLockMode =
-            lockPrimaryOnly ? LockMode.READ_UNCOMMITTED_ALL : lockMode;
+            getSearchModeOnSecondary(nonDirtyReadPrimary, lockMode);
+
 
         final OperationResult result1 = search(
             key, pKey, searchLockMode, false /*excludeTombstones*/,
@@ -1526,7 +1529,7 @@ public class SecondaryCursor extends Cursor {
 
         final OperationResult result2 = readPrimaryAfterGet(
             key, pKey, data, lockMode, isReadUncommittedMode(searchLockMode),
-            lockPrimaryOnly, result1);
+            nonDirtyReadPrimary, result1);
 
         if (result2 != null) {
             return result2;
@@ -1545,12 +1548,12 @@ public class SecondaryCursor extends Cursor {
             /* Find exact sec key and next primary key. */
             return retrieveNext(
                 key, pKey, data, lockMode, cacheMode, GetMode.NEXT_DUP,
-                lockPrimaryOnly);
+                nonDirtyReadPrimary);
         case SET_RANGE:
             /* Find next sec key or primary key. */
             return retrieveNext(
                 key, pKey, data, lockMode, cacheMode, GetMode.NEXT,
-                lockPrimaryOnly);
+                nonDirtyReadPrimary);
         default:
             throw EnvironmentFailureException.unexpectedState();
         }
@@ -1568,10 +1571,10 @@ public class SecondaryCursor extends Cursor {
                                      final LockMode lockMode,
                                      final CacheMode cacheMode,
                                      final boolean first,
-                                     final boolean lockPrimaryOnly) {
+                                     final boolean nonDirtyReadPrimary) {
 
         final LockMode searchLockMode =
-            lockPrimaryOnly ? LockMode.READ_UNCOMMITTED_ALL : lockMode;
+            getSearchModeOnSecondary(nonDirtyReadPrimary, lockMode);
 
         final OperationResult result1 = position(
             key, pKey, searchLockMode, false /*excludeTombstones*/,
@@ -1583,7 +1586,7 @@ public class SecondaryCursor extends Cursor {
 
         final OperationResult result2 = readPrimaryAfterGet(
             key, pKey, data, lockMode, isReadUncommittedMode(searchLockMode),
-            lockPrimaryOnly, result1);
+            nonDirtyReadPrimary, result1);
 
         if (result2 != null) {
             return result2;
@@ -1592,7 +1595,7 @@ public class SecondaryCursor extends Cursor {
         /* Advance over the unavailable record. */
         return retrieveNext(
             key, pKey, data, lockMode, cacheMode,
-            first ? GetMode.NEXT : GetMode.PREV, lockPrimaryOnly);
+            first ? GetMode.NEXT : GetMode.PREV, nonDirtyReadPrimary);
     }
 
     /**
@@ -1608,10 +1611,10 @@ public class SecondaryCursor extends Cursor {
         final LockMode lockMode,
         final CacheMode cacheMode,
         GetMode getMode,
-        final boolean lockPrimaryOnly) {
+        final boolean nonDirtyReadPrimary) {
 
         final LockMode searchLockMode =
-            lockPrimaryOnly ? LockMode.READ_UNCOMMITTED_ALL : lockMode;
+            getSearchModeOnSecondary(nonDirtyReadPrimary, lockMode);
 
 	GetMode savedMode = null;
 
@@ -1633,7 +1636,7 @@ public class SecondaryCursor extends Cursor {
             final OperationResult result2 = readPrimaryAfterGet(
                 key, pKey, data, lockMode,
                 isReadUncommittedMode(searchLockMode),
-                lockPrimaryOnly, result1);
+                nonDirtyReadPrimary, result1);
 
             if (result2 != null) {
                 return result2;
@@ -1662,14 +1665,24 @@ public class SecondaryCursor extends Cursor {
      * + When the primary data is not requested we must lock the secondary
      *   because we do not read or lock the primary.
      */
-    private boolean getLockPrimaryOnly(final LockMode lockMode,
-                                       final DatabaseEntry data) {
+    private boolean getNonDirtyReadPrimary(final LockMode lockMode,
+                                           final DatabaseEntry data) {
 
         final boolean dataRequested =
             data != null &&
             (!data.getPartial() || data.getPartialLength() != 0);
 
         return dataRequested && !isReadUncommittedMode(lockMode);
+    }
+
+    private LockMode getSearchModeOnSecondary(boolean nonDirtyReadPrimary,
+                                             LockMode lockMode) {
+        if (nonDirtyReadPrimary) {
+            return this.getCursorImpl().getLocker().isOptimisticReadIsolation() ?
+                lockMode : LockMode.READ_UNCOMMITTED_ALL;
+        } else {
+            return lockMode;
+        }
     }
 
     /**
@@ -1692,6 +1705,9 @@ public class SecondaryCursor extends Cursor {
      * performed without acquiring locks (dirty-read). The primary key is
      * then used to read and lock the associated primary record. At this
      * point only the primary record is locked.
+     *
+     * For optimisticRead, both secondary and primary will be read using
+     * optimisticRead configuration.
      *
      * Then, the secondary reference is checked (see checkReferenceToPrimary in
      * Cursor). Note that there is no need to lock the secondary before
@@ -1727,7 +1743,7 @@ public class SecondaryCursor extends Cursor {
         final DatabaseEntry data,
         final LockMode lockMode,
         final boolean secDirtyRead,
-        final boolean lockPrimaryOnly,
+        final boolean nonDirtyReadPrimary,
         final OperationResult origResult) {
 
         final Database primaryDb = secondaryDb.getPrimary(pKey);
@@ -1742,7 +1758,7 @@ public class SecondaryCursor extends Cursor {
         if (dataRequested) {
             return readPrimaryAfterGet(
                 primaryDb, key, pKey, data, lockMode, secDirtyRead,
-                lockPrimaryOnly, false /*verifyPrimary*/,
+                nonDirtyReadPrimary, false /*verifyPrimary*/,
                 cursorImpl.getLocker() /*locker*/, secondaryDb,
                 null /*secAssoc*/);
         } else {
@@ -1754,6 +1770,7 @@ public class SecondaryCursor extends Cursor {
             return secDirtyRead ?
                 DbInternal.makeResult(
                     cursorImpl.getExpirationTime(),
+                    0L /*creationTime*/,
                     0L /*modificationTime*/,
                     cursorImpl.getStorageSize(),
                     false /*tombstone*/) :
@@ -1768,6 +1785,7 @@ public class SecondaryCursor extends Cursor {
     boolean checkForPrimaryUpdate(final DatabaseEntry key,
                                   final DatabaseEntry pKey,
                                   final DatabaseEntry data,
+                                  final long creationTime,
                                   final long modificationTime,
                                   final long expirationTime,
                                   final int storageSize) {
@@ -1790,7 +1808,7 @@ public class SecondaryCursor extends Cursor {
              */
             final DatabaseEntry secKey = new DatabaseEntry();
             if (!conf.getKeyCreator().createSecondaryKey
-                    (secondaryDb, pKey, data,
+                    (secondaryDb, pKey, data, creationTime,
                      modificationTime, expirationTime, storageSize,
                      secKey) ||
                 !secKey.equals(key)) {
@@ -1804,7 +1822,7 @@ public class SecondaryCursor extends Cursor {
              */
             final Set<DatabaseEntry> results = new HashSet<DatabaseEntry>();
             conf.getMultiKeyCreator().createSecondaryKeys
-                (secondaryDb, pKey, data,
+                (secondaryDb, pKey, data, creationTime,
                  modificationTime, expirationTime, storageSize,
                  results);
             if (!results.contains(key)) {

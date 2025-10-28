@@ -28,6 +28,7 @@ import java.util.concurrent.TimeUnit;
 
 import com.sleepycat.je.AsyncAckHandler;
 import com.sleepycat.je.StatsConfig;
+import com.sleepycat.je.config.EnvironmentParams;
 import com.sleepycat.je.rep.InsufficientAcksException;
 import com.sleepycat.je.rep.impl.RepImpl;
 import com.sleepycat.je.rep.impl.RepNodeImpl;
@@ -81,10 +82,19 @@ public class FeederTxns {
     private final LongAvgStat ackTxnAvgNs;
     private final LongAvgStat localTxnAvgNs;
 
+    /*
+     * Variables to control how many messages have been logged containing
+     * what nodes acknowledged a transaction when it reaches the required
+     * number of acks to be counted as durable.
+     */
+    private final boolean trackAckInfo;
+    private final int trackAckInfoLimit;
+    private volatile int txnTrackAckInfoCounter;
 
     public FeederTxns(RepImpl repImpl) {
         // TODO: increase size of active TXN map for async and parameterize it.
         this.repImpl = repImpl;
+
         txnMap = new AckExpiringMap(1024);
         statistics = new StatGroup(FeederTxnStatDefinition.GROUP_NAME,
                                    FeederTxnStatDefinition.GROUP_DESC);
@@ -99,6 +109,12 @@ public class FeederTxns {
             statistics, VLSN_RATE, MOVING_AVG_PERIOD_MILLIS, TimeUnit.MINUTES);
         localTxnAvgNs = new LongAvgStat(statistics, LOCAL_TXN_AVG_NS);
         ackTxnAvgNs = new LongAvgStat(statistics, ACK_TXN_AVG_NS);
+
+        txnTrackAckInfoCounter = 0;
+        trackAckInfo = Boolean.parseBoolean(repImpl.getConfig()
+                .getConfigParam(RepParams.TXN_TRACK_ACK_INFO.getName()));
+        trackAckInfoLimit = Integer.parseInt(repImpl.getConfig()
+                .getConfigParam(RepParams.TXN_TRACK_ACK_INFO_LIMIT.getName()));
     }
 
     public void shutdown() {
@@ -185,6 +201,38 @@ public class FeederTxns {
             return null;
         }
         txn.countdownAck();
+
+        /*
+         * If True means that the transaction with ID 'txnId' received
+         * the required number of acks.
+         */
+        if (txn.getPendingAcks() <= 0) {
+            /*
+             * If True means that the debugging tool was activated
+             * to track what nodes in the replication group
+             * acknowledged a transaction when it reaches the required
+             * number of acks to be counted as durable.
+             */
+            if (trackAckInfo) {
+                /*
+                 * Verify that the number of messages to be logged is under
+                 * the maximum limit.
+                 */
+                if (txnTrackAckInfoCounter <= trackAckInfoLimit) {
+                    StringBuilder msg = new StringBuilder("Transaction id " +
+                            txnId + " received a quorum of acks from the " +
+                            "following nodes:");
+                    for (RepNodeImpl node : repImpl.getRepNode().getRepGroupDB()
+                            .getGroup().getElectableMembers()) {
+                        msg.append(" ").append(node.getName());
+                    }
+                    LoggerUtils.info(repImpl.getLogger(), repImpl,
+                            msg.toString());
+                    txnTrackAckInfoCounter++;
+                }
+            }
+        }
+
         if (!txn.usesAsyncAcks() || (txn.getPendingAcks() > 0)) {
             return txn;
         }
@@ -407,7 +455,8 @@ public class FeederTxns {
                 if (repNode == null) {
                     return;
                 }
-                /**
+
+                /*
                  * It's ok for the "now" time to be slightly inaccurate. in
                  * order to minimize nanoTime() calls.
                  */

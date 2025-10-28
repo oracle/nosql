@@ -63,6 +63,8 @@ import oracle.kv.impl.security.annotations.SecureAutoMethod;
 import oracle.kv.impl.security.annotations.SecureInternalMethod;
 import oracle.kv.impl.security.util.KerberosPrincipals;
 import oracle.kv.impl.test.RemoteTestInterface;
+import oracle.kv.impl.test.TestHook;
+import oracle.kv.impl.test.TestHookExecute;
 import oracle.kv.impl.topo.PartitionId;
 import oracle.kv.impl.topo.RepGroupId;
 import oracle.kv.impl.topo.RepNodeId;
@@ -99,6 +101,11 @@ import com.sleepycat.je.util.DbBackup;
 @SecureAPI
 public class RepNodeAdminImpl
     extends VersionedRemoteImpl implements RepNodeAdmin {
+
+    /**
+     * Test hook executed before serving ping.
+     */
+    public static volatile TestHook<RepNodeService> PING_HOOK = null;
 
     /**
      *  The repNode being administered
@@ -466,6 +473,9 @@ public class RepNodeAdminImpl
 
             @Override
             public RepNodeStatus execute() {
+
+                assert TestHookExecute.doHookIfSet(PING_HOOK, repNodeService);
+
                 ServiceStatus status =
                     repNodeService.getStatusTracker().getServiceStatus();
                 State state = State.DETACHED;

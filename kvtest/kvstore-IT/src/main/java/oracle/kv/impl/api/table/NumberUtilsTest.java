@@ -367,6 +367,97 @@ public class NumberUtilsTest extends TestBase {
         }
     }
 
+    /*
+     * Verify the fix to KVSTORE-2514
+     */
+    @Test
+    public void testSerializeNegativeNumberWithZeros() {
+        /*
+         * The values in the following array are sorted in descending order
+         */
+        String[] strs = new String[] {
+            "-2",
+            "-2.000001",
+            "-2.0000099",
+            "-2.00001",
+            "-2.000099",
+            "-2.0001",
+            "-2.00099",
+            "-2.001",
+            "-2.0099",
+            "-2.01",
+            "-2.099",
+            "-2.1",
+        };
+
+        byte[] prevBytes = null;
+
+        /* Negative values */
+        for (String s : strs) {
+            BigDecimal v0 = new BigDecimal(s);
+            byte[] bytes = NumberUtils.serialize(v0);
+            if (prevBytes != null) {
+                /* check sorting */
+                int ret = IndexImpl.compareUnsignedBytes(bytes, prevBytes);
+                assertTrue(ret < 0);
+            }
+            prevBytes = bytes;
+
+            /* check deserialization */
+            BigDecimal v1 = (BigDecimal)NumberUtils.deserialize(bytes, true);
+            assertTrue(v0.compareTo(v1) == 0);
+
+            /*
+             * Validate the old problematic bytes can be decoded correctly,
+             * this is to ensure that existing NUMBER values in database can
+             * be read correctly before reserialization.
+             *
+             * For example -2.0001, the difference between the old and new
+             * bytes is the 3nd byte: 0x80 vs 0x7E
+             *   old:  59 6A 80 74 7F
+             *   new:  59 6A 7E 74 7F
+             *
+             * Converting to the old bytes format by replacing 0x7E in the
+             * current new bytes with 0x80.
+             */
+            byte[] bytes1 = replaceByte(bytes,
+                                        1 /* skipping leading byte*/,
+                                        (byte)0x7E,
+                                        (byte)0x80);
+            v1 = (BigDecimal)NumberUtils.deserialize(bytes1, true);
+            assertTrue(v0.compareTo(v1) == 0);
+        }
+
+        /* Validate the positive values */
+        for (String s : strs) {
+            BigDecimal v0 = new BigDecimal(s).negate();
+            byte[] bytes = NumberUtils.serialize(v0);
+            if (prevBytes != null) {
+                int ret = IndexImpl.compareUnsignedBytes(bytes, prevBytes);
+                assertTrue(ret > 0);
+            }
+            prevBytes = bytes;
+
+            BigDecimal v1 = (BigDecimal)NumberUtils.deserialize(bytes, true);
+            assertTrue(v0.compareTo(v1) == 0);
+        }
+    }
+
+    private byte[] replaceByte(byte[] bytes,
+                               int offset,
+                               byte target,
+                               byte replacement) {
+        byte[] result = new byte[bytes.length];
+        for (int i = 0; i < bytes.length; i++) {
+            if (i >= offset && bytes[i] == target) {
+                result[i] = replacement;
+            } else {
+                result[i] = bytes[i];
+            }
+        }
+        return result;
+    }
+
     private byte[] roundTripWriteReadExponent(int sign, int exponent) {
 
         int len = NumberUtils.getNumBytesExponent(sign, exponent);

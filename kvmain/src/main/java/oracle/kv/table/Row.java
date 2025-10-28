@@ -128,12 +128,30 @@ public interface Row extends RecordValue {
      * or table iterator (e.g. {@link TableAPI#tableIterator}) call. It will
      * also be set after a successful put of the row (e.g. {@link TableAPI#put}.
      *
-     * @return the expiration time in milliseconds since January 1, 1970,
+     * @return the expiration time in milliseconds since January 1, 1970 GMT,
      * or zero if the record never expires
      *
      * @since 4.0
      */
     public long getExpirationTime();
+
+    /**
+     * Returns the creation time of the row or zero if it is not
+     * available. If the row was written by a version of the
+     * system older than 25.3 the creation time will be equal to the
+     * modification time, if it was written by a system older than 19.5 it will
+     * be zero.
+     * <p>
+     * The creation time is set automatically by the server when the row is
+     * first successfully created.
+     *
+     * @return the creation time in milliseconds since the epoch January 1st,
+     * 1970 GMT or 0 if not available.
+     *
+     * @since 25.3
+     * @hidden
+     */
+    public long getCreationTime();
 
     /**
      * Returns the last modification time of the row or zero if it is not
@@ -144,12 +162,50 @@ public interface Row extends RecordValue {
      * The modification time is set if this row was returned by a
      * get (e.g. {@link TableAPI#get}) or table iterator
      * (e.g. {@link TableAPI#tableIterator}) call. It will also be valid after
-     * a successful put of the row (e.g. {@link TableAPI#put}.
+     * a successful put of the row (e.g. {@link TableAPI#put}).
      *
-     * @return the last update time in milliseconds since January 1, 1970 or
-     * 0 if not available.
+     * @return the last update time in milliseconds since January 1st, 1970 GMT
+     * or 0 if not available.
      *
      * @since 22.1
      */
     public long getLastModificationTime();
+
+    /**
+     * This method is **EXPERIMENTAL** and its behavior, signature, or
+     * even its existence may change without prior notice in future versions.
+     * Use with caution.<p>
+     *
+     * Sets row metadata associated with the row (for insert or update
+     * operations) or primary key (for delete operations). Row metadata is
+     * associated to a certain version of a row. Any subsequent write operation
+     * will use its own row metadata value. If not specified null will be used
+     * by default.
+     * NOTE that if you have previously written a record with metadata and a
+     * subsequent write does not supply metadata, the metadata associated with
+     * the row will be null. Therefore, if you wish to have metadata
+     * associated with every write operation, you must supply a valid JSON
+     * construct to this method.<p>
+     *
+     * @param rowMetadata the row metadata, must be null or a valid JSON
+     *           construct: object, array, string, number, true, false or null,
+     *           otherwise an IllegalArgumentException is thrown.
+     * @throws IllegalArgumentException if rowMetadata not null and invalid
+     *           JSON Object format
+     * @since 25.3
+     */
+    public void setRowMetadata(String rowMetadata);
+
+    /**
+     * This method is **EXPERIMENTAL** and its behavior, signature, or
+     * even its existence may change without prior notice in future versions.
+     * Use with caution.<p>
+     *
+     * Returns the metadata associated with the row.
+     *
+     * @return the metadata, or null if not set
+     *
+     * @since 25.3
+     */
+    public String getRowMetadata();
 }

@@ -13,6 +13,7 @@
 
 package oracle.kv.impl.api.ops;
 
+import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -27,6 +28,7 @@ import oracle.kv.impl.api.ops.InternalOperationHandler.PrivilegedTableAccessor;
 import oracle.kv.impl.api.ops.OperationHandler.KVAuthorizer;
 import oracle.kv.impl.security.ExecutionContext;
 import oracle.kv.impl.security.KVStorePrivilege;
+import oracle.kv.impl.security.KVStorePrivilegeLabel;
 import oracle.kv.impl.security.SystemPrivilege;
 import oracle.kv.impl.topo.PartitionId;
 
@@ -58,7 +60,9 @@ abstract class MultiKeyOperationHandler<T extends MultiKeyOperation>
             }
 
             @Override
-            public boolean allowFullAccess() {
+            public boolean
+                allowAccess(DatabaseEntry keyEntry,
+                            EnumSet<KVStorePrivilegeLabel> tablePrivs) {
                 return true;
             }
         };
@@ -142,6 +146,7 @@ abstract class MultiKeyOperationHandler<T extends MultiKeyOperation>
                                 valVers.getValueBytes(),
                                 valVers.getVersion(),
                                 valVers.getExpirationTime(),
+                                valVers.getCreationTime(),
                                 valVers.getModificationTime(),
                                 false /* isTombstone */));
 
@@ -399,18 +404,19 @@ abstract class MultiKeyOperationHandler<T extends MultiKeyOperation>
 
         @Override
         public boolean allowAccess(DatabaseEntry keyEntry) {
+            return allowAccess(keyEntry, null);
+        }
+
+        @Override
+        public boolean allowAccess(DatabaseEntry keyEntry,
+                                   EnumSet<KVStorePrivilegeLabel> tablePrivs) {
             final byte[] key = keyEntry.getData();
             for (final KeyAccessChecker checker : keyCheckers) {
-                if (!checker.allowAccess(key)) {
+                if (!checker.allowAccess(key, tablePrivs)) {
                     return false;
                 }
             }
             return true;
-        }
-
-        @Override
-        public boolean allowFullAccess() {
-            return false;
         }
     }
 

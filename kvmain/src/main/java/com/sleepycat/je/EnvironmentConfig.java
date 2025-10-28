@@ -1122,6 +1122,45 @@ public class EnvironmentConfig extends EnvironmentMutableConfig {
     public static final String ENV_LATCH_TIMEOUT = "je.env.latchTimeout";
 
     /**
+     * For locking the opening of an {@link Environment} handle if its directory is
+     * in network restore. When an environment handle is being opening to join a
+     * group, it is verified if a network restore is in progress on its directory.
+     * If True, the opening of the handle is locked until the network restore
+     * finishes. If the network restore does not finish, a timeout will occur after
+     * the duration specified by this parameter to avoid stuck hanging forever.
+     * When this timeout occurs:
+     * <ul>
+     *     <li>The Environment is not opened.</li>
+     *     <li>An {@link EnvironmentFailureException} is thrown.</li>
+     *     <li>A message is logged at level WARNING.</li>
+     * </ul>
+     * <p>
+     * Most applications should not change this parameter. The default value, 2
+     * minutes, should be much longer than the duration of a network restore.
+     *
+     * <table border="1">
+     * <caption style="display:none">Information about configuration option</caption>
+     * <tr><td>Name</td><td>Type</td><td>Mutable</td>
+     * <td>Default</td><td>Minimum</td><td>Maximum</td></tr>
+     * <tr>
+     * <td>{@value}</td>
+     * <td><a href="#timeDuration">Duration</a></td>
+     * <td>No</td>
+     * <td>2 min</td>
+     * <td>1 min</td>
+     * <td>-none-</td>
+     * </tr>
+     * </table>
+     *
+     * @see <a href="EnvironmentConfig.html#timeDuration">Time Duration
+     * Properties</a>
+     *
+     * @since 25.3
+     */
+    public static final String ENV_NETWORK_RESTORE_LOCK_TIMEOUT =
+            "je.env.networkRestoreLockTimeout";
+
+    /**
      * The interval added to the system clock time for determining that a
      * record may have expired. Used when an internal integrity error may be
      * present, but may also be due to a record that expired and the system
@@ -4190,6 +4229,12 @@ public class EnvironmentConfig extends EnvironmentMutableConfig {
      * For unit testing, to prevent writing utilization data during checkpoint.
      */
     private transient boolean checkpointUP = true;
+    
+    /**
+     * For unit testing, to prevent use of the Before Image DB.
+     */
+    private transient boolean createBImg = true;
+
 
     private boolean allowCreate = false;
 
@@ -4681,7 +4726,21 @@ public class EnvironmentConfig extends EnvironmentMutableConfig {
     boolean getCheckpointUP() {
         return checkpointUP;
     }
+    
+    /**
+     * For unit testing, to prevent use of the Before Image DB.
+     */
+    void setCreateBImgIdx(boolean createBImg) {
+        this.createBImg = createBImg;
+    }
 
+    /**
+     * For unit testing, to prevent use of the Before Image DB.
+     */
+    boolean getBImgIdx() {
+        return createBImg;
+    }
+    
     /**
      * Returns a copy of this configuration object.
      */

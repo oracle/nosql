@@ -14,11 +14,11 @@
 package com.sleepycat.je.dbi;
 
 import java.util.concurrent.TimeUnit;
+import com.sleepycat.je.util.TimeSupplier;
 
 import com.sleepycat.je.CacheMode;
 import com.sleepycat.je.WriteOptions;
 import com.sleepycat.je.log.ReplicationContext;
-import com.sleepycat.je.util.TimeSupplier;
 
 /**
  * A struct for passing and returning certain params to/from 'put' and 'delete'
@@ -33,7 +33,8 @@ public class WriteParams {
     public final boolean expirationInHours;
     public final boolean updateExpiration;
     public final boolean tombstone;
-    public final long modificationTime;
+    public long creationTime;
+    public long modificationTime;
 
     private final String[] allIndexDbNames;
     private final long[] allIndexIds;
@@ -59,6 +60,7 @@ public class WriteParams {
         final int expiration,
         final boolean expirationInHours,
         final boolean updateExpiration,
+        final long creationTime,
         final long modificationTime,
         final boolean tombstone,
         final String[] allIndexDbNames,
@@ -72,6 +74,7 @@ public class WriteParams {
         this.expiration = expiration;
         this.expirationInHours = expirationInHours;
         this.updateExpiration = updateExpiration;
+        this.creationTime = creationTime;
         this.modificationTime = modificationTime;
         this.tombstone = tombstone;
         this.allIndexDbNames = allIndexDbNames;
@@ -91,6 +94,7 @@ public class WriteParams {
         final int expiration,
         final boolean expirationInHours,
         final boolean updateExpiration,
+        final long creationTime,
         final long modificationTime,
         final boolean tombstone,
         final String[] allIndexDbNames,
@@ -101,8 +105,9 @@ public class WriteParams {
         final boolean beforeImageExpirationInHours) {
 
 		this(cacheMode, preprocessor, repContext, expiration, expirationInHours,
-				updateExpiration, modificationTime, tombstone, allIndexDbNames,
-				allIndexIds, indexesToUpdate, enableBeforeImage);
+                     updateExpiration, creationTime, modificationTime,
+                     tombstone, allIndexDbNames,
+                     allIndexIds, indexesToUpdate, enableBeforeImage);
         this.beforeImageExpiration = beforeImageExpiration;
         this.beforeImageExpirationInHours = beforeImageExpirationInHours;
     }
@@ -126,6 +131,9 @@ public class WriteParams {
             options.getTTLUnit() == TimeUnit.HOURS,
             options.getUpdateTTL(),
             dbImpl.getSortedDuplicates() ?
+                 options.getCreationTime()
+                 : getCreateTime(options.getCreationTime()),
+            dbImpl.getSortedDuplicates() ?
                 options.getModificationTime() :
                 getModTime(options.getModificationTime()),
             options.isTombstone(),
@@ -133,7 +141,9 @@ public class WriteParams {
             options.getAllIndexIds(),
             options.getIndexesToUpdate(),
             options.getBeforeImageTTL() > 0,
-            options.getBeforeImageTTL(),
+            TTL.ttlToExpiration(
+                    options.getBeforeImageTTL(),
+                    options.getBeforeImageTTLUnit()),
             options.getBeforeImageTTLUnit() == TimeUnit.HOURS);
     }
 
@@ -153,7 +163,7 @@ public class WriteParams {
         final boolean tombstone) {
         this(
             cacheMode, null /*preprocessor*/, repContext,
-            expiration, expirationInHours, updateExpiration,
+            expiration, expirationInHours, updateExpiration, 0L,
             0L /*modificationTime*/, tombstone, null, null, null, false);
     }
 
@@ -164,12 +174,36 @@ public class WriteParams {
         this(
             null /*cacheMode*/, null /*preprocessor*/, repContext,
             0 /*expiration*/, false /*expirationInHours*/,
-            false /*updateExpiration*/, getModTime(0L),
+            false /*updateExpiration*/, getCreateTime(0L), getModTime(0L),
             false /*tombstone*/, null, null, null, false);
     }
 
     private static long getModTime(final long modTimeParam) {
         return modTimeParam != 0 ? modTimeParam : TimeSupplier.currentTimeMillis();
+    }
+
+    private static long getCreateTime(final long createTimeParam) {
+        /* if insert it would take modtime
+         * Otherwise its no-op unless user explicitly sets it
+         * same goes for WriteParams which uses replication context
+         */
+        return createTimeParam != 0 ? createTimeParam : 0;
+    }
+
+    public void setModificationTime(long val) {
+        modificationTime = val;
+    }
+
+    public long getModificationTime() {
+        return modificationTime;
+    }
+
+    public void setCreationTime(long val) {
+        creationTime = val;
+    }
+
+    public long getCreationTime() {
+        return creationTime;
     }
 
     public void setExpirationUpdated(boolean val) {

@@ -25,7 +25,7 @@ import com.sleepycat.je.rep.subscription.SubscriptionStat;
 /**
  * Object represents the statistics of the replication stream consumer
  */
-class ReplicationStreamConsumerStat {
+public class ReplicationStreamConsumerStat {
 
     /** parent consumer */
     private final ReplicationStreamConsumer parent;
@@ -191,7 +191,7 @@ class ReplicationStreamConsumerStat {
      *
      * @return the last streamed VLSN or NULL_VLSN
      */
-    long getLastStreamedVLSN() {
+    public long getLastStreamedVLSN() {
         return lastStreamVLSN;
     }
 

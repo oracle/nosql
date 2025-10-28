@@ -57,10 +57,17 @@ public class RowImpl extends RecordValueImpl implements Row, RowSerializer {
 
     private TimeToLive ttl;
 
+    private String rowMetadata;
+
     /**
      * Last update timestamp in ms.
      */
     private long lastUpdateTimeMs;
+
+    /**
+     * Creation timestamp in ms.
+     */
+    private long creationTimeMs;
 
     private int storageSize = -1;
 
@@ -91,11 +98,13 @@ public class RowImpl extends RecordValueImpl implements Row, RowSerializer {
         this.expirationTime = other.expirationTime;
         this.ttl = other.ttl;
         this.lastUpdateTimeMs = other.lastUpdateTimeMs;
+        this.creationTimeMs = other.creationTimeMs;
         this.regionId = other.regionId;
         this.storageSize = other.storageSize;
         this.partition = other.partition;
         this.shard = other.shard;
         this.isTombstone = other.isTombstone;
+        this.rowMetadata = other.rowMetadata;
     }
 
     /*
@@ -376,6 +385,24 @@ public class RowImpl extends RecordValueImpl implements Row, RowSerializer {
         return retVal;
     }
 
+    /**
+     * @see Row#setRowMetadata(String)
+     */
+    @Override
+    public void setRowMetadata(String rowMetadata) {
+        // we don't validate it is a valid JSON Object here, validation is done
+        // when Value instance in created.
+        this.rowMetadata = rowMetadata;
+    }
+
+    /**
+     * @see Row#getRowMetadata()
+     */
+    @Override
+    public String getRowMetadata() {
+        return rowMetadata;
+    }
+
     public void removeValueFields() {
         if (table.hasValueFields()) {
             /* remove non-key fields if present */
@@ -421,6 +448,18 @@ public class RowImpl extends RecordValueImpl implements Row, RowSerializer {
      */
     public void setModificationTime(long modificationTime) {
         this.lastUpdateTimeMs = modificationTime;
+    }
+
+    @Override
+    public long getCreationTime() {
+        return creationTimeMs;
+    }
+
+    /**
+     * Set the creation timestamp for the row.
+     */
+    public void setCreationTime(long creationTime) {
+        this.creationTimeMs = creationTime;
     }
 
     /**

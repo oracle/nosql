@@ -21,12 +21,15 @@ import com.sleepycat.je.DatabaseEntry;
 import com.sleepycat.je.DatabaseException;
 import com.sleepycat.je.EnvironmentFailureException;
 import com.sleepycat.je.dbi.EnvironmentImpl;
+import com.sleepycat.je.dbi.TTL;
 import com.sleepycat.je.log.LogEntryHeader;
 import com.sleepycat.je.log.LogEntryType;
 import com.sleepycat.je.log.LogItem;
 import com.sleepycat.je.log.LogUtils;
 import com.sleepycat.je.log.entry.ReplicableLogEntry;
 import com.sleepycat.je.rep.stream.OutputWireRecord;
+import com.sleepycat.je.utilint.TestHook;
+import com.sleepycat.je.utilint.TestHookExecute;
 import com.sleepycat.je.rep.stream.InputWireRecord;
 
 /**
@@ -38,6 +41,7 @@ import com.sleepycat.je.rep.stream.InputWireRecord;
 public class BeforeImageOutputWireRecord extends OutputWireRecord {
 
     private byte[] bImgData;
+    private static volatile TestHook<Boolean> verifyHook;
 
     private synchronized ReplicableLogEntry 
         instantiateEntryWithBeforeImage(LogEntryHeader currentEntryHeader) {
@@ -48,9 +52,14 @@ public class BeforeImageOutputWireRecord extends OutputWireRecord {
         if (logItem != null) {
             logEntry = logItem.cachedEntry;
             if (logEntry != null) {
-                bImgData = logItem.getBeforeImageData();
-                if (bImgData != null) {
-                    return logEntry;
+                if (logItem.getBeforeImageCtx() != null) {
+                    if (!TTL.isExpired(logItem.getBeforeImageCtx().getExpTime(),
+                            logItem.getBeforeImageCtx().isExpTimeInHrs())) {
+                        bImgData = logItem.getBeforeImageData();
+                    }
+                    if (bImgData != null) {
+                        return logEntry;
+                    }
                 }
             }
         }
@@ -72,16 +81,20 @@ public class BeforeImageOutputWireRecord extends OutputWireRecord {
         if (logItem != null) {
             logItem.cachedEntry = logEntry;
         }
-		if (envImpl.getBeforeImageIndex() != null) {
-			DatabaseEntry bImgEntry = envImpl.getBeforeImageIndex()
-					.get(entry.getAbortLsn(), null);
-			if (bImgEntry != null) {
-				bImgData = bImgEntry.getData();
-			}
-			if (logItem != null) {
-				logItem.setBeforeImageData(bImgData);
-			}
-		}
+        if (envImpl.getBeforeImageIndex() != null) {
+            DatabaseEntry bImgEntry = envImpl.getBeforeImageIndex()
+                    .get(entry.getAbortLsn(), null);
+            if (bImgEntry != null) {
+                bImgData = bImgEntry.getData();
+                if (logItem != null) {
+                    logItem.setBeforeImageData(bImgData);
+                    BeforeImageContext bImgCtx = new BeforeImageContext(
+                            entry.getBeforeImageExpiration(),
+                            entry.isBeforeImageExpirationInHours());
+                    logItem.setBeforeImageCtx(bImgCtx);
+                }
+            }
+        }
         return logEntry;
     }
 
@@ -107,7 +120,18 @@ public class BeforeImageOutputWireRecord extends OutputWireRecord {
     public BeforeImageOutputWireRecord(final EnvironmentImpl envImpl,
                                 final LogItem logItem) {
         super(envImpl, logItem);
-        this.bImgData = logItem.getBeforeImageData();
+        if (logItem.getBeforeImageCtx() != null) {
+            if (!TTL.isExpired(logItem.getBeforeImageCtx().getExpTime(),
+                    logItem.getBeforeImageCtx().isExpTimeInHrs())) {
+                this.bImgData = logItem.getBeforeImageData();
+            } else {
+                TestHookExecute.doHookIfSet(verifyHook, true);
+            }
+        }
+    }
+
+    public static void setInputWireRecordHook(TestHook<Boolean> hook) {
+        verifyHook = hook;
     }
 
     /* For unit test support. */

@@ -16,6 +16,7 @@ package oracle.kv.impl.api.table;
 import java.util.HashSet;
 
 import oracle.kv.table.Table;
+import oracle.kv.table.TimeToLive;
 
 /**
  * TableEvolver is a class used to evolve existing tables.  It has accessors
@@ -55,20 +56,30 @@ import oracle.kv.table.Table;
  * </ul>
  */
 public class TableEvolver extends TableBuilderBase {
-    private final TableImpl table;
-    private final int evolvedVersion;
-    private String description;
 
+    private final TableImpl table;
     /* May be null */
     private final RegionMapper regionMapper;
 
+    private final int evolvedVersion;
+
+    private String description;
+
+    private boolean updateTTL;
+
+    private boolean enableBeforeImage;
+
+    private boolean disableBeforeImage;
+
     private TableEvolver(TableImpl table, RegionMapper regionMapper) {
+
         super(table.getFieldMap().clone());
+
         this.table = table;
         this.regionMapper = regionMapper;
-        ttl = table.getDefaultTTL();
-        description = table.getDescription();
         evolvedVersion = table.getTableVersion();
+        description = table.getDescription();
+
         if (evolvedVersion != table.numTableVersions()) {
             throw new IllegalArgumentException
                 ("Table evolution must be performed on the latest version");
@@ -127,6 +138,37 @@ public class TableEvolver extends TableBuilderBase {
     public TableBuilderBase setDescription(String description) {
         this.description = description;
         return this;
+    }
+
+    public void setUpdateTableTTL() {
+        assert(!enableBeforeImage);
+        assert(!disableBeforeImage);
+        updateTTL = true;
+    }
+
+    public void setEnableBeforeImage() {
+        assert(!updateTTL);
+        assert(!disableBeforeImage);
+        enableBeforeImage = true;
+    }
+
+    public void setDisableBeforeImage() {
+        assert(!updateTTL);
+        assert(!enableBeforeImage);
+        disableBeforeImage = true;
+    }
+
+    public TimeToLive getNewTableTTL() {
+        return (updateTTL ? ttl : table.getDefaultTTL());
+    }
+
+    public TimeToLive getNewBeforeImageTTL() {
+
+        return (enableBeforeImage ?
+                (beforeImageTTL == null ?
+                 TableImpl.DEFAULT_BEFORE_IMAGE_TTL :
+                 beforeImageTTL) :
+                (disableBeforeImage ? null : table.getBeforeImageTTL()));
     }
 
     @Override
@@ -192,7 +234,10 @@ public class TableEvolver extends TableBuilderBase {
     public TableImpl evolveTable() {
 
         if (hasSetIdentity) {
-            table.evolve(fields, ttl, description,
+            table.evolve(fields,
+                         getNewTableTTL(),
+                         getNewBeforeImageTTL(),
+                         description,
                          getIdentityColumnInfo(), sequenceDef, regions);
         } else {
             if (table.hasIdentityColumn()) {
@@ -201,18 +246,31 @@ public class TableEvolver extends TableBuilderBase {
 
                 if (!fields.exists(idColName)) {
                     /* column with IDENTITY was dropped */
-                    table.evolve(fields, ttl, description, null, null, regions);
+                    table.evolve(fields,
+                                 getNewTableTTL(),
+                                 getNewBeforeImageTTL(),
+                                 description,
+                                 null, null, regions);
                 } else {
                     /* column with IDENTITY still exists but index might
                        have changed */
-                    table.evolve(fields, ttl, description,
-                        new IdentityColumnInfo(fields.getFieldPos(idColName),
-                            table.getIdentityColumnInfo().isIdentityGeneratedAlways(),
-                            table.getIdentityColumnInfo().isIdentityOnNull()),
-                                 sequenceDef, regions);
+                    IdentityColumnInfo ici = table.getIdentityColumnInfo();
+                    table.evolve(fields,
+                                 getNewTableTTL(),
+                                 getNewBeforeImageTTL(),
+                                 description,
+                                 new IdentityColumnInfo(fields.getFieldPos(idColName),
+                                                        ici.isIdentityGeneratedAlways(),
+                                                        ici.isIdentityOnNull()),
+                                 sequenceDef,
+                                 regions);
                 }
             } else {
-                table.evolve(fields, ttl, description, null, null, regions);
+                table.evolve(fields,
+                             getNewTableTTL(),
+                             getNewBeforeImageTTL(),
+                             description,
+                             null, null, regions);
             }
         }
 
@@ -231,8 +289,11 @@ public class TableEvolver extends TableBuilderBase {
 
         TableImpl t = table.clone();
 
-        t.evolve(fields, ttl, description,
-                getIdentityColumnInfo(), sequenceDef, regions);
+        t.evolve(fields,
+                 getNewTableTTL(),
+                 getNewBeforeImageTTL(),
+                 description,
+                 getIdentityColumnInfo(), sequenceDef, regions);
         return t.toJsonString(pretty, regionMapper);
     }
 

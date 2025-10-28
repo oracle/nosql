@@ -13,9 +13,12 @@
 
 package oracle.kv.impl.api.ops;
 
-import java.util.Arrays;
+import static oracle.kv.impl.security.KVStorePrivilegeLabel.DELETE_TABLE;
+
 import java.util.Collections;
+import java.util.EnumSet;
 import java.util.List;
+
 import oracle.kv.UnauthorizedException;
 import oracle.kv.impl.api.ops.InternalOperation.OpCode;
 import oracle.kv.impl.api.table.TableImpl;
@@ -24,6 +27,7 @@ import oracle.kv.impl.security.KVStorePrivilege;
 import oracle.kv.impl.security.NamespacePrivilege;
 import oracle.kv.impl.security.SystemPrivilege;
 import oracle.kv.impl.security.TablePrivilege;
+
 import com.sleepycat.je.Cursor;
 import com.sleepycat.je.DatabaseEntry;
 import com.sleepycat.je.OperationResult;
@@ -34,13 +38,6 @@ import com.sleepycat.je.WriteOptions;
  */
 abstract class BasicPutHandler<T extends Put>
         extends SingleKeyOperationHandler<T> {
-
-    /**
-     * Whether this put operation has valid TTL setting that would introduce
-     * implicit deletion of this record. If true, performing this operation
-     * would require user having DELETE_TABLE privilege.
-     */
-    boolean hasValidTTLSetting = false;
 
     BasicPutHandler(OperationHandler handler,
                     OpCode opCode,
@@ -54,16 +51,15 @@ abstract class BasicPutHandler<T extends Put>
 
         /*
          * Check if the operation has a valid TTL. If so, this operation is
-         * an implicit delete and requires DELETE_TABLE privilege. See
-         * tableAccessPrivileges(), below.
+         * an implicit delete and requires DELETE_TABLE privilege.
          *
-         * The check for null handles older clients that may not include a
-         * TTL.
+         * The check for null handles older clients that may not include a TTL.
          */
-        if (((Put)op).getTTL() != null) {
-            hasValidTTLSetting = (((Put)op).getTTL().getValue() != 0);
+        if (op.getTTL() != null && op.getTTL().getValue() != 0) {
+            super.verifyDataAccess(op, EnumSet.of(DELETE_TABLE));
+        } else {
+            super.verifyDataAccess(op);
         }
-        super.verifyDataAccess(op);
     }
 
     @Override
@@ -79,11 +75,6 @@ abstract class BasicPutHandler<T extends Put>
     @Override
     public List<? extends KVStorePrivilege>
         tableAccessPrivileges(long tableId) {
-
-        if (hasValidTTLSetting) {
-            return Arrays.asList(new TablePrivilege.InsertTable(tableId),
-                                 new TablePrivilege.DeleteTable(tableId));
-        }
         return Collections.singletonList(
             new TablePrivilege.InsertTable(tableId));
     }
@@ -91,12 +82,6 @@ abstract class BasicPutHandler<T extends Put>
     @Override
     public List<? extends KVStorePrivilege>
     namespaceAccessPrivileges(String namespace) {
-
-        if (hasValidTTLSetting) {
-            return Arrays.asList(
-                new NamespacePrivilege.InsertInNamespace(namespace),
-                new NamespacePrivilege.DeleteInNamespace(namespace));
-        }
         return Collections.singletonList(
             new NamespacePrivilege.InsertInNamespace(namespace));
     }
@@ -112,7 +97,6 @@ abstract class BasicPutHandler<T extends Put>
             throw new WrappedClientException(iae);
         }
     }
-
 
     /*
      * Returns true if the server needs to copy MR counters. This is only

@@ -74,6 +74,7 @@ class NioCreatorEndpoint extends AbstractCreatorEndpoint {
                     perfName,
                     remoteAddress,
                     executor,
+                    endpointGroup.getBackupExecService(),
                     endpointGroup.getBackupSchedExecService(),
                     getDialogHandlerFactoryMap(),
                     socketChannel);

@@ -403,6 +403,7 @@ public class JsonCollectionRowImpl extends RowImpl {
 
     public void addPrimKeyAndPropertyFields(
         long expTime,
+        long creationTime,
         long modTime,
         int partitionId,
         int rowSize,
@@ -413,7 +414,7 @@ public class JsonCollectionRowImpl extends RowImpl {
             map.put(names.get(i), get(i));
         }
 
-        map.addProperties(expTime, modTime, partitionId, rowSize, indexSize);
+        map.addProperties(expTime, creationTime, modTime, partitionId, rowSize, indexSize);
     }
 
     /**
@@ -436,12 +437,14 @@ public class JsonCollectionRowImpl extends RowImpl {
         }
 
         private void addProperties(long expTime,
+                                   long creationTime,
                                    long modTime,
                                    int partitionId,
                                    int rowSize,
                                    int indexSize) {
             JsonCollectionRowImpl row = getJColl();
             row.setExpirationTime(expTime);
+            row.setCreationTime(creationTime);
             row.setModificationTime(modTime);
             row.setPartition(partitionId);
             row.setStorageSize(rowSize);
@@ -468,6 +471,10 @@ public class JsonCollectionRowImpl extends RowImpl {
 
         public long getExpirationTime() {
             return getJColl().getExpirationTime();
+        }
+
+        public long getCreationTime() {
+            return getJColl().getCreationTime();
         }
 
         public int getPartitionId() {

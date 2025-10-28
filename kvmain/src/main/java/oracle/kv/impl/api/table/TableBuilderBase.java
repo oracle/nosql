@@ -38,6 +38,7 @@ public class TableBuilderBase {
 
     protected FieldMap fields;
     protected TimeToLive ttl;
+    protected TimeToLive beforeImageTTL;
     protected Set<Integer> regions = null;
 
     private boolean skipNullableDefaultValidation = false;
@@ -811,6 +812,14 @@ public class TableBuilderBase {
      */
     public void setDefaultTTL(TimeToLive ttl) {
         this.ttl = ttl;
+    }
+
+    public TimeToLive getBeforeImageTTL() {
+        return beforeImageTTL;
+    }
+
+    public void setBeforeImageTTL(TimeToLive ttl) {
+        this.beforeImageTTL = ttl;
     }
 
     public void setIdentity(

@@ -904,7 +904,7 @@ public class AsyncRequestDispatcherImpl extends RequestDispatcherImpl {
                                             response);
                             return response;
                         },
-                        endpointGroup.getBackupSchedExecService());
+                        endpointGroup.getBackupExecService());
                 }),
             (response, exception) -> {
                 /*

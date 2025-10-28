@@ -68,6 +68,7 @@ class PutIfAbsentHandler extends BasicPutHandler<PutIfAbsent> {
         ResultValueVersion prevVal = null;
         long expTime = 0L;
         Version version = null;
+        long creationTime = 0L;
         long modificationTime = 0L;
         int storageSize = -1;
 
@@ -80,7 +81,11 @@ class PutIfAbsentHandler extends BasicPutHandler<PutIfAbsent> {
         final DatabaseEntry dataEntry = valueDatabaseEntry(valueBytes);
 
         OperationResult opres;
-        WriteOptions jeOptions = makeOption(op.getTTL(), op.getUpdateTTL());
+        final WriteOptions jeOptions = makeOption(op.getTTL(),
+                                                  op.getUpdateTTL(),
+                                                  op.getTableId(),
+                                                  getOperationHandler(),
+                                                  false /* not tombstone */);
 
         final Database db = getRepNode().getPartitionDB(partitionId);
 
@@ -94,6 +99,7 @@ class PutIfAbsentHandler extends BasicPutHandler<PutIfAbsent> {
                 if (opres != null) {
                     version = getVersion(cursor);
                     expTime = opres.getExpirationTime();
+                    creationTime = opres.getCreationTime();
                     modificationTime = opres.getModificationTime();
                     storageSize = getStorageSize(cursor);
 
@@ -104,6 +110,7 @@ class PutIfAbsentHandler extends BasicPutHandler<PutIfAbsent> {
                     MigrationStreamHandle.get().addPut(keyEntry,
                                                        dataEntry,
                                                        version.getVLSN(),
+                                                       creationTime,
                                                        modificationTime,
                                                        expTime,
                                                        false /*isTombstone*/);
@@ -131,12 +138,14 @@ class PutIfAbsentHandler extends BasicPutHandler<PutIfAbsent> {
                                          partitionId, storageSize);
                         version = getVersion(cursor);
                         expTime = opres.getExpirationTime();
+                        creationTime = opres.getCreationTime();
                         modificationTime = opres.getModificationTime();
 
                         MigrationStreamHandle.get().
                             addPut(keyEntry,
                                    dataEntry,
                                    version.getVLSN(),
+                                   creationTime,
                                    modificationTime,
                                    expTime,
                                    false /*isTombstone*/);
@@ -170,6 +179,7 @@ class PutIfAbsentHandler extends BasicPutHandler<PutIfAbsent> {
                                             version,
                                             expTime,
                                             false /*wasUpdate*/,
+                                            creationTime,
                                             modificationTime,
                                             storageSize,
                                             getRepNode().getRepNodeId().

@@ -59,6 +59,7 @@ import oracle.kv.impl.api.KVStoreImpl;
 import oracle.kv.impl.api.table.FieldDefImpl;
 import oracle.kv.impl.api.table.TableAPIImpl;
 import oracle.kv.impl.api.table.TableImpl;
+import oracle.kv.impl.pubsub.PublishingUnit;
 import oracle.kv.impl.systables.MRTableInitCkptDesc;
 import oracle.kv.impl.test.ExceptionTestHook;
 import oracle.kv.impl.test.ExceptionTestHookExecute;
@@ -1694,14 +1695,38 @@ public class ServiceMDMan {
      * @return set of table checkpoints
      */
     private Set<TableInitCheckpoint> readInitCkptWithRetry(String region) {
+        int attempt = 0;
         while (!closed) {
             try {
-                return readAllInitCkpt(region);
+                attempt++;
+                final Set<TableInitCheckpoint> ret = readAllInitCkpt(region);
+                final int finalAttempt = attempt;
+                logger.fine(() -> lm("Fetched all table init checkpoint for " +
+                                     "region=" + region +
+                                     ", attempts=" + finalAttempt));
+                return ret;
             } catch (StoreIteratorException | FaultException exp) {
-                logger.info(lm("Rescan the table checkpoints, error=" + exp +
+                logger.info(lm("Rescan the table checkpoints" +
+                               ", after sleep ms=" + POLL_INTERVAL_MS +
+                               ", region=" + region +
+                               ", attempt=" + attempt +
+                               ", error=" + exp +
                                ", cause=" + exp.getCause()));
+                try {
+                    synchronized (this) {
+                        wait(POLL_INTERVAL_MS);
+                    }
+                } catch (InterruptedException e) {
+                    logger.info(lm("Interrupted in sleeping in reading table" +
+                                   " init checkpoint for region=" + region +
+                                   ", attempts=" + attempt));
+                    break;
+                }
             }
         }
+        logger.info(lm("Return empty table init checkpoint for " +
+                       "region=" + region + ", service md manager" +
+                       " closed=" + closed + ", attempts=" + attempt));
         return Collections.emptySet();
     }
 
@@ -2064,10 +2089,7 @@ public class ServiceMDMan {
 
     /* Get all tables in the hierarchy, including the top level table. */
     public void getAllChildTables(Table topLevelTable, Set<Table> tables) {
-        tables.add(topLevelTable);
-        for (Table child : topLevelTable.getChildTables().values()) {
-            getAllChildTables(child, tables);
-        }
+        PublishingUnit.getAllChildTables(topLevelTable, tables);
     }
 
     /**
@@ -2079,7 +2101,7 @@ public class ServiceMDMan {
      */
     public TableInitCheckpoint readCkptAnyAgent(String table, String region) {
 
-        final Set<TableInitCheckpoint> allCkpt = readAllInitCkpt(region);
+        final Set<TableInitCheckpoint> allCkpt = readInitCkptWithRetry(region);
         final Set<TableInitCheckpoint> ckpt =
             allCkpt.stream().filter(t -> t.getTable().equals(table))
                    .collect(Collectors.toSet());

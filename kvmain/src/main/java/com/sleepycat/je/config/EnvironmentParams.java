@@ -307,6 +307,14 @@ public class EnvironmentParams {
                                 false,             // mutable
                                 false);            // forReplication
 
+    public static final DurationConfigParam ENV_NETWORK_RESTORE_LOCK_TIMEOUT =
+            new DurationConfigParam(EnvironmentConfig.ENV_NETWORK_RESTORE_LOCK_TIMEOUT,
+                    "1 min",    // min
+                    null,              // max
+                    "2 min",           // default
+                    false,             // mutable
+                    false);            // forReplication
+
     public static final DurationConfigParam ENV_TTL_CLOCK_TOLERANCE =
         new DurationConfigParam(EnvironmentConfig.ENV_TTL_CLOCK_TOLERANCE,
                                 "1 ms",            // min

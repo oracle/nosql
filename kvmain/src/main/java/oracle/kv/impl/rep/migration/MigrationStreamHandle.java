@@ -106,24 +106,25 @@ public class MigrationStreamHandle {
 
     /**
      * Inserts a PUT record into migration stream if partition migration
-     * is in progress. Otherwise this method does nothing.
+     * is in progress. Otherwise, this method does nothing.
      *
      * @param key
      * @param value
-     * @param modificationTime
      * @param vlsn
+     * @param creationTime
+     * @param modificationTime
      * @param expirationTime
      * @param isTombstone
      */
     public void addPut(DatabaseEntry key, DatabaseEntry value,
-                       long vlsn, long modificationTime,
+                       long vlsn, long creationTime, long modificationTime,
                        long expirationTime, boolean isTombstone) {
         /* NOOP */
     }
 
     /**
      * Inserts a DELETE record into migration stream if partition migration
-     * is in progress. Otherwise this method does nothing.
+     * is in progress. Otherwise, this method does nothing.
      *
      * @param key
      * @param cursor
@@ -134,7 +135,7 @@ public class MigrationStreamHandle {
 
     /**
      * Inserts a PREPARE message into the migration stream if partition
-     * migration is in progress. Otherwise this method does nothing. This
+     * migration is in progress. Otherwise, this method does nothing. This
      * method should be invoked before the client transaction is committed.
      * The PREPARE message signals that the operations associated with this
      * transaction are about to be committed. No further operations can be
@@ -212,14 +213,14 @@ public class MigrationStreamHandle {
 
         @Override
         public void addPut(DatabaseEntry key, DatabaseEntry value,
-                           long vlsn, long modificationTime,
+                           long vlsn, long creationTime, long modificationTime,
                            long expirationTime, boolean isTombstone) {
             assert !prepared;
             assert key != null;
             assert value != null;
             if (source.sendPut(txn.getId(), key, value,
-                               vlsn, modificationTime,
-                               expirationTime, isTombstone)) {
+                               vlsn, creationTime, modificationTime,
+                               expirationTime,isTombstone)) {
                 opsSent++;
             }
         }

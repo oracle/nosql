@@ -452,9 +452,13 @@ public class RepNodeSecurity implements GlobalParamsUpdater,
 
             final KVStoreUser user = secMd.getUser(userPrinc.getName());
 
-            if (user == null || !user.isEnabled()) {
-                logger.info(
-                    "User " + userPrinc.getName() + " is not valid");
+            if (user == null) {
+                logger.info("User=" + userPrinc.getName() + " does not exist" );
+                return null;
+            }
+
+            if (!user.isEnabled()) {
+                logger.info("User=" + userPrinc.getName() + " not enabled");
                 return null;
             }
 
@@ -495,7 +499,11 @@ public class RepNodeSecurity implements GlobalParamsUpdater,
 
         @Override
         public void logMessage(Level level, String msg) {
-            logger.log(level, msg);
+            logger.log(level, lm(msg));
+        }
+
+        private String lm(String msg) {
+            return "[RepNodePasswordAuthenticator] " + msg;
         }
     }
 

@@ -17,6 +17,7 @@ import static oracle.kv.impl.param.ParameterState.JVM_RN_EXCLUDE_ARGS;
 
 import java.io.File;
 import java.io.FileOutputStream;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -148,7 +149,7 @@ public class ProcessServiceManager extends ServiceManager {
         }
 
         @Override
-        protected void onRestart() {
+            protected void onRestart() {
 
             final ResourceId rId = service.getResourceId();
             if (rId instanceof RepNodeId) {
@@ -161,7 +162,20 @@ public class ProcessServiceManager extends ServiceManager {
                 generateStatusChange(ServiceStatus.ERROR_RESTARTING);
             }
             service.resetHandles();
-            service.resetParameters(false);
+            try {
+                service.resetParameters(false);
+            } catch (IllegalStateException illegalStateException) {
+                if (illegalStateException.getCause() != null &&
+                    (illegalStateException.getCause() instanceof IOException)) {
+                    /*
+                     * ignore file IO exception. Ignore file IO exception since
+                     * the configuration file may be corrupted or removed which
+                     * is the exact cause of the shutdown.
+                     */
+                    logger.warning("Reset parameter filed with IO exception: " +
+                                   illegalStateException.getMessage());
+                }
+            }
             if (service.resetOnRestart() || (createExecArgsHook != null)) {
                 mgr.reset();
             }

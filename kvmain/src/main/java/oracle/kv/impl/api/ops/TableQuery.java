@@ -17,6 +17,7 @@ import static oracle.kv.impl.api.ops.InternalOperationHandler.MIN_READ;
 import static oracle.kv.impl.util.SerialVersion.QUERY_VERSION_14;
 import static oracle.kv.impl.util.SerialVersion.QUERY_VERSION_16;
 import static oracle.kv.impl.util.SerialVersion.CLOUD_MR_TABLE;
+import static oracle.kv.impl.util.SerialVersion.QUERY_VERSION_18;
 
 import java.io.ByteArrayOutputStream;
 import java.io.DataInput;
@@ -151,6 +152,8 @@ public class TableQuery extends InternalOperation {
 
     private final boolean performsWrite;
 
+    private final String rowMetadata;
+
     public TableQuery(
         String queryName,
         DistributionKind distKind,
@@ -175,7 +178,8 @@ public class TableQuery extends InternalOperation {
         int localRegionId,
         boolean doTombstone,
         long maxServerMemoryConsumption,
-        boolean performsWrite) {
+        boolean performsWrite,
+        String rowMetadata) {
 
         /*
          * The distinct OpCodes are primarily for a finer granularity of
@@ -212,6 +216,7 @@ public class TableQuery extends InternalOperation {
         this.doTombstone = doTombstone;
         this.maxServerMemoryConsumption = maxServerMemoryConsumption;
         this.performsWrite = performsWrite;
+        this.rowMetadata = rowMetadata;
     }
 
     FieldDefImpl getResultDef() {
@@ -346,6 +351,10 @@ public class TableQuery extends InternalOperation {
         return maxServerMemoryConsumption;
     }
 
+    public String getRowMetadata() {
+        return rowMetadata;
+    }
+
     @Override
     public boolean performsWrite() {
         return performsWrite;
@@ -439,6 +448,10 @@ public class TableQuery extends InternalOperation {
             out.writeBoolean(performsWrite);
             out.writeInt(updateLimit);
         }
+
+        if (serialVersion >= QUERY_VERSION_18) {
+            SerializationUtil.writeString(out, serialVersion, rowMetadata);
+        }
     }
 
     /**
@@ -510,6 +523,12 @@ public class TableQuery extends InternalOperation {
             } else {
                 performsWrite = false;
                 updateLimit = 0;
+            }
+
+            if (serialVersion >= QUERY_VERSION_18) {
+                rowMetadata = SerializationUtil.readString(in, serialVersion);
+            } else {
+                rowMetadata = null;
             }
 
         } catch (IOException e) {

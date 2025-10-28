@@ -13,15 +13,19 @@
 
 package com.sleepycat.je.rep.utilint;
 
+import static com.sleepycat.je.rep.subscription.SubscriptionConfig.SERVICE_HANDSHAKE_AUTH_METHOD;
+
 import java.io.DataInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.ByteBuffer;
 import java.nio.channels.ByteChannel;
+import java.util.Arrays;
 import java.util.logging.Level;
 
 import com.sleepycat.je.EnvironmentFailureException;
+import com.sleepycat.je.rep.impl.node.FeederManager;
 import com.sleepycat.je.rep.net.DataChannel;
 import com.sleepycat.je.rep.net.DataChannel.AsyncIO;
 import com.sleepycat.je.rep.utilint.ServiceDispatcher.Response;
@@ -115,7 +119,7 @@ public class ServiceHandshake {
             currentOp = new ReceiveNameOp(this);
         }
 
-        DataChannel getChannel() {
+        public DataChannel getChannel() {
             return channel;
         }
 
@@ -159,9 +163,21 @@ public class ServiceHandshake {
                      */
                     return InitResult.DONE;
                 }
-                logMsg(Level.WARNING,
-                       false, // noteError
-                       "DataChannel is trust-capable but is not trusted");
+
+                if (subscriptionHandshake()) {
+                    /* a subscription handshake, OK */
+                    logMsg(Level.INFO,
+                           false, // noteError
+                           lm("DataChannel (id=" + channel.getChannelId() +
+                              ") for subscription, OK it is trust-capable but" +
+                              " not trusted"));
+                } else {
+                    /* likely an error in channel configuration */
+                    logMsg(Level.WARNING,
+                           false, // noteError
+                           lm("DataChannel (id=" + channel.getChannelId() +
+                              ") is trust-capable but is not trusted"));
+                }
 
                 /*
                  * Defer rejecting the connection until the
@@ -180,12 +196,40 @@ public class ServiceHandshake {
             }
 
             /* Initiate the authentication step. */
+            logMsg(Level.FINE, false,
+                   lm("Start RequireAuthenticateOp" +
+                      ", authInfo=" + Arrays.toString(authInfo) +
+                      ", current op=" + currentOp.getClass().getSimpleName()));
             currentOp = new RequireAuthenticateOp(this, authInfo);
             return currentOp.processOp(channel);
         }
 
         void logMsg(Level level, boolean noteError, String msg) {
+            if (dispatcher == null) {
+                return;
+            }
             dispatcher.logMsg(level, noteError, msg);
+        }
+
+        private String lm(String msg) {
+            return "[ServiceHandshake][Service=" + serviceName + "] " + msg;
+        }
+
+        private boolean subscriptionHandshake() {
+            if (!FeederManager.FEEDER_SERVICE.equals(serviceName)) {
+                /* not a feeder service */
+                return false;
+            }
+
+            if (authInfo == null || authInfo.length == 0) {
+                /* no authentication method */
+                return false;
+            }
+
+            /* return true if any subscription auth method */
+            return Arrays.stream(authInfo)
+                         .anyMatch(t -> SERVICE_HANDSHAKE_AUTH_METHOD
+                                            .equals(t.getMechanismName()));
         }
     }
 
@@ -241,6 +285,10 @@ public class ServiceHandshake {
 
         protected ServerInitOp(ServerHandshake initState) {
             this.initState = initState;
+        }
+
+        protected String lm(String msg) {
+            return "[" + this.getClass().getSimpleName() + "] " + msg;
         }
 
         /**

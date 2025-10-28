@@ -669,9 +669,11 @@ public class FeederReplicaHandshake {
          */
         if (dup != null && dup.getChannel() != null &&
             !dup.getChannel().isOpen() && !dup.isShutdown()) {
-            dup.shutdown(new IOException("Feeder's channel for node " +
-                                         replicaNameIdPair +
-                                         " is already closed"));
+            final String msg = "Feeder's channel for node=" +
+                               replicaNameIdPair + " is already closed" +
+                               ", shut down feeder with exception";
+            LoggerUtils.fine(logger, repNode.getRepImpl(), () -> msg);
+            dup.shutdown(new IOException(msg));
         }
 
         dup = repNode.feederManager().getFeeder(replicaNameIdPair.getName());

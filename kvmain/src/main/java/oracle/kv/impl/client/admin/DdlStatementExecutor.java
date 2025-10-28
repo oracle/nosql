@@ -24,6 +24,7 @@ import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
 
+import oracle.kv.AuthenticationRequiredException;
 import oracle.kv.ExecutionFuture;
 import oracle.kv.FaultException;
 import oracle.kv.KVSecurityException;
@@ -37,6 +38,8 @@ import oracle.kv.impl.api.table.TableLimits;
 import oracle.kv.impl.fault.WrappedClientException;
 import oracle.kv.impl.security.AuthContext;
 import oracle.kv.impl.security.login.LoginManager;
+import oracle.kv.impl.test.TestHook;
+import oracle.kv.impl.test.TestHookExecute;
 import oracle.kv.impl.topo.Topology;
 import oracle.kv.impl.util.KVThreadFactory;
 import oracle.kv.impl.util.registry.Protocols;
@@ -111,6 +114,8 @@ public class DdlStatementExecutor {
     private final Map<Integer, Set<DdlFuture>> notificationTargets;
 
     private final Topology topo;
+
+    /* All access needs to be inside the synchronized block of this object. */
     private LoginManager loginManager;
     private final Logger logger;
     private final ClientId clientId;
@@ -124,6 +129,9 @@ public class DdlStatementExecutor {
 
     /* The polling interval for status check tasks. */
     private final long checkIntervalMillis;
+
+    /* Test hook can be invoked before execute DDL */
+    public static volatile TestHook<Integer> beforeExecuteHook = null;
 
     public DdlStatementExecutor(KVStoreImpl store) {
         this(store.getDispatcher().getTopologyManager().getTopology(),
@@ -197,9 +205,17 @@ public class DdlStatementExecutor {
         clientAdminService = finder.getDDLService();
     }
 
+    /*
+     * For unit test.
+     */
+    public synchronized LoginManager getLoginManager() {
+        return loginManager;
+    }
+
     /**
      * Establish an RMI connection to the admin master. Ensure that the proper
-     * credentials are set up.
+     * credentials are set up. Except the constructor, the other invocation of
+     * this method must be inside the synchronized block of this object.
      *
      * A note about login managers:
      * ----------------------------
@@ -247,7 +263,8 @@ public class DdlStatementExecutor {
      * This method can be used if there isn't any storage node available
      * in the topology, typically the bootstrap admin case.
      */
-    public void findClientAdminService(String adminHost, int adminPort)
+    public synchronized void findClientAdminService(String adminHost,
+                                                    int adminPort)
         throws FaultException {
 
         if (canHandleDDL()) {
@@ -284,13 +301,14 @@ public class DdlStatementExecutor {
             if (clientAdminService.canHandleDDL()) {
                 return true;
             }
-        } catch (RemoteException e) {
+        } catch (RemoteException | AuthenticationRequiredException e) {
             logger.fine("Ensuring connection, got " + e);
         }
-
         /*
-         * Either the RMI service is down, or the admin is no longer a
-         * master. Null out the cached connection so we can find another.
+         * The RMI service is down, the admin is no longer a master or the
+         * cached login token is no longer valid, require re-authentication.
+         * Null out the cached connection, so we can find another for next
+         * retries.
          */
         clientAdminService = null;
         return false;
@@ -407,11 +425,10 @@ public class DdlStatementExecutor {
     public ExecutionFuture executeDdl(char[] statement,
                                       String namespace,
                                       ExecuteOptions options,
-                                      TableLimits limits,
-                                      LoginManager login)
+                                      TableLimits limits)
         throws IllegalArgumentException, FaultException {
         try {
-            loginManager = login;
+            assert TestHookExecute.doHookIfSet(beforeExecuteHook, null);
             final AuthContext authCtx =
                 options == null ? null : options.getAuthContext();
             ExecutionInfo info = getClientAdminService().execute(statement,
@@ -475,11 +492,10 @@ public class DdlStatementExecutor {
      */
     public ExecutionFuture setTableLimits(String namespace,
                                           String tableName,
-                                          TableLimits limits,
-                                          LoginManager login)
+                                          TableLimits limits)
         throws IllegalArgumentException, FaultException {
         try {
-            loginManager = login;
+            assert TestHookExecute.doHookIfSet(beforeExecuteHook, null);
             ExecutionInfo info = getClientAdminService().
                 setTableLimits(namespace, tableName, limits);
             return new DdlFuture(info.getPlanId(), this);

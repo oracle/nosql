@@ -49,6 +49,7 @@ import oracle.kv.impl.query.compiler.CompilerAPI;
 import oracle.kv.impl.query.compiler.ExprFuncCall;
 import oracle.kv.impl.query.compiler.ExprUtils;
 import oracle.kv.impl.query.compiler.Function;
+import oracle.kv.impl.query.compiler.FuncRowMetadata;
 import oracle.kv.impl.query.compiler.QueryControlBlock;
 import oracle.kv.impl.query.runtime.PlanIter;
 import oracle.kv.impl.tif.esclient.jsonContent.ESJsonUtil;
@@ -60,6 +61,7 @@ import oracle.kv.table.FieldDef;
 import oracle.kv.table.FieldDef.Type;
 import oracle.kv.table.FieldRange;
 import oracle.kv.table.FieldValue;
+import oracle.kv.table.FieldValueFactory;
 import oracle.kv.table.Index;
 import oracle.kv.table.IndexKey;
 import oracle.kv.table.RecordValue;
@@ -2279,6 +2281,7 @@ public class IndexImpl implements Index, Serializable, FastExternalizable {
     public byte[] extractIndexKey(
         byte[] key,
         byte[] data,
+        long creationTime,
         long modTime,
         long expTime,
         int size,
@@ -2289,6 +2292,7 @@ public class IndexImpl implements Index, Serializable, FastExternalizable {
             return null;
         }
 
+        row.setCreationTime(creationTime);
         row.setModificationTime(modTime);
         row.setExpirationTime(expTime);
         row.setStorageSize(size);
@@ -2348,6 +2352,7 @@ public class IndexImpl implements Index, Serializable, FastExternalizable {
     public List<byte[]> extractIndexKeys(
         byte[] key,
         byte[] data,
+        long creationTime,
         long modTime,
         long expTime,
         int size,
@@ -2359,6 +2364,7 @@ public class IndexImpl implements Index, Serializable, FastExternalizable {
             return null;
         }
 
+        row.setCreationTime(creationTime);
         row.setModificationTime(modTime);
         row.setExpirationTime(expTime);
         row.setStorageSize(size);
@@ -2467,6 +2473,8 @@ public class IndexImpl implements Index, Serializable, FastExternalizable {
             case REC_FIELD:
             case MAP_FIELD: {
                 ++ctx.pathPos;
+                /* Keep walking down the data guide. We are sure to find a
+                 * BRACKETS or VALUES step. */
                 extractIndexKeys(ctx);
                 --ctx.pathPos;
                 return;
@@ -2613,7 +2621,21 @@ public class IndexImpl implements Index, Serializable, FastExternalizable {
             case REC_FIELD:
             case MAP_FIELD: {
                 String fname = si.getStep();
-                FieldValueImpl fv = rec.get(fname);
+                FieldValueImpl fv;
+
+                if (rec instanceof RowImpl &&
+                    fname.equals(FuncRowMetadata.COL_NAME)) {
+                    String metadataStr = ((RowImpl)rec).getRowMetadata();
+                    if (metadataStr == null) {
+                        // evaluate to EmptyValue when rowMetadata is null.
+                        fv = EmptyValueImpl.getInstance();
+                    } else {
+                        fv = (FieldValueImpl) FieldValueFactory.
+                            createValueFromJson(metadataStr);
+                    }
+                } else {
+                    fv = rec.get(fname);
+                }
 
                 if (fv == null && !(rec instanceof JsonCollectionRowImpl)) {
                     throw new IllegalArgumentException(
@@ -2954,6 +2976,16 @@ public class IndexImpl implements Index, Serializable, FastExternalizable {
 
                     if (func != null) {
                         switch (func.getCode()) {
+                        case FN_CREATION_TIME:
+                            long creationTime = ctx.row.getCreationTime();
+                            fval = FieldDefImpl.Constants.timestampDefs[3].
+                                createTimestamp(new Timestamp(creationTime));
+                            break;
+                        case FN_CREATION_TIME_MILLIS:
+                            long creationTimeMillis = ctx.row.getCreationTime();
+                            fval = FieldDefImpl.Constants.longDef.
+                                createLong(creationTimeMillis);
+                            break;
                         case FN_MOD_TIME:
                             long modTime = ctx.row.getLastModificationTime();
                             fval = FieldDefImpl.Constants.timestampDefs[3].
@@ -3944,8 +3976,35 @@ public class IndexImpl implements Index, Serializable, FastExternalizable {
          * Returns the DDL type string for the type. It must be a valid
          * JSON index type (see getFieldDefForTypecode).
          */
-        static String getDDLTypeString(FieldDef.Type code) {
+        public static String getDDLTypeString(FieldDef.Type code) {
+            /*
+             * POINT and GEOMETRY are special and handled directly because they
+             * don't have a corresponding FieldDef class.
+             */
+            if (code == FieldDef.Type.POINT) {
+                return "Point";
+            }
+            if (code == FieldDef.Type.GEOMETRY) {
+                return "Geometry";
+            }
             return getFieldDefForTypecode(code).getDDLString();
+        }
+
+        /*
+         * Returns the FieldDef.Type from the DDL type String, the type
+         * should be a valid JSON index type, see types in
+         * getFieldDefForTypecode, GEOMETRY and POINT.
+         */
+        public static FieldDef.Type fromDdlTypeString(String typeString) {
+            try {
+                return FieldDef.Type.valueOf(typeString.toUpperCase());
+            } catch (IllegalArgumentException iae) {
+                if (typeString.equalsIgnoreCase("AnyAtomic")) {
+                    return FieldDef.Type.ANY_ATOMIC;
+                }
+                throw new IllegalArgumentException(
+                    "Invalid type for JSON index field: " + typeString);
+            }
         }
 
         private static FieldDefImpl getFieldDefForTypecode(FieldDef.Type code) {
@@ -4084,25 +4143,12 @@ public class IndexImpl implements Index, Serializable, FastExternalizable {
         if (asJson) {
             TableImpl.JsonFormatter handler =
                 TableImpl.createJsonFormatter(true);
-            List<String> itypes = null;
-            if (types != null) {
-                itypes = new ArrayList<String>(types.size());
-                for (FieldDef.Type type : types) {
-                    if (type == null) {
-                        itypes.add("null");
-                    } else {
-                        itypes.add(type.toString());
-                    }
-                }
-            }
-
             handler.index(table,
                           1,
                           getName(),
                           getDescription(),
                           getType().toString().toLowerCase(),
-                          getFields(),
-                          itypes,
+                          TableJsonUtils.collectIndexFieldInfos(this),
                           indexesNulls(),
                           isUnique,
                           getAnnotationsInternal(),

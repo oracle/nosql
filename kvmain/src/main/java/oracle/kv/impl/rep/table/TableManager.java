@@ -1343,9 +1343,9 @@ public class TableManager extends MetadataManager<TableMetadata>
                 if (skip) {
                     continue;
                 }
-
-                //logger.info("Updating Index " + dbName);
             }
+
+            // logger.info("XXX Updating Index " + dbName + " with id = " + idxId);
 
             final SecondaryDatabase db = getSecondaryDb(dbName);
             if (db == null) {

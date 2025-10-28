@@ -1900,30 +1900,6 @@ public class KVQLBaseListener implements KVQLListener {
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
-	@Override public void enterAdd_region_def(KVQLParser.Add_region_defContext ctx) { }
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>The default implementation does nothing.</p>
-	 */
-	@Override public void exitAdd_region_def(KVQLParser.Add_region_defContext ctx) { }
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>The default implementation does nothing.</p>
-	 */
-	@Override public void enterDrop_region_def(KVQLParser.Drop_region_defContext ctx) { }
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>The default implementation does nothing.</p>
-	 */
-	@Override public void exitDrop_region_def(KVQLParser.Drop_region_defContext ctx) { }
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>The default implementation does nothing.</p>
-	 */
 	@Override public void enterFrozen_def(KVQLParser.Frozen_defContext ctx) { }
 	/**
 	 * {@inheritDoc}
@@ -1943,6 +1919,42 @@ public class KVQLBaseListener implements KVQLListener {
 	 * <p>The default implementation does nothing.</p>
 	 */
 	@Override public void exitJson_collection_def(KVQLParser.Json_collection_defContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterEnable_before_image(KVQLParser.Enable_before_imageContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitEnable_before_image(KVQLParser.Enable_before_imageContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterBefore_image_ttl(KVQLParser.Before_image_ttlContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitBefore_image_ttl(KVQLParser.Before_image_ttlContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterDisable_before_image(KVQLParser.Disable_before_imageContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitDisable_before_image(KVQLParser.Disable_before_imageContext ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *
@@ -2039,6 +2051,30 @@ public class KVQLBaseListener implements KVQLListener {
 	 * <p>The default implementation does nothing.</p>
 	 */
 	@Override public void exitUnfreeze_def(KVQLParser.Unfreeze_defContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterAdd_region_def(KVQLParser.Add_region_defContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitAdd_region_def(KVQLParser.Add_region_defContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterDrop_region_def(KVQLParser.Drop_region_defContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitDrop_region_def(KVQLParser.Drop_region_defContext ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *
@@ -2219,6 +2255,30 @@ public class KVQLBaseListener implements KVQLListener {
 	 * <p>The default implementation does nothing.</p>
 	 */
 	@Override public void exitIndex_path(KVQLParser.Index_pathContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterOld_index_path(KVQLParser.Old_index_pathContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitOld_index_path(KVQLParser.Old_index_pathContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterRow_metadata(KVQLParser.Row_metadataContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitRow_metadata(KVQLParser.Row_metadataContext ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *

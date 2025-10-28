@@ -2171,7 +2171,7 @@ public class IndexSerializationTest extends TestBase {
                     byte[] key = table.createKey(row, false).toByteArray();
                     byte[] data = table.createValue(row).toByteArray();
                     List<byte[]> indexKeys =
-                        index.extractIndexKeys(key, data, 0, 0, 0, false, maxKeys);
+                        index.extractIndexKeys(key, data, 0, 0, 0, 0, false, maxKeys);
                     for (byte[] buf : indexKeys) {
                         IndexKeyImpl idxKey = index.deserializeIndexKey(buf,
                                                                         false);
@@ -3569,7 +3569,7 @@ public class IndexSerializationTest extends TestBase {
                     byte[] key = table.createKey(row, false).toByteArray();
                     byte[] data = table.createValue(row).toByteArray();
                     List<byte[]> indexKeys =
-                        index.extractIndexKeys(key, data, 0, 0, 0, false, maxKeys);
+                        index.extractIndexKeys(key, data, 0, 0, 0, 0, false, maxKeys);
                     for (byte[] buf : indexKeys) {
                         IndexKeyImpl idxKey = index.deserializeIndexKey(buf,
                                                                         false);

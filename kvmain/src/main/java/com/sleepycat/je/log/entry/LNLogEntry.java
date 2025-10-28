@@ -23,6 +23,7 @@ import java.util.Collection;
 
 import com.sleepycat.je.DatabaseEntry;
 import com.sleepycat.je.EnvironmentFailureException;
+import com.sleepycat.je.WriteOptions;
 import com.sleepycat.je.dbi.DatabaseId;
 import com.sleepycat.je.dbi.DatabaseImpl;
 import com.sleepycat.je.dbi.DupKeyData;
@@ -233,6 +234,55 @@ import com.sleepycat.je.utilint.VLSN;
  *     havePriorSize, priorSize, havePriorFile, priorFile,
  *     haveAbortModificationTime, abortModificationTime, abortTombstone.
  *
+ * {@literal
+ * 26 <= version :
+ *
+ *   1-byte flags
+ *     abortKnownDeleted
+ *     embeddedLN
+ *     haveAbortKey
+ *     haveAbortData
+ *     haveAbortVLSN
+ *     haveAbortLSN
+ *     haveAbortExpiration
+ *     haveExpiration
+ *   1-byte flags2
+ *     havePriorSize
+ *     havePriorFile
+ *     enableBeforeImage
+ *     tombstone
+ *     abortTombstone
+ *     haveAbortModificationTime
+ *     haveAbortCreationTime                                 << new
+ *   1-byte flags3                                           << new
+ *     haveInsertsCreationTime                               << new
+ *   databaseid
+ *   expiration              -- if haveExpiration
+ *   modificationTime
+ *   creationTime                                            << new
+ *   key
+ *   data
+ *   abortLsn                -- if transactional and haveAbortLSN
+ *   txn id                  -- if transactional
+ *   prev LSN of same txn    -- if transactional
+ *   abort key               -- if haveAbortKey
+ *   abort data              -- if haveAbortData
+ *   abort vlsn              -- if haveAbortVLSN
+ *   abort expiration        -- if haveAbortExpiration
+ *   abort modification time -- if haveAbortModificationTime
+ *   abort creation time     -- if haveAbortCreationTime     << new
+ *   priorSize               -- if havePriorSize
+ *   priorFile               -- if havePriorFile
+ * }
+ *
+ *   In forReplication mode, these flags and fields are omitted:
+ *     abortKnownDeleted, embeddedLN, haveAbortKey, haveAbortData,
+ *     haveAbortVLSN, abort key, abort data, abort vlsn,
+ *     haveAbortLSN, abortLsn, haveAbortExpiration, abort expiration,
+ *     havePriorSize, priorSize, havePriorFile, priorFile,
+ *     haveAbortModificationTime, abortModificationTime,
+ *     haveAbortCreationTime, abortCreationTime, abortTombstone.
+ *
  * NOTE: LNLogEntry is sub-classed by NameLNLogEntry, which adds some extra
  * fields after the fields shown above.  NameLNLogEntry never has a
  * Before Image.
@@ -256,13 +306,17 @@ public class LNLogEntry<T extends LN> extends BaseReplicableEntry<T> {
     private static final byte HAVE_ABORT_MODIFICATION_TIME_MASK = 0x10;
     private static final byte BLIND_DELETION_MASK = 0x20;
     private static final byte ENABLE_BEFORE_IMAGE_MASK = 0x40;
+    private static final byte HAVE_ABORT_CREATION_TIME_MASK = (byte) 0x80;
+    /* flags3 */
+    private static final byte HAVE_INSERTS_CREATION_TIME_MASK = (byte) 0x1;
 
     /**
      * Used for computing the minimum log space used by an LNLogEntry.
      */
-    public static final int MIN_LOG_SIZE = 2 + // Flags
+    public static final int MIN_LOG_SIZE = 3 + // Flags
                                            1 + // DatabaseId
                                            5 + // ModificationTime
+                                           5 + // CreationTime
                                            1 + // LN with zero-length data
                                            LogEntryHeader.MIN_HEADER_SIZE;
 
@@ -273,7 +327,7 @@ public class LNLogEntry<T extends LN> extends BaseReplicableEntry<T> {
      *
      * @see #getLastFormatChange
      */
-    private static final int LAST_FORMAT_CHANGE = 19;
+    private static final int LAST_FORMAT_CHANGE = LogEntryType.LOG_VERSION_CREATION_TIME;
 
     /*
      * Persistent fields.
@@ -333,6 +387,9 @@ public class LNLogEntry<T extends LN> extends BaseReplicableEntry<T> {
     /* Abort modification time in millis. */
     private long abortModificationTime = 0;
 
+    /* Abort creation time in millis. */
+    private long abortCreationTime = 0;
+
     /* Abort tombstone property. */
     private boolean abortTombstone = false;
 
@@ -376,7 +433,14 @@ public class LNLogEntry<T extends LN> extends BaseReplicableEntry<T> {
      * version was embedded in the BIN.
      */
     private boolean haveAbortModificationTime;
-    
+
+    /*
+     * True if the logrec stores an abort creation time, which is the case
+     * only if (a) this is a transactional logrec, and (b) the record's abort
+     * version was embedded in the BIN.
+     */
+    private boolean haveAbortCreationTime;
+
     /*
      * True if the logrec stores the before image which would be empty for 
      * inserts but non-empty for updates and deletes
@@ -436,6 +500,9 @@ public class LNLogEntry<T extends LN> extends BaseReplicableEntry<T> {
     /* Modification time as Java time in millis. */
     private long modificationTime;
 
+    /* Creation time as Java time in millis. */
+    private long creationTime;
+
     /* Whether the record is a tombstone. */
     private boolean tombstone;
 
@@ -448,6 +515,12 @@ public class LNLogEntry<T extends LN> extends BaseReplicableEntry<T> {
 
     /* Transient field for getUserKeyData. Is null if status is unknown. */
     private Boolean dupStatus;
+    
+    /* For cases when creationtime differs from the modification time like in
+     * the partition migration , where a update is actually insert to a new shard
+     * database
+     */
+    private boolean haveInsertsCreationTime;
 
     /**
      * Creates an instance to read an entry.
@@ -478,12 +551,14 @@ public class LNLogEntry<T extends LN> extends BaseReplicableEntry<T> {
         int abortExpiration,
         boolean abortExpirationInHours,
         long abortModificationTime,
+        long abortCreationTime,
         boolean abortTombstone,
         byte[] key,
         T ln,
         boolean embeddedLN,
         int expiration,
         boolean expirationInHours,
+        long creationTime,
         long modificationTime,
         boolean tombstone,
         boolean blindDeletion,
@@ -502,6 +577,7 @@ public class LNLogEntry<T extends LN> extends BaseReplicableEntry<T> {
         this.abortExpiration = abortExpiration;
         this.abortExpirationInHours = abortExpirationInHours;
         this.abortModificationTime = abortModificationTime;
+        this.abortCreationTime = abortCreationTime;
         this.abortTombstone = abortTombstone;
         this.enableBeforeImage = enableBeforeImage;
 
@@ -512,12 +588,17 @@ public class LNLogEntry<T extends LN> extends BaseReplicableEntry<T> {
         haveAbortExpiration = (abortExpiration != 0);
         haveExpiration = (expiration != 0);
         haveAbortModificationTime = (abortModificationTime != 0);
+        haveAbortCreationTime = (abortCreationTime != 0);
+        haveInsertsCreationTime = (LogEntryType
+                .isExplicitCreateTimeInsertLNType(entryType.getTypeNum()))
+                && (creationTime != modificationTime);
 
         this.embeddedLN = embeddedLN;
         this.key = key;
         this.ln = ln;
         this.expiration = expiration;
         this.expirationInHours = expirationInHours;
+        this.creationTime = creationTime;
         this.modificationTime = modificationTime;
         this.tombstone = tombstone;
         this.blindDeletion = blindDeletion;
@@ -551,6 +632,7 @@ public class LNLogEntry<T extends LN> extends BaseReplicableEntry<T> {
         abortExpiration = 0;
         abortExpirationInHours = false;
         abortModificationTime = 0;
+        abortCreationTime = 0;
         abortTombstone = false;
 
         haveAbortLSN = false;
@@ -560,6 +642,7 @@ public class LNLogEntry<T extends LN> extends BaseReplicableEntry<T> {
         haveAbortExpiration = false;
         haveExpiration = false;
         haveAbortModificationTime = false;
+        haveAbortCreationTime = false;
         havePriorSize = false;
         havePriorFile = false;
 
@@ -568,13 +651,15 @@ public class LNLogEntry<T extends LN> extends BaseReplicableEntry<T> {
         ln = null;
         expiration = 0;
         expirationInHours = false;
+        creationTime = 0;
         modificationTime = 0;
         tombstone = false;
         blindDeletion = false;
         priorSize = 0;
         priorFile = DbLsn.MAX_FILE_NUM;
-
         dupStatus = null;
+        
+        haveInsertsCreationTime = false;
     }
 
     /**
@@ -592,6 +677,7 @@ public class LNLogEntry<T extends LN> extends BaseReplicableEntry<T> {
 
         lnInfo.databaseId = getDbId().getId();
         lnInfo.transactionId = (txn != null) ? txn.getId() : -1;
+        lnInfo.creationTime = getCreationTime();
         lnInfo.modificationTime = getModificationTime();
         lnInfo.tombstone = isTombstone();
         lnInfo.data = ln.getData();
@@ -627,7 +713,11 @@ public class LNLogEntry<T extends LN> extends BaseReplicableEntry<T> {
         if (logVersion >= 12) {
             byte flags = buffer.get();
             byte flags2 = (logVersion >= 16) ? buffer.get() : (byte) 0;
-            flag.setFlags(flags,flags2);
+            byte flags3 = (logVersion >= LogEntryType.LOG_VERSION_CREATION_TIME)
+                    ? buffer.get()
+                    : (byte) 0;
+
+            flag.setFlags(flags, flags2, flags3);
         }
 
         lnInfo.databaseId = LogUtils.readPackedLong(buffer);
@@ -637,7 +727,19 @@ public class LNLogEntry<T extends LN> extends BaseReplicableEntry<T> {
             if (flag.haveExpiration) {
                 LogUtils.readPackedInt(buffer);
             }
+
             lnInfo.modificationTime = LogUtils.readPackedLong(buffer);
+            if (logVersion >= LogEntryType.LOG_VERSION_CREATION_TIME && LogEntryType
+                .isExplicitCreateTimeLNType(header.getType())) {
+                lnInfo.creationTime = LogUtils.readPackedLong(buffer);
+            } else if (logVersion >= LogEntryType.LOG_VERSION_CREATION_TIME &&
+                flag.haveInsertsCreationTime) {
+                lnInfo.creationTime = LogUtils.readPackedLong(buffer);
+            } else {
+                //for older version logs and inserts
+                lnInfo.creationTime = WriteOptions.CREATION_TIME_NOT_SET;
+            }
+
             lnInfo.key = buffer.array();
 
             /*
@@ -671,13 +773,13 @@ public class LNLogEntry<T extends LN> extends BaseReplicableEntry<T> {
                  * flag.haveAbortLSN is not used from here,
                  * so no need to change it as readBaseLNEntry does
                  */
-                flag.setFlags(buffer.get(), (byte) 0);
+                flag.setFlags(buffer.get(), (byte) 0, (byte) 0);
             }
 
             lnInfo.transactionId = LogUtils.readPackedLong(buffer);
             LogUtils.readPackedLong(buffer);
         } else if (logVersion == 11) {
-            flag.setFlags(buffer.get(), (byte) 0);
+            flag.setFlags(buffer.get(), (byte) 0, (byte) 0);
         }
 
         if (logVersion >= 11) {
@@ -700,6 +802,12 @@ public class LNLogEntry<T extends LN> extends BaseReplicableEntry<T> {
 
         if (logVersion >= 19) {
             if (flag.haveAbortModificationTime) {
+                LogUtils.readPackedLong(buffer);
+            }
+        }
+
+        if (logVersion >= LogEntryType.LOG_VERSION_CREATION_TIME) {
+            if (flag.haveAbortCreationTime) {
                 LogUtils.readPackedLong(buffer);
             }
         }
@@ -743,7 +851,6 @@ public class LNLogEntry<T extends LN> extends BaseReplicableEntry<T> {
         }
 
         lnInfo.tombstone = flag.tombstone;
-
         buffer.position(recStartPosition);
     }
 
@@ -756,12 +863,15 @@ public class LNLogEntry<T extends LN> extends BaseReplicableEntry<T> {
         boolean haveAbortVLSN = false;
         boolean haveAbortExpiration = false;
         boolean haveAbortModificationTime = false;
+        boolean haveAbortCreationTime = false;
         boolean enableBeforeImage = false;
         boolean havePriorSize = false;
         boolean havePriorFile = false;
         boolean tombstone = false;
+        boolean haveInsertsCreationTime = false;
 
-        public void setFlags(byte flags, byte flags2) {
+
+        public void setFlags(byte flags, byte flags2, byte flags3) {
             haveExpiration = ((flags & HAVE_EXPIRATION_MASK) != 0);
             haveAbortLSN = ((flags & HAVE_ABORT_LSN_MASK) != 0);
             haveAbortKey = ((flags & HAVE_ABORT_KEY_MASK) != 0);
@@ -772,10 +882,14 @@ public class LNLogEntry<T extends LN> extends BaseReplicableEntry<T> {
             havePriorSize = ((flags2 & HAVE_PRIOR_SIZE_MASK) != 0);
             havePriorFile = ((flags2 & HAVE_PRIOR_FILE_MASK) != 0);
             haveAbortModificationTime =
-                    ((flags2 & HAVE_ABORT_MODIFICATION_TIME_MASK) != 0);
+                ((flags2 & HAVE_ABORT_MODIFICATION_TIME_MASK) != 0);
+            haveAbortCreationTime =
+                ((flags2 & HAVE_ABORT_CREATION_TIME_MASK) != 0);
             enableBeforeImage =
                     ((flags2 & ENABLE_BEFORE_IMAGE_MASK) != 0);
             tombstone = ((flags2 & TOMBSTONE_MASK) != 0);
+            haveInsertsCreationTime = ((flags3
+                    & HAVE_INSERTS_CREATION_TIME_MASK) != 0);     
         }
     }
 
@@ -823,7 +937,11 @@ public class LNLogEntry<T extends LN> extends BaseReplicableEntry<T> {
         if (logVersion >= 12) {
             byte flags = entryBuffer.get();
             byte flags2 = (logVersion >= 16) ? entryBuffer.get() : (byte) 0;
-            setFlags(flags, flags2);
+            byte flags3 = (logVersion >= LogEntryType.LOG_VERSION_CREATION_TIME)
+                    ? entryBuffer.get()
+                    : (byte) 0;
+
+            setFlags(flags, flags2, flags3);
         }
 
         ln = newInstanceOfType();
@@ -839,7 +957,17 @@ public class LNLogEntry<T extends LN> extends BaseReplicableEntry<T> {
                     expirationInHours = true;
                 }
             }
-            modificationTime = LogUtils.readPackedLong(entryBuffer);
+			modificationTime = LogUtils.readPackedLong(entryBuffer);
+            if (logVersion >= LogEntryType.LOG_VERSION_CREATION_TIME &&
+                LogEntryType.isExplicitCreateTimeLNType(header.getType())) {
+                creationTime = LogUtils.readPackedLong(entryBuffer);
+            } else if (logVersion >= LogEntryType.LOG_VERSION_CREATION_TIME &&
+                    haveInsertsCreationTime) {
+                creationTime = LogUtils.readPackedLong(entryBuffer);
+            } else {
+                creationTime = WriteOptions.CREATION_TIME_NOT_SET;
+            }
+
             key = LogUtils.readByteArray(entryBuffer);
             ln.readFromLog(envImpl, entryBuffer, logVersion);
         }
@@ -859,7 +987,7 @@ public class LNLogEntry<T extends LN> extends BaseReplicableEntry<T> {
             }
 
             if (logVersion < 12) {
-                setFlags(entryBuffer.get(), (byte) 0);
+                setFlags(entryBuffer.get(), (byte) 0, (byte) 0);
                 haveAbortLSN = (abortLsn != DbLsn.NULL_LSN);
             }
 
@@ -867,7 +995,7 @@ public class LNLogEntry<T extends LN> extends BaseReplicableEntry<T> {
             txn.readFromLog(envImpl, entryBuffer, logVersion);
 
         } else if (logVersion == 11) {
-            setFlags(entryBuffer.get(), (byte) 0);
+            setFlags(entryBuffer.get(), (byte) 0, (byte) 0);
         }
 
         if (logVersion >= 11) {
@@ -895,6 +1023,12 @@ public class LNLogEntry<T extends LN> extends BaseReplicableEntry<T> {
         if (logVersion >= 19) {
             if (haveAbortModificationTime) {
                 abortModificationTime = LogUtils.readPackedLong(entryBuffer);
+            }
+        }
+
+        if (logVersion >= LogEntryType.LOG_VERSION_CREATION_TIME) {
+            if (haveAbortCreationTime) {
+                abortCreationTime = LogUtils.readPackedLong(entryBuffer);
             }
         }
 
@@ -931,6 +1065,8 @@ public class LNLogEntry<T extends LN> extends BaseReplicableEntry<T> {
 
         /* Save cached values after read. */
         ln.setModificationTime(modificationTime);
+        ln.setCreationTime(creationTime);
+
         ln.setVLSNSequence(
             (header.getVLSN() != INVALID_VLSN) ?
                 header.getVLSN() : NULL_VLSN);
@@ -938,7 +1074,7 @@ public class LNLogEntry<T extends LN> extends BaseReplicableEntry<T> {
         dupStatus = null;
     }
 
-    private void setFlags(final byte flags, final byte flags2) {
+    private void setFlags(final byte flags, final byte flags2, final byte flags3) {
 
         /* First flags byte. */
         embeddedLN = ((flags & EMBEDDED_LN_MASK) != 0);
@@ -958,8 +1094,12 @@ public class LNLogEntry<T extends LN> extends BaseReplicableEntry<T> {
         abortTombstone = ((flags2 & ABORT_TOMBSTONE_MASK) != 0);
         haveAbortModificationTime =
             ((flags2 & HAVE_ABORT_MODIFICATION_TIME_MASK) != 0);
+        haveAbortCreationTime =
+            ((flags2 & HAVE_ABORT_CREATION_TIME_MASK) != 0);
         enableBeforeImage =
                 ((flags2 & ENABLE_BEFORE_IMAGE_MASK) != 0);
+        haveInsertsCreationTime = 
+                ((flags3 & HAVE_INSERTS_CREATION_TIME_MASK) != 0);
     }
 
     @Override
@@ -1027,6 +1167,18 @@ public class LNLogEntry<T extends LN> extends BaseReplicableEntry<T> {
             sb.append("<blindDeletion/>");
         }
 
+        if (creationTime != 0) {
+            sb.append("<creationTime val=\"");
+            sb.append(StatUtils.getDate(creationTime));
+            sb.append("\"/>");
+        }
+
+        if (haveInsertsCreationTime) {
+            sb.append("<creationTime val=\"");
+            sb.append("differs from modification time for inserts");
+            sb.append("\"/>");
+        }
+        
         if (modificationTime != 0) {
             sb.append("<modTime val=\"");
             sb.append(StatUtils.getDate(modificationTime));
@@ -1093,6 +1245,11 @@ public class LNLogEntry<T extends LN> extends BaseReplicableEntry<T> {
                 sb.append(StatUtils.getDate(abortModificationTime));
                 sb.append("\"/>");
             }
+            if (haveAbortCreationTime) {
+                sb.append("<abortCreationTime val=\"");
+                sb.append(StatUtils.getDate(abortCreationTime));
+                sb.append("\"/>");
+            }
             
             if (enableBeforeImage) {
                 sb.append("<beforeImageEnabled=\"");
@@ -1100,6 +1257,7 @@ public class LNLogEntry<T extends LN> extends BaseReplicableEntry<T> {
                 sb.append("\"/>");
             }
         }
+        
 
         return sb;
     }
@@ -1178,6 +1336,10 @@ public class LNLogEntry<T extends LN> extends BaseReplicableEntry<T> {
         if (logVersion >= 16) {
             size += 1;   // flags2
         }
+        
+        if (logVersion >= LogEntryType.LOG_VERSION_CREATION_TIME) {
+            size += 1;   // flags3
+        }
 
         if (entryType.isTransactional()) {
             if (logVersion < 12 || (haveAbortLSN && !forReplication)) {
@@ -1219,6 +1381,11 @@ public class LNLogEntry<T extends LN> extends BaseReplicableEntry<T> {
                         abortModificationTime);
                 }
             }
+            if (logVersion >= LogEntryType.LOG_VERSION_CREATION_TIME) {
+                if (haveAbortCreationTime) {
+                    size += LogUtils.getPackedLongLogSize(abortCreationTime);
+                }
+            }
         }
 
         if (logVersion >= 12) {
@@ -1228,6 +1395,13 @@ public class LNLogEntry<T extends LN> extends BaseReplicableEntry<T> {
             }
         }
 
+        if (logVersion >= LogEntryType.LOG_VERSION_CREATION_TIME &&
+            LogEntryType.isExplicitCreateTimeLNType(entryType.getTypeNum())) {
+            size += LogUtils.getPackedLongLogSize(creationTime);
+        } else if (logVersion >= LogEntryType.LOG_VERSION_CREATION_TIME
+                && haveInsertsCreationTime) {
+            size += LogUtils.getPackedLongLogSize(creationTime);
+        }
         return size;
     }
 
@@ -1264,6 +1438,8 @@ public class LNLogEntry<T extends LN> extends BaseReplicableEntry<T> {
          */
         byte flags = 0;
         byte flags2 = 0;
+        byte flags3 = 0;
+
 
         if (entryType.isTransactional() &&
             (logVersion < 12 || !forReplication)) {
@@ -1312,6 +1488,11 @@ public class LNLogEntry<T extends LN> extends BaseReplicableEntry<T> {
                     flags2 |= ABORT_TOMBSTONE_MASK;
                 }
             }
+            if (logVersion >= LogEntryType.LOG_VERSION_CREATION_TIME) {
+                if (haveAbortCreationTime) {
+                    flags2 |= HAVE_ABORT_CREATION_TIME_MASK;
+                }
+            }
         }
 
         if (logVersion >= 19) {
@@ -1331,6 +1512,12 @@ public class LNLogEntry<T extends LN> extends BaseReplicableEntry<T> {
                 flags2 |= ENABLE_BEFORE_IMAGE_MASK;
             }
         }
+        
+        if (logVersion >= LogEntryType.LOG_VERSION_CREATION_TIME) {
+            if (haveInsertsCreationTime) {
+                flags3 |= HAVE_INSERTS_CREATION_TIME_MASK;
+            }
+        }
 
         if (logVersion >= 12) {
             if (haveExpiration) {
@@ -1342,6 +1529,10 @@ public class LNLogEntry<T extends LN> extends BaseReplicableEntry<T> {
         if (logVersion >= 16) {
             destBuffer.put(flags2);
         }
+        
+        if (logVersion >= LogEntryType.LOG_VERSION_CREATION_TIME) {
+            destBuffer.put(flags3);
+        }
 
         dbId.writeToLog(destBuffer, logVersion, forReplication);
 
@@ -1352,6 +1543,15 @@ public class LNLogEntry<T extends LN> extends BaseReplicableEntry<T> {
                     expirationInHours ? (-expiration) : expiration);
             }
             LogUtils.writePackedLong(destBuffer, modificationTime);
+            if (logVersion >= LogEntryType.LOG_VERSION_CREATION_TIME
+                && LogEntryType.isExplicitCreateTimeLNType(
+                    entryType.getTypeNum())) {
+                LogUtils.writePackedLong(destBuffer, creationTime);
+            } else if (logVersion >= LogEntryType.LOG_VERSION_CREATION_TIME 
+                    && haveInsertsCreationTime) {
+                LogUtils.writePackedLong(destBuffer, creationTime);
+            }
+
             LogUtils.writeByteArray(destBuffer, key);
             ln.writeToLog(destBuffer, logVersion, forReplication);
         }
@@ -1396,6 +1596,12 @@ public class LNLogEntry<T extends LN> extends BaseReplicableEntry<T> {
                 if (haveAbortModificationTime) {
                     LogUtils.writePackedLong(
                         destBuffer, abortModificationTime);
+                }
+            }
+            if (logVersion >= LogEntryType.LOG_VERSION_CREATION_TIME) {
+                if (haveAbortCreationTime) {
+                    LogUtils.writePackedLong(
+                        destBuffer, abortCreationTime);
                 }
             }
         }
@@ -1457,6 +1663,7 @@ public class LNLogEntry<T extends LN> extends BaseReplicableEntry<T> {
         }
 
         /* Save cached values after write. */
+        ln.setCreationTime(creationTime);
         ln.setModificationTime(modificationTime);
         ln.setVLSNSequence(
             (vlsn != INVALID_VLSN) ? vlsn : NULL_VLSN);
@@ -1572,6 +1779,17 @@ public class LNLogEntry<T extends LN> extends BaseReplicableEntry<T> {
     }
 
     /**
+     * Returns the LN's creation time, or zero if the LN belongs to a
+     * secondary (duplicates) database or was originally written using JE 25.1
+     * or earlier.
+     *
+     * @since 25.2
+     */
+    public long getCreationTime() {
+        return creationTime;
+    }
+
+    /**
      * Returns the tombstone property of the record.
      *
      * @see <a href="../../WriteOptions.html#tombstones">Tombstones</a>
@@ -1674,6 +1892,10 @@ public class LNLogEntry<T extends LN> extends BaseReplicableEntry<T> {
 
     public long getAbortModificationTime() {
         return abortModificationTime;
+    }
+
+    public long getAbortCreationTime() {
+        return abortCreationTime;
     }
 
     public boolean getAbortTombstone() {

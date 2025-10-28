@@ -1,7 +1,7 @@
 delete from boo $f
 where index_storage_size($f, "idx_state_city_age") > 40
 returning id,
-          (row_storage_size($f) / 10) * 10 as row_size,
+          (row_storage_size($f) >= 319 and row_storage_size($f) <= 457) as row_size,
           index_storage_size($f, "idx_state_city_age") as isize_sca,
           index_storage_size($f, "idx_city_phones") as isize_cp,
           partition($f) as part,

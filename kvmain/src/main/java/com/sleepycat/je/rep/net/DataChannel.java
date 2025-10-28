@@ -26,6 +26,8 @@ import java.nio.channels.SocketChannel;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 
+import com.sleepycat.je.rep.subscription.StreamAuthenticator;
+
 /**
  * An interface that associates a delegate socketChannel for network I/O, which
  * provides ByteChannel, GatheringByteChannel, and ScatteringByteChannel,
@@ -310,5 +312,33 @@ public interface DataChannel extends ByteChannel,
      * @return the future completed when the task completes
      */
     CompletableFuture<Void> executeTasks(ExecutorService executor);
+
+    /**
+     * Sets stream authenticator for the channel
+     * @param authenticator stream authenticator
+     */
+    void setStreamAuthenticator(StreamAuthenticator authenticator);
+
+    /**
+     * Gets a channel stream authenticator, or null if not available
+     * @return a chanenel stream authenticator, or null
+     */
+    StreamAuthenticator getStreamAuthenticator();
+
+    /**
+     * Returns a channel ID
+     * @return channel ID
+     */
+    String getChannelId();
+
+    /**
+     * Helper method, return true if the data channel needs security check,
+     * false otherwise
+     * @param channel data channel
+     * @return  true if the data channel needs security check
+     */
+    static boolean needSecurityCheck(DataChannel channel) {
+        return channel.isTrustCapable() && !channel.isTrusted();
+    }
 }
 

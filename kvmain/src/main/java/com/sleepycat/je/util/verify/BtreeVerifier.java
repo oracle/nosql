@@ -737,6 +737,7 @@ public class BtreeVerifier implements BtreeVerifyContext {
                         if (checkPriToSecRefs && !result.isTombstone()) {
                             verifyPriToSecRefs(
                                 priDb, cursor, keyEntry, dataEntry,
+                                result.getCreationTime(),
                                 result.getModificationTime(),
                                 result.getExpirationTime(),
                                 result.getStorageSize(),
@@ -1689,6 +1690,7 @@ public class BtreeVerifier implements BtreeVerifyContext {
         final Cursor cursor,
         final DatabaseEntry key,
         final DatabaseEntry data,
+        final long creationTime,
         final long modificationTime,
         final long expirationTime,
         final int storageSize,
@@ -1756,7 +1758,7 @@ public class BtreeVerifier implements BtreeVerifyContext {
                 }
 
                 if (!checkSecondaryKeysExist(
-                    priDb, secDb, key, data,
+                    priDb, secDb, key, data, creationTime,
                     modificationTime, expirationTime, storageSize,
                     dbCache, secAssoc,
                     DbInternal.getCursorImpl(cursor))) {
@@ -1780,6 +1782,7 @@ public class BtreeVerifier implements BtreeVerifyContext {
         final SecondaryDatabase secDb,
         final DatabaseEntry priKey,
         final DatabaseEntry priData,
+        final long creationTime,
         final long modificationTime,
         final long expirationTime,
         final int storageSize,
@@ -1818,7 +1821,7 @@ public class BtreeVerifier implements BtreeVerifyContext {
 
             DatabaseEntry secKey = new DatabaseEntry();
             if (!keyCreator.createSecondaryKey(
-                    secDb, priKey, priData,
+                    secDb, priKey, priData, creationTime,
                     modificationTime, expirationTime, storageSize, secKey)) {
                 /* This primary record has no secondary keys. */
                 return true;
@@ -1832,6 +1835,7 @@ public class BtreeVerifier implements BtreeVerifyContext {
 
         final Set<DatabaseEntry> secKeys = new HashSet<>();
         multiKeyCreator.createSecondaryKeys(secDb, priKey, priData,
+                                            creationTime,
                                             modificationTime,
                                             expirationTime,
                                             storageSize,

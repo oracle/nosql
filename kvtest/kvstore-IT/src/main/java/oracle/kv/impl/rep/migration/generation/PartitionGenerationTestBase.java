@@ -44,7 +44,7 @@ public class PartitionGenerationTestBase extends RepNodeTestBase {
     protected static final PartitionId p3 = new PartitionId(3);
     protected static final PartitionId p5 = new PartitionId(5);
     protected static final RepGroupId rg1 = new RepGroupId(1);
-    static final RepNodeId sourceId = new RepNodeId(1, 1);
+    protected static final RepNodeId sourceId = new RepNodeId(1, 1);
     protected static final RepNodeId targetId = new RepNodeId(2, 1);
     static final RepNodeId rg1Master = new RepNodeId(1, 1);
     static final RepNodeId rg2Master = new RepNodeId(2, 1);
@@ -133,15 +133,23 @@ public class PartitionGenerationTestBase extends RepNodeTestBase {
      * If the wait times out without reaching the state an assertion error
      * is thrown.
      */
-    void waitForMigrationState(RepNode rn,
-                               PartitionId pId,
-                               RepNodeAdmin.PartitionMigrationState st) {
-        boolean success = new PollCondition(1000, 30000) {
+    protected void waitForMigrationState(
+            RepNode rn,
+            PartitionId pId,
+            RepNodeAdmin.PartitionMigrationState st) {
+
+        final int[] timeElapsedMs = {0};
+        boolean success = new PollCondition(1000, 100000) {
 
             @Override
             protected boolean condition() {
                 final PartitionMigrationStatus status =
                     rn.getMigrationStatus(pId);
+                timeElapsedMs[0] += 1000;
+                if (timeElapsedMs[0] % 10000 == 0) {
+                    trace("Time elapsed in polling : " +
+                          timeElapsedMs[0] / 1000 + "s");
+                }
                 return status != null && status.getState().equals(st);
             }
         }.await();
@@ -154,7 +162,8 @@ public class PartitionGenerationTestBase extends RepNodeTestBase {
         assert (success);
     }
 
-    void waitForPartition(RepNode rn, PartitionId pId, boolean present) {
+    protected void waitForPartition(RepNode rn, PartitionId pId,
+                                    boolean present) {
         boolean success = new PollCondition(500, 15000) {
 
             @Override

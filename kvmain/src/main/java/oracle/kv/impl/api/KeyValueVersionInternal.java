@@ -34,8 +34,9 @@ public class KeyValueVersionInternal extends KeyValueVersion {
                                    final Value value,
                                    final Version version,
                                    final long expirationTime,
+                                   final long creationTime,
                                    final long modificationTime) {
-        super(key, value, version, modificationTime);
+        super(key, value, version, creationTime, modificationTime);
         this.expirationTime = expirationTime;
     }
 

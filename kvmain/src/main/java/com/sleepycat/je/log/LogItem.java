@@ -15,6 +15,7 @@ package com.sleepycat.je.log;
 
 import java.nio.ByteBuffer;
 
+import com.sleepycat.je.beforeimage.BeforeImageContext;
 import com.sleepycat.je.log.entry.ReplicableLogEntry;
 import com.sleepycat.je.utilint.DbLsn;
 
@@ -66,6 +67,7 @@ public class LogItem {
     ByteBuffer nonCachedBuffer = null;
 
     byte[] bImgData = null;
+    BeforeImageContext bImgCtx = null;
 
     public ByteBuffer getBuffer() {
         return (cachedBuffer != null) ?
@@ -74,6 +76,14 @@ public class LogItem {
 
     public void setBeforeImageData(byte[] bImgData) {
         this.bImgData = bImgData;
+    }
+
+    public void setBeforeImageCtx(BeforeImageContext bImgCtx) {
+        this.bImgCtx = bImgCtx;
+    }
+
+    public BeforeImageContext getBeforeImageCtx() {
+        return bImgCtx;
     }
 
     public byte[] getBeforeImageData() {

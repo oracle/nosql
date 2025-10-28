@@ -268,7 +268,12 @@ public abstract class PlanIter implements FastExternalizable {
         FUNC_LAST_DAY_OF_MONTH(84),
         FUNC_TIMESTAMP_BUCKET(85),
 
-        NESTED_LOOP_JOIN(86);
+        NESTED_LOOP_JOIN(86),
+        FUNC_ROW_METADATA(87),
+
+        FUNC_CREATION_TIME(88),
+        FUNC_CREATION_TIME_MILLIS(89);
+
 
         private static final PlanIterKind[] VALUES = values();
 
@@ -938,6 +943,12 @@ public abstract class PlanIter implements FastExternalizable {
         case FUNC_EXPIRATION_TIME_MILLIS:
             iter = new FuncExpirationTimeMillisIter(in, serialVersion);
             break;
+        case FUNC_CREATION_TIME:
+            iter = new FuncCreationTimeIter(in, serialVersion);
+            break;
+        case FUNC_CREATION_TIME_MILLIS:
+            iter = new FuncCreationTimeMillisIter(in, serialVersion);
+            break;
         case FUNC_CURRENT_TIME_MILLIS:
             iter = new FuncCurrentTimeMillisIter(in, serialVersion);
             break;
@@ -1081,6 +1092,9 @@ public abstract class PlanIter implements FastExternalizable {
             break;
         case NESTED_LOOP_JOIN:
             iter = new NestedLoopJoinIter(in, serialVersion);
+            break;
+        case FUNC_ROW_METADATA:
+            iter = new FuncRowMetadataIter(in, serialVersion);
             break;
         default:
             throw new IllegalArgumentException(

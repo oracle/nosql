@@ -49,6 +49,13 @@ public class LNEntryInfo {
     public long modificationTime;
 
     /**
+     * The last creation time of the log entry, or zero if the LN belongs
+     * to a secondary (duplicates) database or was originally written using
+     * JE 25.2 or earlier.
+     */
+	public long creationTime;
+
+    /**
      * The tombstone property of the record.
      */
     public boolean tombstone;
@@ -82,6 +89,8 @@ public class LNEntryInfo {
      * The length of the data in the array.
      */
     public int dataLength;
+
+
 
     public void getKey(final DatabaseEntry entry) {
         entry.setData(key, keyOffset, keyLength);

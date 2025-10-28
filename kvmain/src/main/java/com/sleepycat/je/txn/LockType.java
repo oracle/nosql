@@ -25,16 +25,23 @@ public class LockType {
      * below.
      */
     public static final LockType READ =
-        new LockType(0, false, "READ");
+        new LockType(0, false, "READ", false);
     public static final LockType WRITE =
-        new LockType(1, true, "WRITE");
+        new LockType(1, true, "WRITE", false);
+    /*
+     * WRITE_RMW is used for LockMode.RMW and is identical to WRITE
+     * except its abort LSN is not made obsolete when the transaction
+     * commits.
+     */
+    public static final LockType WRITE_RMW =
+        new LockType(1, true, "WRITE_RMW", true);
 
     /**
      * NONE is used for requesting a dirty read and does not appear in the
      * conflict or upgrade matrices.
      */
     public static final LockType NONE =
-        new LockType(2, false, "NONE");
+        new LockType(2, false, "NONE", false);
 
     /**
      * Lock conflict matrix.
@@ -66,17 +73,19 @@ public class LockType {
         },
     };
 
-    private int index;
-    private boolean write;
-    private String name;
+    final private int index;
+    final private boolean write;
+    final private String name;
+    final private boolean rmw;
 
     /**
      * No lock types can be defined outside this class.
      */
-    private LockType(int index, boolean write, String name) {
+    private LockType(int index, boolean write, String name, boolean rmw) {
         this.index = index;
         this.write = write;
         this.name = name;
+        this.rmw = rmw;
     }
 
     /**
@@ -86,6 +95,13 @@ public class LockType {
      */
     public final boolean isWriteLock() {
         return write;
+    }
+
+    /**
+     * Returns if this is a WRITE lock gotten on a read using the LockMode.RMW.
+     */
+    public final boolean isRMW() {
+        return rmw;
     }
 
     /**

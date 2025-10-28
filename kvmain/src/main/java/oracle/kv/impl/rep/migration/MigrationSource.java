@@ -147,6 +147,18 @@ public class MigrationSource implements Runnable {
     private final static long WAIT_PENDING_OPS_TIMEOUT_MS = 10 * 60 * 1000;
 
     /**
+     * Test hook that throws an IOException before sending the EOD,
+     * setting the target migration state to ERROR.
+     */
+    public static TestHook<PartitionId> eodSendFailureHook = null;
+
+    /**
+     * Test hook to inhibit calling manager.monitorTarget() to cancel
+     * initialising the TargetMonitorExecutor in persistTransferComplete.
+     */
+    public static TestHook<PartitionId> noMonitorTargetHook = null;
+
+    /**
      * Test hook that can wait to simulate waiting for pending operations
      * with no-op stream migration handler to complete.
      */
@@ -492,6 +504,7 @@ public class MigrationSource implements Runnable {
                          * is updated in transferComplete(). KVSTORE-1244
                          */
                         lastKey = null;
+                        sendLastRecordMarker();
                     }
 
                     /*
@@ -534,6 +547,17 @@ public class MigrationSource implements Runnable {
             }
             migrationDone = true;
             executingThread = null;
+        }
+    }
+
+    private void sendLastRecordMarker() {
+        try {
+            writeOp(OP.LAST_RECORD_MARKER);
+            logger.log(Level.INFO,
+                       "Sent last record marker for {0}", partitionId);
+            stream.flush();
+        } catch (IOException ioe) {
+            error(ioe);
         }
     }
 
@@ -658,6 +682,10 @@ public class MigrationSource implements Runnable {
             endVLSNSeq = pgt.getLastVLSN();
             genNum = pg.getGenNum().getNumber();
         }
+
+        /* run test hook in unit test only */
+        assert TestHookExecute.doHookIfSet(eodSendFailureHook, partitionId);
+
         sendEOD(endVLSNSeq, genNum);
 
         if (eod /* eod successfully sent */ &&
@@ -713,12 +741,14 @@ public class MigrationSource implements Runnable {
             assert !result.isTombstone();
             sendCopy(key, value,
                     getVLSNFromCursor(cursor, false),
+                    0L /*creationTime*/,
                     0L /*modificationTime*/,
                     result.getExpirationTime(),
                     false /*isTombstone*/);
         } else {
             sendCopy(key, value,
                      0L /*vlsn*/,
+                     result.getCreationTime(),
                      result.getModificationTime(),
                      result.getExpirationTime(),
                      result.isTombstone());
@@ -731,6 +761,7 @@ public class MigrationSource implements Runnable {
     private void sendCopy(DatabaseEntry key,
                           DatabaseEntry value,
                           long vlsn,
+                          long creationTime,
                           long modificationTime,
                           long expirationTime,
                           boolean isTombstone) {
@@ -739,6 +770,7 @@ public class MigrationSource implements Runnable {
             writeOp(OP.COPY);
             writeDbEntry(key);
             writeDbEntry(value);
+            writeCreationTime(creationTime);
             writeModificationTime(modificationTime);
             writeExpirationTime(expirationTime);
             writeTombstoneFlag(isTombstone);
@@ -798,6 +830,7 @@ public class MigrationSource implements Runnable {
                                  DatabaseEntry key,
                                  DatabaseEntry value,
                                  long vlsn,
+                                 long creationTime,
                                  long modificationTime,
                                  long expirationTime,
                                  boolean isTombstone) {
@@ -813,6 +846,7 @@ public class MigrationSource implements Runnable {
             writeOp(OP.PUT, txnId);
             writeDbEntry(key);
             writeDbEntry(value);
+            writeCreationTime(creationTime);
             writeModificationTime(modificationTime);
             writeExpirationTime(expirationTime);
             writeTombstoneFlag(isTombstone);
@@ -1061,6 +1095,14 @@ public class MigrationSource implements Runnable {
         stream.writeLong(expTime);
     }
 
+    private void writeCreationTime(long creationTime) throws IOException {
+        assert Thread.holdsLock(this);
+        /* creation time only needed for migration */
+        if (!transferOnly) {
+            stream.writeLong(creationTime);
+        }
+    }
+
     private void writeModificationTime(long modificationTime) throws IOException {
         assert Thread.holdsLock(this);
         /* modification time only need for migration */
@@ -1071,7 +1113,7 @@ public class MigrationSource implements Runnable {
 
     private void writeTombstoneFlag(boolean isTombstone) throws IOException {
         assert Thread.holdsLock(this);
-        /* Only write the tombstone flag duing migration */
+        /* Only write the tombstone flag during migration */
         if (!transferOnly) {
             stream.writeBoolean(isTombstone);
         }
@@ -1135,6 +1177,12 @@ public class MigrationSource implements Runnable {
          * operations no longer access the local partition DB.
          */
         manager.criticalUpdate();
+
+        /* run test hook in unit test only */
+        assert TestHookExecute.doHookIfSet(noMonitorTargetHook, partitionId);
+        if (noMonitorTargetHook != null) {
+            return true;
+        }
 
         /*
          * Now that the record has been persisted and the local topology

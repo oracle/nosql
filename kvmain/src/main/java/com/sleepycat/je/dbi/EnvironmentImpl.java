@@ -939,7 +939,10 @@ public class EnvironmentImpl implements EnvConfigObserver {
             open();
 
             runOrPauseDaemons(configManager);
-            beforeImageIndex = new BeforeImageIndex(this);
+            if (DbInternal.getBImgIdx(envConfig)) {
+                beforeImageIndex = new BeforeImageIndex(this);
+            }
+
             success = true;
         } finally {
             if (!success) {
@@ -3461,7 +3464,7 @@ public class EnvironmentImpl implements EnvConfigObserver {
                    VersionMismatchException,
                    DatabaseException,
                    IllegalArgumentException {
-            super(envHome, configuration, null /*repConfig*/, envImpl);
+            super(envHome, configuration, null /*repConfig*/, envImpl, false);
         }
 
         @Override

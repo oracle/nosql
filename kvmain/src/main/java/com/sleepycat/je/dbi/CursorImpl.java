@@ -16,6 +16,8 @@ package com.sleepycat.je.dbi;
 import static com.sleepycat.je.EnvironmentFailureException.assertState;
 import static com.sleepycat.je.utilint.VLSN.NULL_VLSN;
 
+import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -23,7 +25,6 @@ import java.util.logging.Level;
 
 import com.sleepycat.je.beforeimage.BeforeImageContext;
 import com.sleepycat.je.beforeimage.BeforeImageLN;
-import com.sleepycat.je.beforeimage.BeforeImageIndex;
 import com.sleepycat.je.beforeimage.BeforeImageIndex.DBEntry;
 import com.sleepycat.je.beforeimage.BeforeImageIndex.BeforeImagePayLoad;
 import com.sleepycat.je.CacheMode;
@@ -41,6 +42,8 @@ import com.sleepycat.je.log.LogItem;
 import com.sleepycat.je.log.LogUtils;
 import com.sleepycat.je.log.ReplicationContext;
 import com.sleepycat.je.log.entry.LNLogEntry;
+import com.sleepycat.je.log.WholeEntry;
+import com.sleepycat.je.log.ErasedException;
 import com.sleepycat.je.tree.BIN;
 import com.sleepycat.je.tree.BINBoundary;
 import com.sleepycat.je.tree.IN;
@@ -58,6 +61,7 @@ import com.sleepycat.je.txn.LockManager;
 import com.sleepycat.je.txn.LockResult;
 import com.sleepycat.je.txn.LockType;
 import com.sleepycat.je.txn.Locker;
+import com.sleepycat.je.txn.Txn;
 import com.sleepycat.je.txn.LockerFactory;
 import com.sleepycat.je.txn.WriteLockInfo;
 import com.sleepycat.je.util.TimeSupplier;
@@ -156,6 +160,8 @@ public class CursorImpl implements Cloneable {
     private ThreadLocal<TreeWalkerStatsAccumulator> treeStatsAccumulatorTL;
 
     private TestHook<?> testHook;
+
+    private volatile TestHook<?> fileNotFoundExpHook;
 
     /**
      * Creates a cursor with retainNonTxnLocks=true, isSecondaryCursor=false.
@@ -1115,7 +1121,7 @@ public class CursorImpl implements Cloneable {
 
                 final LogItem logItem = ln.log(
                     envImpl, dbImpl, locker, wli, false /*newEmbeddedLN*/,
-                    key, expiration, expirationInHours,
+                    key, expiration, expirationInHours, 0L /*creation time*/,
                     0L /*modificationTime*/, false /*newTombstone*/,
                     true /*newBlindDeletion*/, false /*currEmbeddedLN*/,
                     DbLsn.NULL_LSN /*currLsn*/, 0 /*currSize*/,
@@ -1138,7 +1144,7 @@ public class CursorImpl implements Cloneable {
 
                 return DbInternal.makeResult(
                     expiration, expirationInHours, false /*update*/,
-                    0L /*modificationTime*/,
+                    0L/*creationTime*/, 0L /*modificationTime*/,
                     getStorageSize(),
                     false /*tombstone*/);
 
@@ -1209,6 +1215,7 @@ public class CursorImpl implements Cloneable {
             final byte[] currKey = bin.getKey(index);
             byte[] currData = null;
             long bImgModTime = 0L;
+            long creationTime = 0L;
             final int expiration = bin.getExpiration(index);
             final boolean expirationInHours = bin.isExpirationInHours();
 
@@ -1216,7 +1223,7 @@ public class CursorImpl implements Cloneable {
              * Must fetch LN if the LN is not embedded and any of the following
              * are true:
              *  - CLEANER_FETCH_OBSOLETE_SIZE is configured and lastLoggedSize
-             *    is ucurrEmbeddedLNnknown
+             *    is unknown
              *  - this database does not use the standard LN class and we
              *    cannot call DbType.createdDeletedLN further below
              * For other cases, we are careful not to fetch, in order to avoid
@@ -1227,25 +1234,33 @@ public class CursorImpl implements Cloneable {
             if ((currLoggedSize == 0 &&
                  !currEmbeddedLN &&
                  envImpl.getCleaner().getFetchObsoleteSize(dbImpl)) ||
-                !dbType.mayCreateDeletedLN()) {
+                !dbType.mayCreateDeletedLN() ||
+                (!dbType.isInternal() && (!bin.isEmbeddedLN(index)
+                        && !dbImpl.isLNImmediatelyObsolete()))) {
 
                 ln = bin.fetchLN(index, cacheMode);
                 currData = (ln != null ? ln.getData() : null);
                 bImgModTime = (ln != null) ? ln.getModificationTime() : 0L;
+                creationTime = (ln != null) ? ln.getCreationTime() : 0L;
+
 
                 if (ln == null) {
                     /* An expired LN was purged. */
                     revertLock(lockStanding);
                     success = true;
-
                     return null;
                 }
             } else {
                 ln = bin.getLN(index, cacheMode);
                 currData = (ln != null ? ln.getData() : null);
                 bImgModTime = (ln != null) ? ln.getModificationTime() : 0L;
+                if (currEmbeddedLN) {
+                    creationTime = bin.getCreationTime(index);
+                } else {
+                    creationTime = (ln != null) ? ln.getCreationTime() : 0L;
+                }
             }
-            
+            long oldLNMemSize = 0;
             /*
              * BeforeImage Support during delete
              */
@@ -1260,6 +1275,7 @@ public class CursorImpl implements Cloneable {
                         // the current LN
 
                         LN lnTemp = bin.fetchLN(index, cacheMode);
+                        oldLNMemSize = lnTemp.getMemorySizeIncludedByParent();
                         currData = (lnTemp != null ? lnTemp.getData() : null);
                         bImgModTime = (lnTemp != null)
                             ? lnTemp.getModificationTime()
@@ -1273,7 +1289,6 @@ public class CursorImpl implements Cloneable {
              * deleted LN (with ln.data == null), but do not attach it to the
              * tree yet.
              */
-            long oldLNMemSize = 0;
             if (ln != null) {
                 oldLNMemSize = ln.getMemorySizeIncludedByParent();
                 ln.delete();
@@ -1282,7 +1297,8 @@ public class CursorImpl implements Cloneable {
             }
 
             /* Get a wli to log. */
-            final WriteLockInfo wli = lockStanding.prepareForUpdate(bin, index);
+            final WriteLockInfo wli =
+                lockStanding.prepareForUpdate(bin, index, true);
 
             /* Modification time is only specified for replica replay. */
             if (modificationTime == 0 && !dbImpl.getSortedDuplicates()) {
@@ -1302,7 +1318,7 @@ public class CursorImpl implements Cloneable {
             logItem = ln.log(
                 envImpl, dbImpl, locker, wli,
                 currEmbeddedLN /*newEmbeddedLN*/, currKey /*newKey*/,
-                expiration, expirationInHours, modificationTime,
+                expiration, expirationInHours, creationTime, modificationTime,
                 false /*newTombstone*/, false /*newBlindDeletion*/,
                 currEmbeddedLN, currLsn, currLoggedSize,
                 false/*isInsertion*/, false /*backgroundIO*/, repContext,
@@ -1339,6 +1355,7 @@ public class CursorImpl implements Cloneable {
             trace(Level.FINER, TRACE_DELETE, bin, index, currLsn, logItem.lsn);
             OperationResult res =  DbInternal.makeResult(
                 expiration, expirationInHours, false /*update*/,
+                creationTime,
                 modificationTime,
                 getStorageSize(),
                 false /*tombstone*/);
@@ -1358,8 +1375,9 @@ public class CursorImpl implements Cloneable {
                             new DatabaseEntry(bImgData),
                             bImgCtx, DBEntry.PutContext.DELETE));
                 logItem.setBeforeImageData(bImgData);
+                logItem.setBeforeImageCtx(bImgCtx);
             }
-            
+
             return res;
         } finally {
 
@@ -1407,6 +1425,7 @@ public class CursorImpl implements Cloneable {
             false /*newEmbeddedLN*/,
             lnEntry.getKey() /*newKey*/,
             lnEntry.getExpiration(), lnEntry.isExpirationInHours(),
+            lnEntry.getCreationTime(),
             lnEntry.getModificationTime(), lnEntry.isTombstone(),
             false /*newBlindDeletion*/, false /*currEmbeddedLN*/,
             DbLsn.NULL_LSN /*currLsn*/,
@@ -1627,7 +1646,7 @@ public class CursorImpl implements Cloneable {
                 success = true;
                 return null;
             }
-            
+
             /*
              * Update the non-defunct record at the cursor position. We have
              * optimized by preferring to take an uncontended lock. The
@@ -1822,7 +1841,7 @@ public class CursorImpl implements Cloneable {
              * this LSN. The abortLSN and abortKD fields of the wli will be
              * included in the new logrec.
              */
-            wli = lockStanding.prepareForUpdate(bin, index);
+            wli = lockStanding.prepareForUpdate(bin, index, true);
 
         } else {
             /*
@@ -1844,8 +1863,9 @@ public class CursorImpl implements Cloneable {
         BeforeImageContext bImgCtx = null;
         //dummy object to enablebeforeimage without ctx
         if (writeParams.isBeforeImageEnabled()) {
-            bImgCtx = new BeforeImageContext(0, true);
+            bImgCtx = new BeforeImageContext();
         }
+        long creationTime = writeParams.creationTime;
 
         /*
          * If treeLn is non-null we can use it to log the LN. If it is null,
@@ -1859,12 +1879,13 @@ public class CursorImpl implements Cloneable {
          * because the old defunct LN is counted obsolete by other means.
          */
         LogItem logItem = null;
-        
+
         try {
             logItem = loggingLn.log(
                 envImpl, dbImpl, locker, wli,
                 newEmbeddedLN, key,
                 writeParams.expiration, writeParams.expirationInHours,
+                creationTime,
                 writeParams.modificationTime, writeParams.tombstone,
                 false /*newBlindDeletion*/, currEmbeddedLN, currLsn,
                 0 /*currSize*/, true/*isInsertion*/, false /*backgroundIO*/,
@@ -1893,10 +1914,13 @@ public class CursorImpl implements Cloneable {
             bin.updateEntry(index, logItem.lsn, vlsn, logItem.size);
 
             bin.setExpiration(
-                index, writeParams.expiration, writeParams.expirationInHours);
+                    index, writeParams.expiration, writeParams.expirationInHours);
 
             bin.setModificationTime(
-                index, newEmbeddedLN ? writeParams.modificationTime : 0);
+                    index, newEmbeddedLN ? writeParams.modificationTime : 0);
+
+            bin.setCreationTime(
+                index, newEmbeddedLN ? creationTime : 0);
 
             bin.setTombstone(index, writeParams.tombstone);
 
@@ -1931,6 +1955,7 @@ public class CursorImpl implements Cloneable {
                 index, shouldCache ? treeLn : null,
                 logItem.lsn, vlsn, logItem.size, key, embeddedData,
                 writeParams.expiration, writeParams.expirationInHours,
+                creationTime,
                 writeParams.modificationTime, writeParams.tombstone);
         }
 
@@ -1947,7 +1972,8 @@ public class CursorImpl implements Cloneable {
             lockStanding,
             DbInternal.makeResult(
                 writeParams.expiration, writeParams.expirationInHours,
-                false /*update*/, writeParams.modificationTime,
+                false /*update*/, creationTime,
+                writeParams.modificationTime,
                 getStorageSize(), writeParams.tombstone));
     }
 
@@ -2008,6 +2034,7 @@ public class CursorImpl implements Cloneable {
         final boolean newEmbeddedLN;
         final LogItem logItem;
         long bImgModTime = 0L;
+        long creationTime = 0L;
 
         /*
          * Must fetch LN if it is not embedded and any of the following
@@ -2019,8 +2046,14 @@ public class CursorImpl implements Cloneable {
          *  - this database does not use the standard LN class and we
          *    cannot call DbType.createdUpdatedLN further below (this is
          *    the case for NameLNs, MapLNs, and FileSummaryLNs).
+         *  - It is a user database that may have a creation time that needs
+         *    to be transfered to the new record and the LN is not obsolete
+         *    and as such may not exist.
          * For other cases, we are careful not to fetch, in order to avoid
          * a random read during an update operation.
+         * 
+         * TODO: Find a way to get the creation time that does not require
+         * fetching the LN.
          */
         LN treeLn;
         if (returnOldData != null ||
@@ -2028,7 +2061,9 @@ public class CursorImpl implements Cloneable {
             (currLoggedSize == 0 &&
              !currEmbeddedLN &&
              envImpl.getCleaner().getFetchObsoleteSize(dbImpl)) ||
-            !dbType.mayCreateUpdatedLN()) {
+            !dbType.mayCreateUpdatedLN() ||
+            (!dbType.isInternal() && (!bin.isEmbeddedLN(index)
+                && !dbImpl.isLNImmediatelyObsolete()))) {
             if (currEmbeddedLN) {
                 /*
                  * TODO: If treeLn is null, avoid unnecessary allocation by
@@ -2037,6 +2072,7 @@ public class CursorImpl implements Cloneable {
                 currData = bin.getEmbeddedData(index);
                 treeLn = bin.getLN(index, cacheMode);
                 bImgModTime = bin.getModificationTime(index);
+                creationTime = bin.getCreationTime(index);
             } else {
                 /*
                  * TODO: If treeLn is null, avoid unnecessary allocation by
@@ -2046,16 +2082,26 @@ public class CursorImpl implements Cloneable {
                 currData = (treeLn != null ? treeLn.getData() : null);
                 bImgModTime = (treeLn != null ? treeLn.getModificationTime()
                         : 0L);
+                creationTime = (treeLn != null ? treeLn.getCreationTime() : 0L);
             }
         } else {
             treeLn = bin.getLN(index, cacheMode);
             currData = (treeLn != null ? treeLn.getData() : null);
-            bImgModTime = (treeLn != null ? treeLn.getModificationTime() : 0L);   
+            bImgModTime = (treeLn != null ? treeLn.getModificationTime() : 0L);
+            if (currEmbeddedLN) {
+                creationTime = bin.getCreationTime(index);
+            } else {
+                creationTime = (treeLn != null ? treeLn.getCreationTime() : 0L);
+            }
+        }
+
+        if (writeParams.creationTime != 0) {
+            creationTime = writeParams.creationTime;
         }
 
         final boolean isCached = (treeLn != null);
-
-        long oldModificationTime = (isCached ? treeLn.getModificationTime() : 0);
+        long oldModificationTime = (isCached ? treeLn.getModificationTime() : bin.getModificationTime(index));
+        long oldCreationTime = (isCached ? treeLn.getCreationTime() : bin.getCreationTime(index));
 
         if (returnOldData != null) {
             assert currData != null;
@@ -2164,7 +2210,8 @@ public class CursorImpl implements Cloneable {
          * this LSN. The abortLSN and abortKD fields of the wli will be
          * included in the new logrec.
          */
-        final WriteLockInfo wli = lockStanding.prepareForUpdate(bin, index);
+        final WriteLockInfo wli =
+            lockStanding.prepareForUpdate(bin, index, true);
 
         /*
          * If the tree LN and replay LN do not apply, create an UncachedLN
@@ -2204,7 +2251,8 @@ public class CursorImpl implements Cloneable {
         logItem = loggingLn.log(
             envImpl, dbImpl, locker, wli,
             newEmbeddedLN, (key != null ? key : currKey),
-            expiration, expirationInHours, writeParams.modificationTime,
+            expiration, expirationInHours, creationTime,
+            writeParams.modificationTime,
             writeParams.tombstone, false /*newBlindDeletion*/, currEmbeddedLN,
             currLsn, currLoggedSize, false /*isInsertion*/,
             false /*backgroundIO*/, writeParams.repContext, bImgCtx);
@@ -2229,7 +2277,8 @@ public class CursorImpl implements Cloneable {
         bin.updateRecord(
             index, oldLNMemSize, logItem.lsn, vlsn,
             logItem.size, key, (newEmbeddedLN ? newData : null),
-            expiration, expirationInHours, writeParams.modificationTime,
+            expiration, expirationInHours, creationTime,
+            writeParams.modificationTime,
             writeParams.tombstone);
 
         /* Cache record version/size for update operation. */
@@ -2238,10 +2287,10 @@ public class CursorImpl implements Cloneable {
 
         trace(Level.FINER, TRACE_MOD, bin, index, currLsn, logItem.lsn);
         OperationResult res =  DbInternal.makeResult(
-            expiration, expirationInHours, true /*update*/,
+            expiration, expirationInHours, true /*update*/, creationTime,
             writeParams.modificationTime, getStorageSize(),
             writeParams.tombstone);
-        
+
         /*
          * BeforeImage Support during update
          */
@@ -2260,9 +2309,11 @@ public class CursorImpl implements Cloneable {
                         writeParams.tombstone ? DBEntry.PutContext.TOMBSTONE
                         : DBEntry.PutContext.UPDATE));
             logItem.setBeforeImageData(bImgData);
+            logItem.setBeforeImageCtx(bImgCtx);
         }
 
         res.setOldModificationTime(oldModificationTime);
+        res.setOldCreationTime(oldCreationTime);
         res.setOldStorageSize(oldStorageSize);
         return res;
     }
@@ -2446,6 +2497,13 @@ public class CursorImpl implements Cloneable {
     }
 
     public boolean searchExact(DatabaseEntry searchKey, LockType lockType) {
+        /*
+         * Caller of this method won't be configured with OptimisticRead &&
+         * lockType == LockType.READ, so
+         * special handling is not required for the caller, i.e, release the
+         * read lock immediately and distinguish the source of the data.
+         */
+        assert !(locker.isOptimisticReadIsolation() && !lockType.isWriteLock());
         return searchExact(
             searchKey, null, lockType, false, false, false) != null;
     }
@@ -2567,6 +2625,7 @@ public class CursorImpl implements Cloneable {
 
         /* Used in the finally to indicate whether exception was raised. */
         boolean success = false;
+        LockStanding standing = null;
 
         try {
             assert assertCursorState(
@@ -2625,9 +2684,10 @@ public class CursorImpl implements Cloneable {
                 (!foundData.getPartial() ||
                  foundData.getPartialLength() != 0));
 
-            if (lockLNAndCheckDefunct(
-                    lockType, excludeTombstones,
-                    dirtyReadAll, dataRequested) == null) {
+            standing =
+                lockLNAndCheckDefunct(lockType, excludeTombstones,
+                                      dirtyReadAll, dataRequested);
+            if (standing  == null) {
                 if (treeStatsAccumulator != null) {
                     treeStatsAccumulator.incrementDeletedLNCount();
                 }
@@ -2635,12 +2695,53 @@ public class CursorImpl implements Cloneable {
                 return null;
             }
 
-            final OperationResult result = getCurrent(foundKey, foundData);
+            OperationResult result;
+            if (standing.readCommittedData()) {
+                try {
+                    result = readLastCommitted(
+                        standing.getLockResult().getWriteLockInfo(),
+                        dataRequested, foundKey, foundData);
+                } catch (ErasedException  | IOException e) {
+
+                    /*
+                     * Optimistic read using abortLSN failed, retrying with
+                     * read-committed mode. A read lock will be added to the
+                     * cursor and the locker.
+                     */
+                    Txn tempLockerRef = (Txn) locker;
+                    tempLockerRef.setOptimisticReadIsolation(false);
+                    tempLockerRef.setReadCommittedIsolation(true);
+
+                    /* try to acquire the read lock with bin latched.*/
+                    standing =
+                        lockLNAndCheckDefunct(lockType, excludeTombstones,
+                                              dirtyReadAll, dataRequested);
+
+                    tempLockerRef.setOptimisticReadIsolation(true);
+                    tempLockerRef.setReadCommittedIsolation(false);
+
+                    if (standing  == null) {
+                        if (treeStatsAccumulator != null) {
+                            treeStatsAccumulator.incrementDeletedLNCount();
+                        }
+
+                        success = true;
+                        return null;
+                    }
+
+                    result = getCurrent(foundKey, foundData);
+                }
+            } else {
+                result = getCurrent(foundKey, foundData);
+            }
 
             success = true;
             return result;
 
         } finally {
+
+            releaseLockForOptimisticRead(standing, lockType);
+
             if (unlatch || !success) {
                 releaseBIN();
             }
@@ -2706,7 +2807,35 @@ public class CursorImpl implements Cloneable {
             lockType, excludeTombstones,
             false /*allowUncontended*/, false /*noWait*/);
 
+        /*
+         * For transactional locker,
+         * lockLN() creates a writeLockInfo only when a write lock
+         * is truly granted.
+         * In unContended cases, no lock is granted and no writeLockInfo
+         * is created.
+         * If created, the writeLockInfo is not initialized - the caller
+         * of lockLN is responsible for initializing it if desired.
+         * For example, deleteCurrentRecord(), updateCurrentRecord() and
+         * insertRecordInternal() will call LockStanding.prepareForUpdate()
+         * or LockStanding.prepareForInsert() to initialize the wli object.
+         * But lockAndGetCurrentLN() does not need to do so, since
+         * lockAndGetCurrentLN() will only be used in LockType.NONE setting.
+         *
+         * Here before returning standing, prepareForUpdate is called to
+         * initialize the wli object, so it can be accessed by potential
+         * optimisticRead txn. And actually, here it corresponds to
+         * the case that a read operation configured with LockMode.RMW.
+         */
         if (standing.recordExists()) {
+            if (lockType.isWriteLock() && locker.isTransactional()) {
+                assert locker.getWriteLockInfo(standing.lsn) != null;
+                assert standing.lockResult.getWriteLockInfo() != null;
+
+                standing.prepareForUpdate(bin, index,
+                    (lockType.isRMW()? false : true));
+                standing.lockResult.getWriteLockInfo().
+                    setAbortLogSize(bin.getLastLoggedSize(index));
+            }
             return standing;
         }
 
@@ -2736,7 +2865,23 @@ public class CursorImpl implements Cloneable {
          * Although there is some redundant processing in the sense that lockLN
          * is called more than once (above and below), this is not considered a
          * performance issue because the first call does not actually lock.
+         *
+         * Here we truly want to acquire the read lock, but if the locker is
+         * configured as optimisticRead initially, the read lock request could
+         * be blocked by an existing write lock and a writeLockInfo created by the
+         * write lock will be returned in advance, instead of waiting for the
+         * read lock to be granted, so here temporarily
+         * set the OptimisticReadIsolation to false in order to break to behavior
+         * of OptimisticRead.
          */
+        Txn tempLockerRef = null;
+        if (locker.isOptimisticReadIsolation()) {
+            tempLockerRef = (Txn)locker;
+        }
+        if (tempLockerRef != null) {
+            tempLockerRef.setOptimisticReadIsolation(false);
+            tempLockerRef.setReadCommittedIsolation(true);
+        }
         standing = lockLN(
             LockType.READ, excludeTombstones,
             false /*allowUncontended*/, !dataRequested /*noWait*/);
@@ -2757,6 +2902,11 @@ public class CursorImpl implements Cloneable {
         /* We have acquired a temporary read lock. */
         revertLock(standing);
 
+        if (tempLockerRef != null) {
+            tempLockerRef.setOptimisticReadIsolation(true);
+            tempLockerRef.setReadCommittedIsolation(false);
+        }
+
         if (standing.recordExists()) {
             /*
              * Another txn aborted the deletion or expiration time change while
@@ -2770,6 +2920,112 @@ public class CursorImpl implements Cloneable {
          * this locker.
          */
         return null;
+    }
+
+
+    /**
+     * This method is triggered when a read operation configured with
+     * OptimisticRead is blocked by write operation.
+     * @param wli the WriteLockInfo object
+     * @param dataRequested whether data is requested from the caller
+     * @param key DatabaseEntry object to load the key
+     * @param data DatabaseEntry object to load the data
+     * @return OperationResult, will return null if
+     * read is blocked by an insertion that hasn't been committed,
+     * or the most recent committed data is expired.
+     */
+    public OperationResult readLastCommitted(WriteLockInfo wli,
+                                             boolean dataRequested,
+                                             DatabaseEntry key,
+                                             DatabaseEntry data)
+        throws ErasedException, IOException {
+
+        assert TestHookExecute.doIOHookIfSet(fileNotFoundExpHook);
+
+        if (wli.getAbortLsn() == DbLsn.NULL_LSN) {
+            /*
+             * Read is blocked by an insertion that hasn't been committed,
+             * the most recent committed record doesn't exist.
+             */
+            return null;
+        }
+
+        if (wli.getAbortKnownDeleted()) {
+            return null;
+        }
+
+        /*
+         * If the most recent committed data is expired, return null
+         */
+        if (dbImpl.getEnv().isExpired(wli.getAbortExpiration(),
+                                      wli.isAbortExpirationInHours())) {
+            return null;
+        }
+
+        if (key != null) {
+            LN.setEntry(key, bin.getKey(index));
+        }
+
+        if (dataRequested) {
+            /*
+             * The last committed data is embedded in BIN, and it is stored inside
+             * wli.
+             */
+            if (wli.getAbortData() != null) {
+                /*
+                 * Data is requested.
+                 * Copying data is desired here instead of giving up the
+                 * ownership of the data.
+                 */
+                LN.setEntry(data, wli.getAbortData());
+            } else {
+                getDataFromAbortLSN(wli.getAbortLsn(), wli.getAbortLogSize(), data);
+            }
+        }
+
+        //TODO is this correct? creationTime is not right here.
+        return DbInternal.makeResult(
+                wli.getAbortExpiration(),
+                wli.isAbortExpirationInHours(),
+                false,
+                wli.getAbortCreationTime(),
+                wli.getAbortModificationTime(),
+                wli.getAbortLogSize(),
+                wli.getAbortTombstone());
+    }
+
+    /**
+     * Retrieve LN from log files using abortLSN and load data into foundData.
+     * @param abortLsn the lsn of the most recent committed data
+     * @param foundData DatabaseEntry object to hold the data
+     */
+    private void getDataFromAbortLSN(long abortLsn,
+                                    int abortLogSize,
+                                    final DatabaseEntry foundData)
+        throws ErasedException, FileNotFoundException {
+
+        assert(bin.isLatchExclusiveOwner());
+        assert(foundData != null);
+
+        /*
+         * We don't need to fetch the LN if the user has not requested that we
+         * return the data, or if we know for sure that the LN is empty.
+         */
+
+        final EnvironmentImpl envImpl = dbImpl.getEnv();
+
+        //fetch the entry
+        final WholeEntry wholeEntry = envImpl.getLogManager().
+            getWholeLogEntry(abortLsn, abortLogSize);
+
+        LNLogEntry<?> lnEntry = (LNLogEntry<?>) wholeEntry.getEntry();
+        lnEntry.postFetchInit(dbImpl);
+        //TODO I think this is unnecessary, needs confirmation.
+        //BtreeVerifier.verifyDataRecord(lnEntry, bin, idx);
+
+        LN ln = (LN) lnEntry.getResolvedItem(dbImpl);
+        byte[] data = ln.getData();
+        foundData.setData(data);
     }
 
     /**
@@ -2855,6 +3111,9 @@ public class CursorImpl implements Cloneable {
             bin.getExpiration(index),
             bin.isExpirationInHours(),
             false,
+            (ln != null) ?
+                    ln.getCreationTime() :
+                    bin.getCreationTime(index),
             (ln != null) ?
                 ln.getModificationTime() :
                 bin.getModificationTime(index),
@@ -3586,6 +3845,15 @@ public class CursorImpl implements Cloneable {
 
         private long lsn;
         private boolean defunct;
+
+        /**
+         * readCommittedData == true indicating that:
+         * A read-txn configured with OptimisticRead tries to read a record but
+         * blocked by a write-txn on a LN, after the attempt to lock the LN,
+         * read-txn should use the  abortLSN obtained from the write-txn's
+         * locker to read the committed version of the LN.
+         */
+        private boolean readCommittedData;
         private LockResult lockResult;
 
         /**
@@ -3614,7 +3882,7 @@ public class CursorImpl implements Cloneable {
          * case, the abortLsn and abortKD have been set already and should not
          * be overwritten here.
          */
-        WriteLockInfo prepareForUpdate(BIN bin, int idx) {
+        WriteLockInfo prepareForUpdate(BIN bin, int idx, boolean obsolete) {
 
             DatabaseImpl db = bin.getDatabase();
             boolean abortKD = !recordExists();
@@ -3624,6 +3892,7 @@ public class CursorImpl implements Cloneable {
             int abortExpiration = bin.getExpiration(idx);
             boolean abortExpirationInHours = bin.isExpirationInHours();
             long abortModificationTime = 0L;
+            long abortCreationTime = 0L;
             boolean abortTombstone = bin.isTombstone(idx);
 
             if (bin.isEmbeddedLN(idx)) {
@@ -3638,6 +3907,7 @@ public class CursorImpl implements Cloneable {
                 }
 
                 abortModificationTime = bin.getModificationTime(idx);
+                abortCreationTime = bin.getCreationTime(idx);
             }
 
             WriteLockInfo wri = (lockResult == null ?
@@ -3652,13 +3922,17 @@ public class CursorImpl implements Cloneable {
                 wri.setAbortVLSN(abortVLSN);
                 wri.setAbortExpiration(abortExpiration, abortExpirationInHours);
                 wri.setAbortModificationTime(abortModificationTime);
+                wri.setAbortCreationTime(abortCreationTime);
                 wri.setAbortTombstone(abortTombstone);
                 wri.setDb(db);
+                wri.setObsolete(obsolete);
             } else {
                 lockResult.setAbortInfo(
                     lsn, abortKD, abortKey, abortData, abortVLSN,
                     abortExpiration, abortExpirationInHours,
-                    abortModificationTime, abortTombstone, db);
+                    abortModificationTime, abortCreationTime,
+                    abortTombstone, db, obsolete);
+                wri.setObsolete(obsolete || wri.getObsolete());
             }
             return wri;
         }
@@ -3673,7 +3947,25 @@ public class CursorImpl implements Cloneable {
         static WriteLockInfo prepareForInsert(BIN bin) {
             WriteLockInfo wri = new WriteLockInfo();
             wri.setDb(bin.getDatabase());
+            //For the sake of optimisticRead
+            wri.setAbortLsn(DbLsn.NULL_LSN);
             return wri;
+        }
+
+        public boolean readCommittedData() {
+            return readCommittedData;
+        }
+
+        public void setReadCommittedData(boolean readCommittedData) {
+            this.readCommittedData = readCommittedData;
+        }
+
+        public LockResult getLockResult() {
+            return lockResult;
+        }
+
+        public long getLockLSN() {
+            return lsn;
         }
     }
 
@@ -3750,6 +4042,14 @@ public class CursorImpl implements Cloneable {
      * re-latches the BIN to check the LSN, this will serialize access to the
      * LSN for locking, guaranteeing that two conflicting locks cannot be
      * granted on the old and new LSNs.
+     *
+     * For transactional locker,
+     * lockLN() creates a writeLockInfo only when a write lock is truly granted.
+     * In uncontended cases, no lock is granted and no writeLockInfo is created.
+     * If created, the writeLockInfo is not initialized - the caller is
+     * responsible for initializing it.
+     * Subsequent write-type calls on the same lsn  do not overwrite
+     * the existing writeLockInfo object.
      *
      * Cleaner Migration Locking
      * -------------------------
@@ -3896,6 +4196,15 @@ public class CursorImpl implements Cloneable {
                     standing.lsn, lockType, true /*noWait*/, dbImpl, this);
 
             } catch (LockNotAvailableException e) {
+                /*
+                 * non-blocking lock was denied but qualified to read
+                 * committed data
+                 */
+                if (standing.lockResult != null &&
+                    standing.lockResult.getWriteLockInfo() != null) {
+                    standing.setReadCommittedData(true);
+                    return standing;
+                }
                 releaseBIN();
                 throw e;
 
@@ -3918,6 +4227,14 @@ public class CursorImpl implements Cloneable {
                 bin.isDeleted(index, excludeTombstones) :
                 bin.isDefunct(index, excludeTombstones);
 
+            return standing;
+        } else if (standing.lockResult.getWriteLockInfo() != null) {
+            /*
+             * Txn doing a read in optimisticRead mode, blocked by a write lock,
+             * but got the writeLockInfo from an active write-Txn. We can use the
+             * writeLockInfo to get the committed data.
+             */
+            standing.setReadCommittedData(true);
             return standing;
         }
 
@@ -4129,6 +4446,19 @@ public class CursorImpl implements Cloneable {
                "Deleted state mismatch LNDeleted = " + lnDeleted +
                " PD = " + pd + " KD = " + kd;
         return true;
+    }
+
+    /**
+     * Read lock will always be released after reading the LN.
+     */
+    public void releaseLockForOptimisticRead(LockStanding standing,
+                                             LockType lockType) {
+        if (lockType.equals(LockType.READ) &&
+            getLocker().isOptimisticReadIsolation() &&
+            standing != null &&
+            !standing.readCommittedData()) {
+            revertLock(standing);
+        }
     }
 
     public void revertLock(LockStanding standing) {
@@ -4366,8 +4696,13 @@ public class CursorImpl implements Cloneable {
     }
 
     /* For unit testing only. */
-    public void setTestHook(TestHook hook) {
+    public void setTestHook(TestHook<?> hook) {
         testHook = hook;
+    }
+
+    /* For unit testing only. */
+    public void setFileNotFoundExpHook(TestHook<?> hook) {
+        fileNotFoundExpHook = hook;
     }
 
     /* Check that the target bin is latched. For use in assertions. */

@@ -30,6 +30,7 @@ public final class LNInfo {
     private final DatabaseId dbId;
     private final byte[] key;
     private final long expirationTime;
+    private final long creationTime;
     private final long modificationTime;
     private final int headerSize;
     private final int itemSize;
@@ -38,6 +39,7 @@ public final class LNInfo {
                   final DatabaseId dbId,
                   final byte[] key,
                   final long expirationTime,
+                  final long creationTime,
                   final long modificationTime,
                   int headerSize,
                   int itemSize) {
@@ -46,6 +48,7 @@ public final class LNInfo {
         this.key = key;
         this.expirationTime = expirationTime;
         this.modificationTime = modificationTime;
+        this.creationTime = creationTime;
         this.headerSize = headerSize;
         this.itemSize = itemSize;
     }
@@ -69,6 +72,10 @@ public final class LNInfo {
     long getModificationTime() {
         return modificationTime;
     }
+
+    public long getCreatedTime() {
+        return creationTime;
+	}
 
     int getHeaderSize() { return headerSize; }
 

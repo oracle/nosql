@@ -50,24 +50,23 @@ import com.sleepycat.je.dbi.RangeConstraint;
  * A class to encapsulate iteration over JE records for KV methods that
  * require iteration.
  *
- * The usage pattern is:
+ * The usage pattern is:  <pre>
  *   Scanner scanner = new Scanner(...);
  *   DatabaseEntry keyEntry = scanner.getKey();
- *   DatabaseEntry dateEntry = scanner.getDate();
+ *   DatabaseEntry dataEntry = scanner.getData();
  *   try {
  *     while (scanner.next()) {
  *        // do things with keyEntry, dataEntry
  *     }
  *   } finally {
  *     scanner.close();  // closes cursor
- *   }
+ *   }                    </pre>
  *
  * Any security-relevant operations are performed by callers. Batching is
  * also handled by callers.
  *
  * See below for more information on state.
  */
-
 public class Scanner {
 
     /** Lowest possible value for a serialized key character. */
@@ -326,6 +325,14 @@ public class Scanner {
      */
     public long getExpirationTime() {
         return (result != null ? result.getExpirationTime() : 0);
+    }
+
+    /**
+     * Returns the creation time of the current valid result if non-null,
+     * otherwise 0.
+     */
+    public long getCreationTime() {
+        return (result != null ? result.getCreationTime() : 0);
     }
 
     public long getModificationTime() {

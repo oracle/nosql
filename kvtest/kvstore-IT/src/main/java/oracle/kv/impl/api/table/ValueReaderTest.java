@@ -565,6 +565,7 @@ public class ValueReaderTest extends TableTestBase {
         private long expirationTime;
         private int regionId;
         private long modificationTime;
+        private String rowMetadata;
 
         private MapValue root;
         private Stack<FieldValue> nestedNodes;
@@ -782,6 +783,10 @@ public class ValueReaderTest extends TableTestBase {
         }
 
         @Override
+        public void setCreationTime(long creationTime) {
+        }
+
+        @Override
         public void setModificationTime(long modificationTime) {
             this.modificationTime = modificationTime;
 
@@ -795,6 +800,14 @@ public class ValueReaderTest extends TableTestBase {
         public void readCounterCRDT(String fieldName,
                                     FieldValueImpl val) {
             writeValue(fieldName, val);
+        }
+
+        @Override public void setRowMetadata(String rowMetadata) {
+            this.rowMetadata = rowMetadata;
+        }
+
+        public String getRowMetadata() {
+            return rowMetadata;
         }
     }
 }

@@ -17,6 +17,7 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -69,7 +70,8 @@ public class NioEndpointHandler
     private static final int CLOSE_INPUT_IN_BACKUP_EXECUTOR_NUM_RETRIES = 10;
 
     private final NioChannelExecutor channelExecutor;
-    private final ScheduledExecutorService backupExecutor;
+    private final ExecutorService backupExecutor;
+    private final ScheduledExecutorService backupSchedExecutor;
     private final EndpointConfig endpointConfig;
     private final SocketChannel socketChannel;
     /*
@@ -138,7 +140,8 @@ public class NioEndpointHandler
         String perfName,
         NetworkAddress remoteAddress,
         NioChannelExecutor channelExecutor,
-        ScheduledExecutorService backupExecutor,
+        ExecutorService backupExecutor,
+        ScheduledExecutorService backupSchedExecutor,
         DialogHandlerFactoryMap dialogHandlerFactories,
         SocketChannel socketChannel,
         DialogResourceManager concurrentDialogsManager,
@@ -149,6 +152,7 @@ public class NioEndpointHandler
               dialogHandlerFactories, concurrentDialogsManager);
         this.channelExecutor = channelExecutor;
         this.backupExecutor = backupExecutor;
+        this.backupSchedExecutor = backupSchedExecutor;
         this.endpointConfig = endpointConfig;
         this.socketChannel = socketChannel;
         this.channelInput = new NioChannelInput(trackersManager, this);
@@ -1186,7 +1190,7 @@ public class NioEndpointHandler
                 return;
             }
             scheduleOrLogReject(
-                () -> backupExecutor.schedule(
+                () -> backupSchedExecutor.schedule(
                     new ChannelInputCloseOrRetryAfterRejection(remaining),
                     1, TimeUnit.SECONDS),
                 ChannelInputCloseOrRetryAfterRejection.class.getSimpleName()

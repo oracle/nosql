@@ -39,6 +39,10 @@ public interface TestHook<T> {
         throw new UnsupportedOperationException();
     }
 
+    default void doIOHook(T obj) throws IOException {
+        throw new UnsupportedOperationException();
+    }
+
     default void doHook() {
         throw new UnsupportedOperationException();
     }

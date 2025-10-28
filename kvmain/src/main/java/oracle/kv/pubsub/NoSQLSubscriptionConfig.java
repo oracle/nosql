@@ -35,6 +35,36 @@ import oracle.kv.table.TableAPI;
 public class NoSQLSubscriptionConfig {
 
     /**
+     * Delivery mode of subscribe tables
+     */
+    public enum StreamDeliveryMode {
+        /**
+         * When a table is subscribed and configured with this delivery mode,
+         * every single write to the subscribed table will be delivered in
+         * a stream event {@link oracle.kv.pubsub.StreamOperation.PutEvent} or
+         * {@link oracle.kv.pubsub.StreamOperation.DeleteEvent}. This is the
+         * default delivery mode and does not require users to explicitly set
+         * it.
+         */
+        SINGLE_WRITE_EVENT,
+
+        /**
+         * When a table is subscribed and configured with this delivery mode,
+         * all writes events to the table and its child tables if any,
+         * including single key writes, will be grouped in their respective
+         * transactions of the write events. All writes in a transaction
+         * will be delivered as a single stream event
+         * {@link oracle.kv.pubsub.StreamOperation.TransactionEvent}. For
+         * a single key write, the group size will be 1.
+         * <p>
+         * The table configured with this delivery mode must be a subscribed
+         * table in the subscription, and must be a top table, otherwise the
+         * subscription would fail with {@link SubscriptionFailureException}.
+         */
+        GROUP_ALL_IN_TRANSACTION
+    }
+
+    /**
      * Default empty stream lifetime in seconds
      */
     public final static int DEFAULT_EMPTY_STREAM_LIFETIME_SECS = 60;
@@ -47,13 +77,19 @@ public class NoSQLSubscriptionConfig {
      * Default total memory size in megabytes of output queues for all shards
      */
     public final static int DEFAULT_OUTPUT_QUEUE_SIZE_MB = 256;
-
+    /***
+     * Default to not include previous image in the stream events
+     */
+    private final static boolean DEFAULT_INCLUDE_BEFORE_IMAGE = false;
     /**
      * Default flag to use external operations for elastic operations in
      * kvstore.
      */
     private final static boolean DEFAULT_EXTERNAL_CKPT_ELASTICITY = false;
-
+    /**
+     * Default flag to include aborted transaction in streaming transaction
+     */
+    private final static boolean DEFAULT_STREAM_ABORT_TXN = false;
     /**
      * Default max connect. After discussion the Streams API should
      * favor service availability over stream consistence that would
@@ -215,6 +251,24 @@ public class NoSQLSubscriptionConfig {
      */
     private final boolean useExtCkptElasticity;
 
+    /**
+     * True if to include before row in the stream event, false otherwise.
+     */
+    private final boolean includeBeforeImage;
+
+    /**
+     * Subscribed tables for which the subscription would stream transaction
+     * instead of single write operation per streaming event.
+     */
+    private final Set<String> streamTxnTables;
+
+    /**
+     * True to stream aborted transactions for tables in
+     * {@link #streamTxnTables}, false to ignore aborted transactions.
+     */
+    private final boolean streamAbortTxn;
+
+
     private NoSQLSubscriptionConfig(Builder builder) {
 
         subscriberId = builder.subscriberId;
@@ -232,6 +286,10 @@ public class NoSQLSubscriptionConfig {
         statReportIntvOps = builder.statReportIntvOps;
         outputQueueSzMB = builder.outputQueueSzMB;
         useExtCkptElasticity = builder.useExtCkptElasticity;
+        includeBeforeImage = builder.includeBeforeImage;
+        streamAbortTxn = builder.streamAbortTxn;
+        streamTxnTables = new HashSet<>();
+        streamTxnTables.addAll(builder.streamTxnTables);
 
         /*
          * If FROM_(EXACT_)STREAM_POSITION, user must specify a stream
@@ -394,7 +452,9 @@ public class NoSQLSubscriptionConfig {
             streamMode.equals(NoSQLStreamMode.FROM_EXACT_CHECKPOINT)) {
             return "Subscription=" + subscriberId +
                    " configured to stream from checkpoint with stream mode=" +
-                   streamMode + ", subscribed tables=" + tableNames;
+                   streamMode + ", subscribed tables=" + tableNames +
+                   ", before image=" + includeBeforeImage +
+                   ", local writes only=" + localWritesOnly;
         }
 
         if (streamMode.equals(NoSQLStreamMode.FROM_STREAM_POSITION) ||
@@ -402,12 +462,16 @@ public class NoSQLSubscriptionConfig {
             return "Subscription=" + subscriberId +
                    " configured to stream from position=" + initialPosition +
                    " with stream mode=" + streamMode +  ", subscribed " +
-                   "tables=" + tableNames;
+                   "tables=" + tableNames +
+                   ", before image=" + includeBeforeImage +
+                   ", local writes only=" + localWritesOnly;
         }
 
         return "Subscription=" + subscriberId +
                " configured to stream with stream mode=" + streamMode +
-               ", subscribed tables=" + tableNames;
+               ", subscribed tables=" + tableNames +
+               ", before image=" + includeBeforeImage +
+               ", local writes only=" + localWritesOnly;
     }
 
     /**
@@ -667,6 +731,43 @@ public class NoSQLSubscriptionConfig {
     }
 
     /**
+     * Returns true if the stream should include before image, false
+     * otherwise.
+     */
+    public boolean getIncludeBeforeImage() {
+        return includeBeforeImage;
+    }
+
+    /**
+     * @hidden
+     * <p> Returns true to stream transaction per {@link StreamOperation},
+     * false otherwise
+     */
+    public boolean getStreamTxn(String table) {
+        return streamTxnTables.contains(table);
+    }
+
+    /**
+     * @hidden
+     * <p> Returns Set of subscribed tables to stream transaction per
+     * {@link StreamOperation}.
+     */
+    public Set<String> getStreamTxnTables() {
+        return streamTxnTables;
+    }
+
+    /**
+     * @hidden
+     * <p>
+     * Returns true to to include aborted transaction in stream, false to
+     * ignore aborted transactions. Only effective when subscription is
+     * configured to stream transactions.
+     */
+    public boolean getStreamAbortTxn() {
+        return streamAbortTxn;
+    }
+
+    /**
      * Uses mapper to generate checkpoint table map
      * @param sid subscriber id
      * @param mapper checkpoint table name mapper
@@ -760,6 +861,9 @@ public class NoSQLSubscriptionConfig {
         private long statReportIntvOps = DEFAULT_REPORT_INTV_OPS;
         private int outputQueueSzMB = DEFAULT_OUTPUT_QUEUE_SIZE_MB;
         private boolean useExtCkptElasticity = DEFAULT_EXTERNAL_CKPT_ELASTICITY;
+        private boolean includeBeforeImage = DEFAULT_INCLUDE_BEFORE_IMAGE;
+        private boolean streamAbortTxn = DEFAULT_STREAM_ABORT_TXN;
+        private final Set<String> streamTxnTables = new HashSet<>();
 
         /**
          * Makes a builder for NoSQLSubscriptionConfig with required
@@ -1175,6 +1279,72 @@ public class NoSQLSubscriptionConfig {
          */
         public Builder setUseExternalCheckpointForElasticity() {
             useExtCkptElasticity = true;
+            return this;
+        }
+
+        /**
+         * Sets if the subscription should include before image of subscribed
+         * tables in stream events represented by {@link StreamOperation}. By
+         * default, subscription does not include before image of subscribed
+         * tables in {@link StreamOperation}. The before image will be
+         * included in subscription only if 1) it is enabled in the
+         * corresponding subscribed table, and 2) the subscription is
+         * configured to include it in stream events. For any stream event,
+         * users can check if the before image is enabled by
+         * {@link StreamOperation#isBeforeImageEnabled()}, and check if
+         * subscription is configured to include before image by
+         * {@link StreamOperation#includeBeforeImage()}.
+         * @param includeBeforeImage true to include before image in
+         *                           subscription, false otherwise.
+         * @return this instance
+         */
+        public Builder setIncludeBeforeImage(boolean includeBeforeImage) {
+            this.includeBeforeImage = includeBeforeImage;
+            return this;
+        }
+
+        /**
+         * Sets stream delivery mode {@link StreamDeliveryMode} for given
+         * tables. The tables must be the subscribed tables by either
+         * {@link #setSubscribedTables(String...)} or
+         * {@link #setSubscribedTables(Set)}.
+         * @param mode stream delivery mode
+         * @param tables name of tables
+         */
+        public Builder setStreamDeliveryMode(StreamDeliveryMode mode,
+                                             String... tables) {
+
+            if (mode == StreamDeliveryMode.SINGLE_WRITE_EVENT) {
+                /* default mode, nothing to do */
+                return this;
+            }
+
+            if (mode == StreamDeliveryMode.GROUP_ALL_IN_TRANSACTION) {
+                for (String table : tables) {
+                    if (subscribedTables != null &&
+                        !subscribedTables.contains(table)) {
+                        throw new IllegalArgumentException(
+                            "Table=" + table + " is subscribed to stream " +
+                            "transactions but is not in the subscribed table " +
+                            "list=" + subscribedTables);
+                    }
+                    streamTxnTables.add(table);
+                }
+                return this;
+            }
+
+            throw new IllegalArgumentException("Unsupported stream delivery " +
+                                               "mode=" + mode);
+        }
+
+        /**
+         * @hidden
+         *
+         * Sets to include aborted transactions in subscription for the
+         * subscribed tables configured to stream transactions.
+         */
+        public Builder setIncludeAbortTxn() {
+            streamAbortTxn = true;
             return this;
         }
 

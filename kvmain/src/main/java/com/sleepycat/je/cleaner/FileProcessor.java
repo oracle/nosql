@@ -918,6 +918,7 @@ public class FileProcessor extends DaemonThread {
                                         dbId,
                                         lnEntry.getKey(),
                                         expirationTime,
+                                        lnEntry.getCreationTime(),
                                         lnEntry.getModificationTime(),
                                         0,
                                         0));
@@ -997,6 +998,7 @@ public class FileProcessor extends DaemonThread {
                         DbLsn.getFileOffset(logLsn),
                         new LNInfo(
                             targetLN, dbId, key, expirationTime,
+                            lnEntry.getCreationTime(),
                             lnEntry.getModificationTime(), 0, 0));
 
                     if (lookAheadCache.isFull()) {
@@ -1278,6 +1280,7 @@ public class FileProcessor extends DaemonThread {
 
         final LN lnFromLog = info.getLN();
         final byte[] key = info.getKey();
+        final long creationTime = info.getCreatedTime();
         final long modificationTime = info.getModificationTime();
 
         final DatabaseImpl db = bin.getDatabase();
@@ -1346,7 +1349,8 @@ public class FileProcessor extends DaemonThread {
 
                 return new LNInfo(
                     null /*LN*/, db.getId(), key,
-                    info.getExpirationTime(), info.getModificationTime(),
+                    info.getExpirationTime(), info.getCreatedTime(),
+                    info.getModificationTime(),
                     0,
                     0);
             }
@@ -1409,6 +1413,7 @@ public class FileProcessor extends DaemonThread {
                     envImpl, db, null /*locker*/, null /*writeLockInfo*/,
                     false /*newEmbeddedLN*/, bin.getKey(index),
                     bin.getExpiration(index), bin.isExpirationInHours(),
+                    creationTime,
                     modificationTime, bin.isTombstone(index),
                     false /*newBlindDeletion*/, false /*newEmbeddedLN*/,
                     logLsn, bin.getLastLoggedSize(index),

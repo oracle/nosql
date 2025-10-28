@@ -62,26 +62,37 @@ compiled-query-plan
               "iterator kind" : "TABLE",
               "target table" : "A.B",
               "row variable" : "$$b",
-              "index used" : "primary index",
-              "covering index" : false,
+              "index used" : "idxS",
+              "covering index" : true,
+              "index row variable" : "$$b_idx",
               "index scans" : [
                 {
-                  "equality conditions" : {"sid":""},
+                  "equality conditions" : {},
                   "range conditions" : {}
                 }
               ],
-              "key bind expressions" : [
+              "index filtering predicate" :
+              {
+                "iterator kind" : "EQUAL",
+                "left operand" :
                 {
                   "iterator kind" : "EXTERNAL_VAR_REF",
                   "variable" : "$innerJoinVar0"
+                },
+                "right operand" :
+                {
+                  "iterator kind" : "FIELD_STEP",
+                  "field name" : "#sid",
+                  "input iterator" :
+                  {
+                    "iterator kind" : "VAR_REF",
+                    "variable" : "$$b_idx"
+                  }
                 }
-              ],
-              "map of key bind expressions" : [
-                [ 0 ]
-              ],
+              },
               "position in join" : 1
             },
-            "FROM variable" : "$$b",
+            "FROM variable" : "$$b_idx",
             "SELECT expressions" : [
 
             ]
@@ -137,8 +148,52 @@ compiled-query-plan
           "field name" : "b",
           "field expression" : 
           {
-            "iterator kind" : "VAR_REF",
-            "variable" : "$$b"
+            "iterator kind" : "RECORD_CONSTRUCTOR",
+            "type" : { "Record" : {
+                "sid" : "String",
+                "id" : "Integer",
+                "bid" : "Integer",
+                "s" : "String"
+              }
+            },
+            "input iterators" : [
+              {
+                "iterator kind" : "FIELD_STEP",
+                "field name" : "#sid",
+                "input iterator" :
+                {
+                  "iterator kind" : "VAR_REF",
+                  "variable" : "$$b_idx"
+                }
+              },
+              {
+                "iterator kind" : "FIELD_STEP",
+                "field name" : "#id",
+                "input iterator" :
+                {
+                  "iterator kind" : "VAR_REF",
+                  "variable" : "$$b_idx"
+                }
+              },
+              {
+                "iterator kind" : "FIELD_STEP",
+                "field name" : "#bid",
+                "input iterator" :
+                {
+                  "iterator kind" : "VAR_REF",
+                  "variable" : "$$b_idx"
+                }
+              },
+              {
+                "iterator kind" : "FIELD_STEP",
+                "field name" : "s",
+                "input iterator" :
+                {
+                  "iterator kind" : "VAR_REF",
+                  "variable" : "$$b_idx"
+                }
+              }
+            ]
           }
         },
         {

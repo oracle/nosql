@@ -63,6 +63,7 @@ public class EvolveTable extends UpdateMetadata<TableMetadata> {
     private final int tableVersion;
     private final FieldMap fieldMap;
     private final TimeToLive ttl;
+    private final TimeToLive beforeImgTTL;
     private final String description;
     private final boolean systemTable;
     private final IdentityColumnInfo identityColumnInfo;
@@ -87,6 +88,7 @@ public class EvolveTable extends UpdateMetadata<TableMetadata> {
                        int tableVersion,
                        FieldMap fieldMap,
                        TimeToLive ttl,
+                       TimeToLive beforeImgTTL,
                        String description,
                        boolean systemTable,
                        IdentityColumnInfo identityColumnInfo,
@@ -102,6 +104,7 @@ public class EvolveTable extends UpdateMetadata<TableMetadata> {
         this.fieldMap = fieldMap;
         this.tableVersion = tableVersion;
         this.ttl = ttl;
+        this.beforeImgTTL = beforeImgTTL;
         this.description = description;
         this.systemTable = systemTable;
         this.identityColumnInfo = identityColumnInfo;
@@ -161,8 +164,9 @@ public class EvolveTable extends UpdateMetadata<TableMetadata> {
         final KVStoreImpl store = (KVStoreImpl)admin.getInternalKVStore();
 
         /* From this point the table is evolved */
-        if (md.evolveTable(table, tableVersion, fieldMap, ttl, description,
-            systemTable, identityColumnInfo, regions)) {
+        if (md.evolveTable(table, tableVersion, fieldMap, ttl, beforeImgTTL,
+                           description, systemTable, identityColumnInfo,
+                           regions)) {
             if (!oldTableHasIdentity && table.hasIdentityColumn() &&
                 sequenceDefChange != null) {
                 addIdentityColumn(table, store);

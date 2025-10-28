@@ -2464,10 +2464,6 @@ public class RepImpl
         return false;
     }
 
-    public void setAuthenticator(StreamAuthenticator authenticator) {
-        this.authenticator = authenticator;
-    }
-
     public StreamAuthenticator getAuthenticator() {
         return authenticator;
     }

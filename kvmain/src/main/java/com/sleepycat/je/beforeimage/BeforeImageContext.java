@@ -20,7 +20,7 @@ import com.sleepycat.je.dbi.TTL;
 /**
  * {@literal
  * BeforeImageContext provides info on existence of the beforeimage and
- * its TTL, this is the data which is stored with the current 
+ * its TTL, this is the data which is stored with the current
  * image of primary database. so don't add any metadata which is not added
  * to current record.
  * }
@@ -29,19 +29,25 @@ public class BeforeImageContext {
 
     private final int expTime;
     private final boolean expTimeInHrs;
-    
+
+    //dummy ctx for inserts
+    public BeforeImageContext() {
+        this.expTime = 0;
+        this.expTimeInHrs = true;
+    }
+
     public BeforeImageContext(final int expTime,
-                              final boolean expTimeInHrs) {                       
+                              final boolean expTimeInHrs) {
         this.expTime = expTime;
         this.expTimeInHrs = expTimeInHrs;
     }
 
-    //user defined 
+    //user defined
     public int getExpTime() {
         return expTime;
     }
 
-    //logged time 
+    //logged time
     public int getLoggedExpTime() {
         return TTL.ttlToExpiration(expTime,
                                    expTimeInHrs ? TimeUnit.HOURS
@@ -51,7 +57,7 @@ public class BeforeImageContext {
     public boolean isExpTimeInHrs() {
         return expTimeInHrs;
     }
-    
+
     @Override
     public String toString() {
         StringBuilder sb = new StringBuilder();

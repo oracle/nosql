@@ -14,6 +14,9 @@ import oracle.nosql.common.json.JsonUtils;
 import oracle.nosql.util.fault.ErrorCode;
 import oracle.nosql.util.fault.RequestFault;
 import oracle.nosql.util.tmi.ReplicaInfo.ReplicaState;
+import oracle.nosql.util.tmi.WorkRequest.ActionType;
+import oracle.nosql.util.tmi.WorkRequest.EntityType;
+import oracle.nosql.util.tmi.WorkRequest.OperationType;
 
 /**
  * A bean class to record DDL events.
@@ -830,6 +833,69 @@ public class DdlHistoryEntry {
     @Override
     public String toString() {
         return JsonUtils.toJson(this);
+    }
+
+    /*
+     * Converts to a WorkRequest object, representing general work request
+     * information.
+     */
+    public WorkRequest toWorkRequest() {
+        OperationType operationType = null;
+        WorkRequest.Status workRequestStatus = null;
+        ActionType actionType = null;
+
+        DdlOp op = getOperationEnum();
+        if (op == DdlOp.createTable) {
+            operationType = OperationType.CREATE_TABLE;
+        } else if (op == DdlOp.dropTable) {
+            operationType = OperationType.DELETE_TABLE;
+        } else {
+            operationType = OperationType.UPDATE_TABLE;
+        }
+
+        long timeFinished = 0;
+        switch (getStatusEnum()) {
+        case ACCEPTED:
+            workRequestStatus = WorkRequest.Status.ACCEPTED;
+            actionType = ActionType.IN_PROGRESS;
+            break;
+        case INPROGRESS:
+            workRequestStatus = WorkRequest.Status.IN_PROGRESS;
+            actionType = ActionType.IN_PROGRESS;
+            break;
+        case SUCCEEDED:
+            workRequestStatus = WorkRequest.Status.SUCCEEDED;
+            if (op == DdlOp.createTable) {
+                actionType = ActionType.CREATED;
+            } else if (op == DdlOp.dropTable) {
+                actionType = ActionType.DELETED;
+            } else {
+                actionType = ActionType.UPDATED;
+            }
+            timeFinished = updateTime.getTime();
+            break;
+        case FAILED:
+            workRequestStatus = WorkRequest.Status.FAILED;
+            actionType = ActionType.UPDATED;
+            timeFinished = updateTime.getTime();
+            break;
+        }
+
+        return new WorkRequest(workRequestId,
+                               operationType,
+                               workRequestStatus,
+                               compartmentId,
+                               tableOcid,
+                               tableName,
+                               EntityType.TABLE,
+                               getTags(),
+                               actionType,
+                               createTime.getTime(),
+                               (startTime != null ?
+                                   startTime.getTime() : 0),
+                               timeFinished,
+                               getErrorCodeEnum(),
+                               resultMsg);
     }
 
     /* The local sub ddl request information */

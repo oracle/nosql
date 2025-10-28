@@ -1842,7 +1842,7 @@ public class ExprSFW extends Expr {
      * - outerSFW : the outer SFW
      * - outerFromVar : from FROM var of the outer SFW.
      */
-    Expr rewriteSelectExprForGroupBy(
+    private Expr rewriteSelectExprForGroupBy(
         int fieldPos,
         Expr fieldExpr,
         Expr fieldSubExpr,
@@ -2509,8 +2509,13 @@ public class ExprSFW extends Expr {
         /* Check whether the sort exprs are a prefix of the group exprs or
          * the group exprs are a prefix of the sort exprs. If so, and we
          * later discover that the group-by is going to be an index-based
-         * one, the sort can be removed. */
-        if (hasGroupBy()) {
+         * one, the sort can be removed.
+         * Note: do not apply this optimization if the query has inner joins.
+         * This is ok for now, because currently, grouping over inner joins
+         * is always done via a global ExprGroup (i.e., there is no sorting
+         * index). If this changes in the future, this optimization has to
+         * revisited for inner joins.  */
+        if (hasGroupBy() && !hasJoin()) {
             boolean desc = false;
             boolean nullsLast = false;
             int i = 0;

@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2011, 2024 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011, 2025 Oracle and/or its affiliates. All rights reserved.
  *
  * This file was distributed by Oracle as part of a version of Oracle NoSQL
  * Database made available at:
@@ -64,16 +64,18 @@ import oracle.nosql.proxy.sc.ListTableInfoResponse;
 import oracle.nosql.proxy.sc.TableUtils;
 import oracle.nosql.proxy.sc.TenantManager;
 import oracle.nosql.proxy.security.AccessContext;
-import oracle.nosql.util.tmi.DdlHistoryEntry;
+import oracle.nosql.util.fault.ErrorCode;
 import oracle.nosql.util.tmi.IndexInfo;
 import oracle.nosql.util.tmi.IndexInfo.IndexField;
 import oracle.nosql.util.tmi.IndexInfo.IndexState;
+import oracle.nosql.util.tmi.KmsKeyInfo;
 import oracle.nosql.util.tmi.ReplicaInfo;
 import oracle.nosql.util.tmi.ReplicaInfo.ReplicaState;
 import oracle.nosql.util.tmi.TableInfo;
 import oracle.nosql.util.tmi.TableInfo.ActivityPhase;
 import oracle.nosql.util.tmi.TableLimits;
 import oracle.nosql.util.tmi.TableUsage;
+import oracle.nosql.util.tmi.WorkRequest;
 
 /**
  * JSON protocol related:
@@ -213,9 +215,9 @@ public class JsonProtocol extends Protocol {
     private static final String ITEMS = "items";
 
     /* Table */
-    private static final String ID = "id";
-    private static final String TIME_CREATED = "timeCreated";
-    private static final String TIME_UPDATED = "timeUpdated";
+    public static final String ID = "id";
+    public static final String TIME_CREATED = "timeCreated";
+    public static final String TIME_UPDATED = "timeUpdated";
     private static final String LIFE_CYCLE_DETAILS = "lifecycleDetails";
     private static final String PRIMARY_KEY = "primaryKey";
     private static final String SHARD_KEY = "shardKey";
@@ -281,6 +283,18 @@ public class JsonProtocol extends Protocol {
     /* AddReplica */
     public static final String CREATE_REPLICA_DETAILS = "CreateReplicaDetails";
     public static final String REGION = "region";
+
+    /* For configuration APIs */
+    public static final String UPDATE_CONFIGURATION_DETAILS =
+        "UpdateConfigurationDetails";
+    public static final String ENVIRONMENT = "environment";
+    public static final String HOSTED_ENVIRONMENT = "HOSTED";
+    public static final String MULTI_TENANCY_ENVIRONMENT = "MULTI_TENANCY";
+    public static final String IS_OPC_DRY_RUN = "is-opc-dry-run";
+
+    public static final String KMS_KEY = "kmsKey";
+    public static final String KMS_VAULT_ID = "kmsVaultId";
+    public static final String KMS_KEY_STATE = "kmsKeyState";
 
     public enum PutOption {
         IF_ABSENT,
@@ -576,70 +590,82 @@ public class JsonProtocol extends Protocol {
     /**
      * Build Get-WorkRequest response
      */
-    public static String buildWorkRequest(DdlHistoryEntry ddlEntry) {
+    public static String buildWorkRequest(WorkRequest workRequest) {
         final JsonBuilder jb = JsonBuilder.create();
-        buildWorkRequestSummary(jb, ddlEntry);
+        buildWorkRequestSummary(jb, workRequest);
         return jb.toString();
     }
 
     private static void buildWorkRequestSummary(JsonBuilder jb,
-                                                DdlHistoryEntry ddlEntry) {
-        String opType = null;
-        if (ddlEntry.getOperation() != null) {
-            opType = getWorkRequestOperation(ddlEntry.getOperationEnum());
-        }
-        DdlHistoryEntry.Status ddlStatus = ddlEntry.getStatusEnum();
-        String state = getWorkRequestStatus(ddlStatus);
-        int percentage = getWorkRequestProgress(ddlStatus);
+                                                WorkRequest request) {
 
-        jb.append(OPERATION_TYPE, opType)
-          .append(STATUS, state)
-          .append(ID, ddlEntry.getWorkRequestId())
-          .append(COMPARTMENT_ID, ddlEntry.getCompartmentId())
-          .append(PERCENT_COMPLETE, percentage)
-          .append(TIME_ACCEPTED, formatDateString(ddlEntry.getCreateTime()));
+        final WorkRequest.Status status = request.getStatus();
+        jb.append(OPERATION_TYPE, mapOperationType(request.getType()))
+          .append(STATUS, request.getStatus().name())
+          .append(ID, request.getId())
+          .append(COMPARTMENT_ID, request.getCompartmentId())
+          .append(PERCENT_COMPLETE, getWorkRequestProgress(status))
+          .append(TIME_ACCEPTED, formatDateString(request.getTimeAccepted()));
 
-        if (ddlEntry.getStartTime() != null) {
-            jb.append(TIME_STARTED,
-                      formatDateString(ddlEntry.getStartTime()));
+        if (request.getTimeStarted() > 0) {
+            jb.append(TIME_STARTED, formatDateString(request.getTimeStarted()));
         }
-        if (ddlStatus == DdlHistoryEntry.Status.SUCCEEDED ||
-            ddlStatus == DdlHistoryEntry.Status.FAILED) {
-            if (ddlEntry.getUpdateTime() != null) {
-                /* SUCCEEDED, FAILED */
-                jb.append(TIME_FINISHED,
-                          formatDateString(ddlEntry.getUpdateTime()));
+
+        if (request.getTimeFinished() > 0) {
+            jb.append(TIME_FINISHED, formatDateString(request.getTimeFinished()));
+        }
+
+        String entityUrl = null;
+        String entityId = request.getEntityId();
+        if (request.getEntityType() == WorkRequest.EntityType.TABLE) {
+            entityUrl = buildGetTableUrl(REST_CURRENT_VERSION,
+                                         request.getEntityName(),
+                                         request.getCompartmentId());
+            if (entityId == null) {
+                entityId = NameUtils.makeQualifiedName(
+                                request.getCompartmentId(),
+                                request.getEntityName());
             }
+        } else {
+            entityUrl = buildGetConfigurationUrl(REST_CURRENT_VERSION,
+                                                 request.getCompartmentId());
         }
-
-        String entityUrl = buildGetTableUrl(REST_CURRENT_VERSION,
-                                            ddlEntry.getTableName(),
-                                            ddlEntry.getCompartmentId());
-        String identifier = (ddlEntry.getTableOcid() != null) ?
-                             ddlEntry.getTableOcid() :
-                NameUtils.makeQualifiedName(ddlEntry.getCompartmentId(),
-                                            ddlEntry.getTableName());
 
         /* resources */
         jb.startArray(RESOURCES)
             .startObject(null)
-                .append(ENTITY_TYPE, "TABLE")
-                .append(ACTION_TYPE, getActionType(ddlEntry))
-                .append(IDENTIFIER, identifier)
+                .append(ENTITY_TYPE, request.getEntityType().name())
+                .append(ACTION_TYPE, request.getActionType().name())
+                .append(IDENTIFIER, request.getEntityId())
                 .append(ENTITY_URI, entityUrl)
              .endObject()
           .endArray();
     }
 
+    private static String mapOperationType(WorkRequest.OperationType type) {
+        switch(type) {
+        case CREATE_TABLE:
+        case UPDATE_TABLE:
+        case DELETE_TABLE:
+            return type.name();
+        case UPDATE_KMS_KEY:
+        case REMOVE_KMS_KEY:
+            return "UPDATE_CONFIGURATION";
+        default:
+            throw new IllegalArgumentException(
+                "Unknown WorkRequest OperationType: " + type);
+        }
+    }
+
     /**
      * Build List-WorkRequests response
      */
-    public static String buildWorkRequestCollection(DdlHistoryEntry[] entries) {
+    public static String buildWorkRequestCollection(WorkRequest[] requests) {
         JsonBuilder jb = JsonBuilder.create();;
         jb.startArray(ITEMS);
-        for (DdlHistoryEntry ddlEntry : entries) {
+        for (WorkRequest request : requests) {
             jb.startObject(null);
-            buildWorkRequestSummary(jb, ddlEntry);
+            buildWorkRequestSummary(jb, request);
             jb.endObject();
         }
         jb.endArray();
@@ -649,91 +675,49 @@ public class JsonProtocol extends Protocol {
     /**
      * Build List-WorkRequestErrors response
      */
-    public static String buildWorkRequestErrors(DdlHistoryEntry ddlEntry) {
+    public static String buildWorkRequestErrors(WorkRequest workRequest) {
         final JsonBuilder jb = JsonBuilder.create();
         jb.startArray(ITEMS);
-        if (ddlEntry.getErrorCode() != null) {
-            buildWorkRequestError(jb, ddlEntry);
+        if (workRequest.getErrorCode() != ErrorCode.NO_ERROR) {
+            buildWorkRequestError(jb, workRequest);
         }
         jb.endArray();
         return jb.toString();
     }
 
     private static void buildWorkRequestError(JsonBuilder jb,
-                                              DdlHistoryEntry ddlEntry) {
-        Timestamp ts = (ddlEntry.getUpdateTime() != null) ?
-                        ddlEntry.getUpdateTime() : ddlEntry.getCreateTime();
-        String msg = ddlEntry.getResultMsg();
-        if (msg != null && ddlEntry.getTableOcid() != null) {
-            msg = msg.replace(ddlEntry.getTableOcid(), ddlEntry.getTableName());
-        }
+                                              WorkRequest workRequest) {
+        long time = (workRequest.getTimeFinished() > 0) ?
+                     workRequest.getTimeFinished() :
+                     workRequest.getTimeStarted();
+
         jb.startObject(null)
-            .append(CODE, ddlEntry.getErrorCodeEnum().getType())
-            .append(MESSAGE, msg)
-            .append(TIMESTAMP, formatDateString(ts))
+            .append(CODE, workRequest.getErrorCode().getType())
+            .append(MESSAGE, workRequest.getErrorMessage())
+            .append(TIMESTAMP, formatDateString(time))
           .endObject();
     }
 
     /**
      * Build List-WorkRequestLogs response
      */
-    public static String buildWorkRequestLogs(DdlHistoryEntry ddlEntry) {
+    public static String buildWorkRequestLogs(WorkRequest workRequest) {
         final JsonBuilder jb = JsonBuilder.create();
         jb.startArray(ITEMS);
-        buildWorkRequestLog(jb, ddlEntry);
+        buildWorkRequestLog(jb, workRequest);
         jb.endArray();
         return jb.toString();
     }
 
     private static void buildWorkRequestLog(JsonBuilder jb,
-                                            DdlHistoryEntry ddl) {
-        Timestamp ts = (ddl.getUpdateTime() != null) ?
-                        ddl.getUpdateTime() : ddl.getCreateTime();
+                                            WorkRequest workRequest) {
+        long time = (workRequest.getTimeFinished() > 0) ?
+                     workRequest.getTimeFinished() :
+                     workRequest.getTimeAccepted();
         jb.startObject(null)
-            .append(MESSAGE, ddl.getResultMsg())
-            .append(TIMESTAMP, formatDateString(ts))
+            .append(MESSAGE, workRequest.getErrorMessage())
+            .append(TIMESTAMP, formatDateString(time))
         .endObject();
-    }
-
-    private static String getWorkRequestOperation(DdlHistoryEntry.DdlOp op) {
-        switch(op) {
-        case createTable:
-            return "CREATE_TABLE";
-        case dropTable:
-            return "DELETE_TABLE";
-        case alter:
-        case update:
-        case createIndex:
-        case dropIndex:
-        case changeCompartment:
-        case updateTableReplica:
-        case parentAddReplica:
-        case parentAddReplicaTable:
-        case parentDropReplica:
-        case parentDropReplicaTable:
-        case parentCreateIndex:
-        case parentDropIndex:
-        case parentAlterTable:
-        case parentUpdateTable:
-            return "UPDATE_TABLE";
-        default:
-            throw new IllegalStateException("Unknown DdlOp: " + op);
-        }
-    }
-
-    private static String getWorkRequestStatus(DdlHistoryEntry.Status state) {
-        switch (state) {
-        case ACCEPTED:
-            return "ACCEPTED";
-        case INPROGRESS:
-            return "IN_PROGRESS";
-        case SUCCEEDED:
-            return "SUCCEEDED";
-        case FAILED:
-            return "FAILED";
-        default:
-            throw new IllegalStateException("Invalid state " + state);
-        }
     }
 
     /**
@@ -743,47 +727,14 @@ public class JsonProtocol extends Protocol {
      *  IN_PROGRESS: 50
      *  SUCCEEDED/FAILED: 100
      */
-    private static int getWorkRequestProgress(DdlHistoryEntry.Status state) {
-        if (state == DdlHistoryEntry.Status.ACCEPTED) {
+    private static int getWorkRequestProgress(WorkRequest.Status state) {
+        if (state == WorkRequest.Status.ACCEPTED) {
             return 0;
-        } else if (state == DdlHistoryEntry.Status.INPROGRESS) {
+        } else if (state == WorkRequest.Status.IN_PROGRESS) {
             return 50;
         }
         /* SUCCEEDED, fAILED */
         return 100;
-    }
-
-    private static String getActionType(DdlHistoryEntry ddlEntry) {
-        DdlHistoryEntry.DdlOp op = ddlEntry.getOperationEnum();
-        DdlHistoryEntry.Status state = ddlEntry.getStatusEnum();
-        if (state == DdlHistoryEntry.Status.SUCCEEDED ||
-            state == DdlHistoryEntry.Status.FAILED) {
-            switch(op) {
-            case createTable:
-                return "CREATED";
-            case dropTable:
-                return "DELETED";
-            case alter:
-            case update:
-            case createIndex:
-            case dropIndex:
-            case changeCompartment:
-            case updateTableReplica:
-            case parentAddReplica:
-            case parentAddReplicaTable:
-            case parentDropReplica:
-            case parentDropReplicaTable:
-            case parentCreateIndex:
-            case parentDropIndex:
-            case parentAlterTable:
-            case parentUpdateTable:
-                return "UPDATED";
-            default:
-                throw new IllegalStateException("Unknown DdlOp: " + op);
-            }
-        } else {
-            return "IN_PROGRESS";
-        }
     }
 
     /**
@@ -805,6 +756,20 @@ public class JsonProtocol extends Protocol {
               .append("=")
               .append(compartmentId);
         }
+        return sb.toString();
+    }
+
+    /**
+     * Builds GET Configuration url:
+     *  /<api_version>/configuration?compartmentId=<compartmentId>
+     */
+    private static String buildGetConfigurationUrl(String root,
+                                                   String compartmentId) {
+        StringBuilder sb = new StringBuilder(URL_PATH_DELIMITER);
+        sb.append(root)
+          .append(URL_PATH_DELIMITER)
+          .append("configuration?compartmentId=")
+          .append(compartmentId);
         return sb.toString();
     }
 
@@ -1396,6 +1361,43 @@ public class JsonProtocol extends Protocol {
         default:
             throw new IllegalStateException("Unexpected type: " +
                                              value.getType());
+        }
+    }
+
+    public static String buildConfiguration(KmsKeyInfo key) {
+        JsonBuilder jb = JsonBuilder.create();
+        jb.append(ENVIRONMENT, (key.isHostedEnv() ? HOSTED_ENVIRONMENT :
+                                                    MULTI_TENANCY_ENVIRONMENT));
+        if (key.getState() != null) {
+            jb.startObject(KMS_KEY);
+            jb.append(KMS_KEY_STATE, mapKmsKeyState(key.getState()));
+            if (key.getKeyId() != null) {
+                jb.append(ID, key.getKeyId())
+                  .append(KMS_VAULT_ID, key.getVaultId())
+                  .append(TIME_CREATED, formatDateString(key.getCreateTime()))
+                  .append(TIME_UPDATED, formatDateString(key.getUpdateTime()));
+            }
+            jb.endObject();
+        }
+        return jb.toString();
+    }
+
+    private static String mapKmsKeyState(KmsKeyInfo.KeyState state) {
+        switch (state) {
+        case UPDATING:
+            return "UPDATING";
+        case ACTIVE:
+            return "ACTIVE";
+        case DELETED:
+            return "DELETED";
+        case FAILED:
+            return "FAILED";
+        case REVERTING:
+            return "REVERTING";
+        case DISABLED:
+            return "DISABLED";
+        default:
+            throw new IllegalStateException("Unexpected KeyState: " + state);
         }
     }
 

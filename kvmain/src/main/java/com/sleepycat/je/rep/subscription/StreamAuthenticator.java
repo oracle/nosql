@@ -14,6 +14,8 @@
 
 package com.sleepycat.je.rep.subscription;
 
+import com.sleepycat.je.rep.net.DataChannel;
+
 /**
  * Object represents an interface to authenticate stream consumer and check its
  * access privilege.
@@ -69,4 +71,17 @@ public interface StreamAuthenticator {
      * check has been performed.
      */
     long getLastCheckTimeMs();
+
+    /**
+     * Gets a copy instance from existing stream authenticator
+     * @param channel  data channel that owns the authenticator
+     * @return a new instance
+     */
+    StreamAuthenticator getInstance(DataChannel channel);
+
+    /**
+     * Returns channel id associated with the authenticator
+     * @return channel id
+     */
+    String getChannelId();
 }

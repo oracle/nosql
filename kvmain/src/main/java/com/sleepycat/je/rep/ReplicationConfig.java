@@ -383,7 +383,7 @@ public class ReplicationConfig extends ReplicationMutableConfig {
      * IllegalArgumentException is thrown.
      *
      * When moving to 24.2, we decide to remove numerous deprecated
-     * configParams. Although this one marked as deprecared, this configuration
+     * configParams. Although this one marked as deprecated, this configuration
      * could still be used by on-prem users through configuration files, and it
      * could alter cleaner behavior.
      */
@@ -391,6 +391,49 @@ public class ReplicationConfig extends ReplicationMutableConfig {
     @Deprecated
     public static final String REPLAY_FREE_DISK_PERCENT =
         EnvironmentParams.REP_PARAM_PREFIX + "replayFreeDiskPercent";
+
+    /**
+     * Number of messages that should be logged when {@link #TXN_TRACK_ACK_INFO} is set to
+     * True. These messages correspond to what nodes in a replication group acknowledged a
+     * transaction when it reaches the required number of acks to be counted as durable.
+     *
+     * <table border="1">
+     * <caption style="display:none">Information about configuration option</caption>
+     * <tr><td>Name</td><td>Type</td><td>Mutable</td>
+     * <td>Default</td><td>Minimum</td><td>Maximum</td></tr>
+     * <tr>
+     * <td>{@value}</td>
+     * <td>Integer</td>
+     * <td>No</td>
+     * <td>100</td>
+     * <td>1</td>
+     * <td>500</td>
+     * </tr>
+     * </table>
+     */
+    public static final String TXN_TRACK_ACK_INFO_LIMIT =
+            "je.txn.trackAckInfoLimit";
+
+    /**
+     * Set this parameter to true to track information of what nodes in a replication group
+     * acknowledged a transaction when it reaches the required  number of acks to be counted
+     * as durable. The tracking of this information will show which transaction ID received
+     * a quorum of acknowledging and what were the nodes. The default is false, and true
+     * should only be used during debugging.
+     *
+     * <table border="1">
+     * <caption style="display:none">Information about configuration option</caption>
+     * <tr><td>Name</td><td>Type</td><td>Mutable</td><td>Default</td></tr>
+     * <tr>
+     * <td>{@value}</td>
+     * <td>Boolean</td>
+     * <td>No</td>
+     * <td>false</td>
+     * </tr>
+     * </table>
+     */
+    public static final String TXN_TRACK_ACK_INFO =
+            "je.txn.trackAckInfo";
 
     /**
      * The maximum amount of time for a replay transaction to wait for a lock.
@@ -829,6 +872,8 @@ public class ReplicationConfig extends ReplicationMutableConfig {
         EnvironmentParams.REP_PARAM_PREFIX + "electionsRebroadcastPeriod";
 
     /**
+     * @deprecated as of 25.2.
+     *
      * In rare cases, a node may need to rollback committed transactions in
      * order to rejoin a replication group. This parameter limits the number of
      * durable transactions that may be rolled back. Durable transactions are
@@ -859,11 +904,16 @@ public class ReplicationConfig extends ReplicationMutableConfig {
      * </table>
      *
      * @see RollbackProhibitedException
+     *
      */
+    @SuppressWarnings("deprecation")
+    @Deprecated
     public static final String TXN_ROLLBACK_LIMIT =
         EnvironmentParams.REP_PARAM_PREFIX + "txnRollbackLimit";
 
     /**
+     * @deprecated as 25.2
+     *
      * In rare cases, a node may need to rollback committed transactions in
      * order to rejoin a replication group. If this parameter is set to true
      * and a rollback is necessary to rejoin the group, a {@link
@@ -893,7 +943,10 @@ public class ReplicationConfig extends ReplicationMutableConfig {
      * <td>False</td>
      * </tr>
      * </table>
+     *
      */
+    @SuppressWarnings("deprecation")
+    @Deprecated
     public static final String TXN_ROLLBACK_DISABLED =
         EnvironmentParams.REP_PARAM_PREFIX + "txnRollbackDisabled";
 

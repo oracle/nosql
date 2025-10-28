@@ -21,6 +21,7 @@ import java.net.UnknownHostException;
 import java.util.HashSet;
 import java.util.StringTokenizer;
 
+import com.sleepycat.je.EnvironmentConfig;
 import com.sleepycat.je.config.BooleanConfigParam;
 import com.sleepycat.je.config.ConfigParam;
 import com.sleepycat.je.config.DurationConfigParam;
@@ -199,6 +200,26 @@ public class RepParams {
                                1000,            // default
                                true,            // mutable
                                true);           // forReplication
+
+    /**
+     * @see ReplicationConfig#TXN_TRACK_ACK_INFO_LIMIT
+     */
+    public static final IntConfigParam TXN_TRACK_ACK_INFO_LIMIT =
+            new IntConfigParam(ReplicationConfig.TXN_TRACK_ACK_INFO_LIMIT,
+                    1,      // min
+                    500,  // max
+                    100,      // default
+                    false,  // mutable
+                    true); // forReplication
+
+    /**
+     * @see ReplicationConfig#TXN_TRACK_ACK_INFO
+     */
+    public static final BooleanConfigParam TXN_TRACK_ACK_INFO =
+            new BooleanConfigParam(ReplicationConfig.TXN_TRACK_ACK_INFO,
+                    false,              // default
+                    false,               // mutable
+                    true); // forReplication
 
     /**
      * The lock timeout for replay transactions.

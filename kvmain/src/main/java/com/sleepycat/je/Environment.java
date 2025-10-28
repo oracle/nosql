@@ -22,9 +22,11 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Level;
+import java.util.stream.Stream;
 
 import com.sleepycat.je.Durability.ReplicaAckPolicy;
 import com.sleepycat.je.cleaner.ExtinctionScanner;
+import com.sleepycat.je.config.EnvironmentParams;
 import com.sleepycat.je.dbi.DatabaseImpl;
 import com.sleepycat.je.dbi.DbConfigManager;
 import com.sleepycat.je.dbi.DbEnvPool;
@@ -33,6 +35,7 @@ import com.sleepycat.je.dbi.DbTree.TruncateDbResult;
 import com.sleepycat.je.dbi.EnvironmentImpl;
 import com.sleepycat.je.dbi.StartupTracker.Phase;
 import com.sleepycat.je.dbi.TriggerManager;
+import com.sleepycat.je.rep.NetworkRestore;
 import com.sleepycat.je.rep.ReplicationConfig;
 import com.sleepycat.je.txn.HandleLocker;
 import com.sleepycat.je.txn.Locker;
@@ -42,6 +45,7 @@ import com.sleepycat.je.utilint.DatabaseUtil;
 import com.sleepycat.je.utilint.LoggerUtils;
 import com.sleepycat.je.utilint.Pair;
 
+import com.sleepycat.je.utilint.PropUtil;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -226,7 +230,7 @@ public class Environment implements Closeable {
                IllegalArgumentException {
 
         this(envHome, configuration, null /*repConfig*/,
-             null /*envImplParam*/);
+             null /*envImplParam*/, false);
     }
 
     /**
@@ -239,7 +243,8 @@ public class Environment implements Closeable {
     protected Environment(File envHome,
                           EnvironmentConfig envConfig,
                           ReplicationConfig repConfig,
-                          EnvironmentImpl envImpl) {
+                          EnvironmentImpl envImpl,
+                          boolean joinGroup) {
 
         initEnvImpl();
 
@@ -247,6 +252,41 @@ public class Environment implements Closeable {
 
         final EnvironmentConfig useEnvConfig =
             resolveConfig(envHome, envConfig, repConfig);
+
+        /*
+         * Verify if the environment is in network restore. If True, the
+         * opening of this environment handle is locked until the network
+         * restore finishes. This will be only applied if the environment
+         * to be opened is aimed to join a group.
+         */
+        if (joinGroup && NetworkRestore.isEnvInRestore(envHome, this)) {
+            synchronized (this) {
+                try {
+                    /*
+                     * timeout to avoid to stuck hanging forever.
+                     */
+                    String val = DbConfigManager.getVal(useEnvConfig.props,
+                            EnvironmentParams.ENV_NETWORK_RESTORE_LOCK_TIMEOUT);
+                    int timeout = PropUtil.parseDuration(val);
+                    wait(timeout);
+                } catch (InterruptedException e) {
+                    /*
+                     * Do not make anything. Because of a network restore
+                     * is in progress, likely a EnvironmentFailureException
+                     * will be thrown.
+                     */
+                    LoggerUtils.envLogMsg(Level.WARNING, envImpl,
+                            "A timeout occurred because a network " +
+                                    "restore on " + envHome.getAbsolutePath() +
+                                    " has not finished. Thus, the environment " +
+                                    "handle on that directory was not opened. " +
+                                    "See value of the " +
+                                    EnvironmentConfig.
+                                            ENV_NETWORK_RESTORE_LOCK_TIMEOUT +
+                                    " parameter to increase this timeout.");
+                }
+            }
+        }
 
         if (envImpl != null) {
             /* We're creating an InternalEnvironment in EnvironmentImpl. */
@@ -1456,11 +1496,13 @@ public class Environment implements Closeable {
         if (txnConfig == null) {
             return;
         }
-        if ((txnConfig.getReadUncommitted() &&
-             txnConfig.getReadCommitted())) {
+
+        if (Stream.of(txnConfig.getReadUncommitted(),
+            txnConfig.getReadCommitted(),
+            txnConfig.getOptimisticRead()).filter(x -> x).count() > 1) {
             throw new IllegalArgumentException
                 ("Only one may be specified: " +
-                "ReadCommitted or ReadUncommitted");
+                 "ReadCommitted or ReadUncommitted or OptimisticRead");
         }
     }
 

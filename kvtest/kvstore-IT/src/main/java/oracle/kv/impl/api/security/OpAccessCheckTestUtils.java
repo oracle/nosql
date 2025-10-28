@@ -1117,7 +1117,7 @@ public class OpAccessCheckTestUtils {
         return new KeyCounts(userCount, serverCount);
     }
 
-    private static abstract class TestDeniedExecution {
+    protected static abstract class TestDeniedExecution {
         void exec() {
             try {
                 perform();
@@ -1160,7 +1160,7 @@ public class OpAccessCheckTestUtils {
     /**
      * Implementation of EntryStream<Row> used for TableAPI.putBulk().
      */
-    private static class TestRowStream extends TestStream<Row> {
+    static class TestRowStream extends TestStream<Row> {
         TestRowStream(Row... entries) {
             super(entries);
         }

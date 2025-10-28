@@ -14,6 +14,7 @@
 package oracle.kv.impl.async;
 
 import java.io.IOException;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ScheduledExecutorService;
 
 import oracle.kv.impl.async.exception.ConnectionNotEstablishedException;
@@ -130,6 +131,17 @@ public interface EndpointGroup {
 
     /**
      * Returns the back-up executor services associated with this group.
+     *
+     * @return the executor service
+     */
+    ExecutorService getBackupExecService();
+
+    /**
+     * Returns the back-up scheduled executor services associated with this
+     * group.
+     *
+     * Note that the current implementation creates a small core size. Therefore
+     * tasks submitted to this executor must be non-blocking.
      *
      * @return the executor service
      */

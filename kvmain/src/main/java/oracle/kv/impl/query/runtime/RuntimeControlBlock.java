@@ -543,6 +543,12 @@ public class RuntimeControlBlock {
                 theExecuteOptions.getUpdateLimit());
     }
 
+    public String getRowMetadata() {
+        return (isServerRCB() ?
+            theQueryOp.getRowMetadata() :
+            theExecuteOptions.getRowMetadata());
+    }
+
     public String getQueryName() {
         return (isServerRCB() ?
                 theQueryOp.getQueryName() :

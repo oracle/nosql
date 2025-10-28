@@ -94,6 +94,9 @@ public class WriteLockInfo {
     /* Abort modification time. */
     private long abortModificationTime;
 
+    /* Abort creation time. */
+    private long abortCreationTime;
+
     /* Abort tombstone property. */
     private boolean abortTombstone;
 
@@ -109,10 +112,18 @@ public class WriteLockInfo {
      */
     private boolean neverLocked = true;
 
+    /*
+     * Write locks obtained when doing a read with LockMode.RWM should not
+     * mark the abortLSN obsolete on transaction commit, because the abortLSN
+     * is the record being read, which is not obsolete.
+     */
+    private boolean obsolete;
+
     static final WriteLockInfo basicWriteLockInfo = new WriteLockInfo();
 
     // public for Sizeof
     public WriteLockInfo() {
+        obsolete = true;
     }
 
     public boolean getAbortKnownDeleted() {
@@ -183,6 +194,14 @@ public class WriteLockInfo {
         abortModificationTime = v;
     }
 
+    public long getAbortCreationTime() {
+        return abortCreationTime;
+    }
+
+    public void setAbortCreationTime(long v) {
+        abortCreationTime = v;
+    }
+
     public boolean getAbortTombstone() {
         return abortTombstone;
     }
@@ -207,6 +226,14 @@ public class WriteLockInfo {
         this.neverLocked = neverLocked;
     }
 
+    public boolean getObsolete() {
+        return obsolete;
+    }
+
+    public void setObsolete(boolean obsolete) {
+        this.obsolete = obsolete;
+    }
+
     /*
      * Copy all the information needed to create a clone of the lock.
      */    
@@ -219,9 +246,11 @@ public class WriteLockInfo {
         abortLogSize = source.abortLogSize;
         abortExpiration = source.abortExpiration;
         abortModificationTime = source.abortModificationTime;
+        abortCreationTime = source.abortCreationTime;
         abortTombstone = source.abortTombstone;
         db = source.db;
         neverLocked = source.neverLocked;
+        obsolete = source.obsolete;
     }
 
     @Override
@@ -236,7 +265,9 @@ public class WriteLockInfo {
             " abortExpiration=" + getAbortExpiration() +
             " abortExpirationInHours=" + isAbortExpirationInHours() +
             " abortModificationTime=" + getAbortModificationTime() +
+            " abortCreationTime=" + getAbortCreationTime() +
             " abortTombstone=" + getAbortTombstone() +
-            " neverLocked=" + neverLocked;
+            " neverLocked=" + neverLocked +
+            " obsolete=" + obsolete;
     }
 }

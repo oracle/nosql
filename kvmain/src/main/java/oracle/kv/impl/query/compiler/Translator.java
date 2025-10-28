@@ -1552,6 +1552,15 @@ public class Translator extends KVQLBaseListener {
                 }
                 return null;
             }
+            case FUNC_CALL:
+                Function func = expr.getFunction(FuncCode.FN_ROW_METADATA);
+                if (func != null) {
+                    ExprFuncCall fncall = (ExprFuncCall)expr;
+                    return (ExprVar)fncall.getArg(0); 
+                }
+                throw new QueryException(
+                    "Invalid expression in UNNEST clause",
+                    expr.getLocation());
             default:
                 throw new QueryException(
                     "Invalid expression in UNNEST clause",
@@ -5492,6 +5501,47 @@ public class Translator extends KVQLBaseListener {
                 getLocation(ctx.table_name()));
         }
 
+        Frozen_defContext frozen_def = null;
+
+        KVQLParser.Table_optionsContext options = ctx.table_options();
+        if (options != null) {
+            List< KVQLParser.Ttl_defContext> ttls = options.ttl_def();
+            if (ttls != null && ttls.size() > 1) {
+                throw new QueryException(
+                    "Only one TTL definition is allowed in CREATE TABLE DDL",
+                    getLocation(options));
+            }
+            List< KVQLParser.Regions_defContext> regions = options.regions_def();
+            if (regions != null && regions.size() > 1) {
+                throw new QueryException(
+                    "Only one regions definition is allowed in CREATE TABLE DDL",
+                    getLocation(options));
+            }
+            List< KVQLParser.Frozen_defContext> frozens = options.frozen_def();
+            if (frozens != null && frozens.size() > 1) {
+                throw new QueryException(
+                    "Only one frozen definition is allowed in CREATE TABLE DDL",
+                    getLocation(options));
+            }
+            if (frozens != null && !frozens.isEmpty()) {
+                frozen_def = options.frozen_def().get(0);
+            }
+            List< KVQLParser.Json_collection_defContext> jcs =
+                options.json_collection_def();
+            if (jcs != null && jcs.size() > 1) {
+                throw new QueryException(
+                    "Only one json collection definition is allowed " +
+                    "in CREATE TABLE DDL", getLocation(options));
+            }
+            List<KVQLParser.Enable_before_imageContext> ebis =
+                options.enable_before_image();
+            if (ebis != null && ebis.size() > 1) {
+                throw new QueryException(
+                    "Only one enable before image definition is allowed " +
+                    "in CREATE TABLE DDL", getLocation(options));
+            }
+        }
+
         /*
          * Do callback for name including parent path before requiring metadata
          * to allow the caller to allow, or not, child tables without a metadata
@@ -5507,7 +5557,6 @@ public class Translator extends KVQLBaseListener {
                 theQCB.getPrepareCallback().ifNotExistsFound();
             }
 
-            Frozen_defContext frozen_def = ctx.table_options().frozen_def();
             if (frozen_def != null) {
                 boolean force = (frozen_def.FORCE() != null);
                 theQCB.getPrepareCallback().freezeFound();
@@ -5878,6 +5927,43 @@ public class Translator extends KVQLBaseListener {
     }
 
     @Override
+    public void enterEnable_before_image(KVQLParser.Enable_before_imageContext ctx) {
+
+        if (ctx.before_image_ttl() == null) {
+            theTableBuilder.setBeforeImageTTL(TableImpl.DEFAULT_BEFORE_IMAGE_TTL);
+        }
+    }
+
+    @Override
+    public void enterBefore_image_ttl(KVQLParser.Before_image_ttlContext ctx) {
+        KVQLParser.DurationContext duration = ctx.duration();
+        Location loc = getLocation(ctx);
+        try {
+            int ttl = Integer.parseInt(duration.INT().getText());
+            if (ttl <= 0) {
+                throw new QueryException(
+                    "Before image TTL value must be greater than 0", loc);
+            }
+            theTableBuilder.setBeforeImageTTL(
+                TimeToLive.createTimeToLive(
+                    ttl,
+                    convertToTimeUnit(duration.time_unit())));
+        } catch (NumberFormatException nfex) {
+            String msg = "Invalid TTL value: "
+                    + duration.INT().getText()
+                    + " in " + duration.INT().getText()
+                    + " " + duration.time_unit().getText();
+            throw new QueryException(msg, loc);
+        } catch (IllegalArgumentException iae) {
+            String msg = "Invalid TTL Unit: "
+                    + convertToTimeUnit(duration.time_unit())
+                    + " in " + duration.INT().getText()
+                    + " " + duration.time_unit().getText();
+            throw new QueryException(msg, loc);
+        }
+    }
+
+    @Override
     public void enterRegions_def(KVQLParser.Regions_defContext ctx) {
         final String[] regionNames =
                 makeIdArray(ctx.region_names().id_list().id());
@@ -5900,74 +5986,43 @@ public class Translator extends KVQLBaseListener {
         }
     }
 
-    @Override
-    public void enterAdd_region_def(KVQLParser.Add_region_defContext ctx) {
-        final String[] regionNames =
-                makeIdArray(ctx.region_names().id_list().id());
-
-        PrepareCallback pc = theQCB.getPrepareCallback();
-        if (pc != null) {
-            for (String regionName : regionNames) {
-                pc.regionName(regionName);
-            }
-        }
-
-        /*
-         * If the RegionMapper is available add regions so that the
-         * table can be validated
-         */
-        if (theTableBuilder.getRegionMapper() != null) {
-            for (String regionName : regionNames) {
-                theTableBuilder.addRegion(regionName);
-            }
-        }
-    }
-
-    @Override
-    public void enterDrop_region_def(KVQLParser.Drop_region_defContext ctx) {
-        final String[] regionNames =
-                makeIdArray(ctx.region_names().id_list().id());
-
-        PrepareCallback pc = theQCB.getPrepareCallback();
-        if (pc != null) {
-            for (String regionName : regionNames) {
-                pc.regionName(regionName);
-            }
-        }
-
-        /*
-         * If the prepare doesn't need to be completed, there may not be
-         * metadata available to map the regions, so don't add them. This case
-         * is a syntax check only, so if any regions don't exist the operation
-         * will fail later.
-         */
-        if ((pc == null) || pc.prepareNeeded()) {
-            for (String regionName : regionNames) {
-                theTableBuilder.dropRegion(regionName);
-            }
-        }
-    }
-
     /*
-     * alter_table_statement : ALTER TABLE table_name alter_field_statement ;
+     * alter_table_statement : ALTER TABLE table_name alter_def ;
      *
-     * alter_field_statement :
-     * LP
-     * (add_field_statement | drop_field_statement | modify_field_statement)
-     * (COMMA
-     * (add_field_statement | drop_field_statement | modify_field_statement))*
-     * RP ;
+     * alter_def : alter_field_statements |
+     *             ttl_def |
+     *             add_region_def | drop_region_def |
+     *             freeze_def | unfreeze_def |
+     *             enable_before_image | disable_before_image ;
+     *
+     * freeze_def: FREEZE SCHEMA FORCE?;
+     *
+     * unfreeze_def: UNFREEZE SCHEMA ;
+     *
+     * enable_before_image : ENABLE BEFORE IMAGE ttl_def ;
+     *
+     * disable_before_image : DISABLE BEFORE IMAGE ;
+     *
+     * add_region_def : ADD REGIONS region_names ;
+     *
+     * drop_region_def : DROP REGIONS region_names ;
+     *
+     * alter_field_statements :
+     *     LP
+     *     (add_field_statement | drop_field_statement | modify_field_statement)
+     *     (COMMA
+     *      (add_field_statement | drop_field_statement | modify_field_statement))*
+     *     RP ;
      *
      * add_field_statement :
-     *     ADD schema_path type_def (default_def | identity_def |
-     *                               mr_counter_def)? comment? ;
+     *     ADD schema_path type_def (default_def | identity_def | mr_counter_def)?
+     *     comment? ;
      *
      * drop_field_statement : DROP schema_path ;
      *
      * modify_field_statement :
-     *     MODIFY schema_path ((type_def default_def? comment?) |
-     *                         identity_def |
-                               DROP IDENTITY);
+     *     MODIFY schema_path ((type_def default_def? comment?) | identity_def |
+     *                         DROP IDENTITY);
      *
      * schema_path : init_schema_path_step (DOT schema_path_step)*;
      *
@@ -5982,13 +6037,15 @@ public class Translator extends KVQLBaseListener {
         String namespace = computeNamespace(ctx.table_name());
         String[] pathName = getNamePath(ctx.table_name().table_id_path());
 
-        if (pathName != null && pathName.length > 0 && (
-            pathName[0].startsWith(SYS_PREFIX) ||
+        if (pathName != null && pathName.length > 0 &&
+           (pathName[0].startsWith(SYS_PREFIX) ||
             pathName[pathName.length - 1].startsWith(SYS_PREFIX))) {
             throw new QueryException("Can not ALTER system table: " +
                 ctx.table_name().table_id_path().getText(),
                 getLocation(ctx.table_name().table_id_path()));
         }
+
+        Alter_defContext adf = ctx.alter_def();
 
         if (theQCB.getPrepareCallback() != null) {
             theQCB.getPrepareCallback().queryOperation(QueryOperation.ALTER_TABLE);
@@ -6001,9 +6058,9 @@ public class Translator extends KVQLBaseListener {
              * Check for freeze and unfreeze in the context and make
              * callbacks as needed
              */
-            Alter_defContext adf = ctx.alter_def();
             Freeze_defContext fdf = adf.freeze_def();
             Unfreeze_defContext udf = adf.unfreeze_def();
+
             if (fdf != null || udf != null) {
                 if (fdf != null) {
                     boolean force = (fdf.FORCE() != null);
@@ -6032,9 +6089,19 @@ public class Translator extends KVQLBaseListener {
         }
 
         theTableBuilder =
-            TableEvolver.createTableEvolver(currentTable,
-                theMetadataHelper == null ? null :
-                                            theMetadataHelper.getRegionMapper());
+        TableEvolver.createTableEvolver(currentTable,
+                                        (theMetadataHelper == null ?
+                                         null :
+                                         theMetadataHelper.getRegionMapper()));
+        if (adf.enable_before_image() != null) {
+            ((TableEvolver)theTableBuilder).setEnableBeforeImage();
+        }
+        if (adf.disable_before_image() != null) {
+            ((TableEvolver)theTableBuilder).setDisableBeforeImage();
+        }
+        if (adf.ttl_def() != null) {
+            ((TableEvolver)theTableBuilder).setUpdateTableTTL();
+        }
     }
 
     @Override
@@ -6098,6 +6165,54 @@ public class Translator extends KVQLBaseListener {
             boolean force = (ctx.FORCE() != null);
             theQCB.getPrepareCallback().freezeFound();
             theQCB.getPrepareCallback().freezeFound(force);
+        }
+    }
+
+    @Override
+    public void enterAdd_region_def(KVQLParser.Add_region_defContext ctx) {
+        final String[] regionNames =
+                makeIdArray(ctx.region_names().id_list().id());
+
+        PrepareCallback pc = theQCB.getPrepareCallback();
+        if (pc != null) {
+            for (String regionName : regionNames) {
+                pc.regionName(regionName);
+            }
+        }
+
+        /*
+         * If the RegionMapper is available add regions so that the
+         * table can be validated
+         */
+        if (theTableBuilder.getRegionMapper() != null) {
+            for (String regionName : regionNames) {
+                theTableBuilder.addRegion(regionName);
+            }
+        }
+    }
+
+    @Override
+    public void enterDrop_region_def(KVQLParser.Drop_region_defContext ctx) {
+        final String[] regionNames =
+                makeIdArray(ctx.region_names().id_list().id());
+
+        PrepareCallback pc = theQCB.getPrepareCallback();
+        if (pc != null) {
+            for (String regionName : regionNames) {
+                pc.regionName(regionName);
+            }
+        }
+
+        /*
+         * If the prepare doesn't need to be completed, there may not be
+         * metadata available to map the regions, so don't add them. This case
+         * is a syntax check only, so if any regions don't exist the operation
+         * will fail later.
+         */
+        if ((pc == null) || pc.prepareNeeded()) {
+            for (String regionName : regionNames) {
+                theTableBuilder.dropRegion(regionName);
+            }
         }
     }
 
@@ -6489,9 +6604,11 @@ public class Translator extends KVQLBaseListener {
                 names[i] = "";
             }
 
-            /* if there is no type expression, just get the text.
-             * Otherwise we need to split out the type_expr. */
-            if (field.path_type() == null) {
+            if (path.row_metadata() != null) {
+                names[i] += "row_metadata().";
+            }
+
+            if (path.old_index_path() != null) {
                 names[i] += path.getText();
             } else {
                 if (path.multikey_path_prefix() != null) {
@@ -6512,10 +6629,13 @@ public class Translator extends KVQLBaseListener {
                 names[i] += ("@" + functionArgs);
             }
 
+            //System.out.println("YYYY-0 " + names[i]);
+
             /*
              * Check for old-stype syntax and handle it
              */
-            if (path.name_path() == null) {
+            if (path.old_index_path() == null) {
+                //System.out.println("YYYY-1 " + names[i]);
                 ++i;
                 continue;
             }
@@ -6544,6 +6664,7 @@ public class Translator extends KVQLBaseListener {
                 names[i] = sb.toString();
             }
 
+            //System.out.println("YYYY-2 " + names[i]);
             ++i;
         }
 

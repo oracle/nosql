@@ -21,7 +21,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import oracle.kv.impl.api.table.IndexImpl.IndexField;
 import oracle.kv.table.ArrayDef;
 import oracle.kv.table.EnumDef;
 import oracle.kv.table.FieldDef;
@@ -161,11 +160,17 @@ public class DDLGenerator {
         }
 
         /* set ttl */
-        if (!ttlEquals(oldT, newT)) {
+        if (!ttlEquals(oldT, newT, true)) {
            ddl = getAlterTtlDDL(newT);
            if (ddl != null) {
                ddls.add(ddl);
            }
+        }
+
+        if (!ttlEquals(oldT, newT, false)) {
+           ddl = getAlterBeforeImageTtlDDL(newT);
+           assert(ddl != null);
+           ddls.add(ddl);
         }
 
         /* add | drop <region>,<region> */
@@ -243,9 +248,13 @@ public class DDLGenerator {
          * Generate the DDL statement for the TTL if it exists
          */
         TimeToLive defaultTTL = table.getDefaultTTL();
-
         if (defaultTTL != null) {
             appendTTL(defaultTTL);
+        }
+
+        TimeToLive beforeTTL = table.getBeforeImageTTL();
+        if (beforeTTL != null) {
+            appendBeforeImageTTL(beforeTTL);
         }
 
         if (table.isMultiRegion() && table.isTop()) {
@@ -466,6 +475,18 @@ public class DDLGenerator {
                .append(ttl.getUnit().name());
     }
 
+    private void appendBeforeImageTTL(TimeToLive ttl) {
+
+        if (ttl != null) {
+            tableSb.append(" ENABLE BEFORE IMAGE USING TTL ").
+                    append(ttl.getValue()).
+                    append(" ").
+                    append(ttl.getUnit().name());
+        } else {
+            tableSb.append(" DISABLE BEFORE IMAGE");
+        }
+    }
+
     /**
      * Generate the DDL for the generic table field.
      *
@@ -588,59 +609,32 @@ public class DDLGenerator {
             .append(" ON ").append(table.getFullNamespaceName()).append("(");
 
         /* Append the fields */
-        List<String> fields = ((IndexImpl)index).getFields();
-        int numFields = fields.size();
-
-        for (int i = 0; i < numFields; i++) {
-
-            String field = fields.get(i);
-            sb.append(field);
-
-            FieldDef.Type type = ((IndexImpl)index).getFieldType(i);
-            if (type != null) {
-                sb.append(" as ");
-                /*
-                 * POINT and GEOMETRY are special and handled directly
-                 */
-                if (type == FieldDef.Type.POINT) {
-                    sb.append("POINT");
-                } else if (type == FieldDef.Type.GEOMETRY) {
-                    /*
-                     * Note: GEOMETRY indexes can have additional
-                     * properties but they are not currently being
-                     * maintained or used (see KVSTORE-1978)
-                     */
-                    sb.append("GEOMETRY");
-                } else {
-                    sb.append(IndexField.getDDLTypeString(type));
-                }
+        IndexImpl indexImpl = (IndexImpl)index;
+        for (int i = 0; i < indexImpl.numFields(); i++) {
+            if (i > 0) {
+                sb.append(", ");
             }
+            sb.append(TableJsonUtils.toExternalIndexField(indexImpl, i, true));
 
             /*
              * Append the text index field annotation
              */
             if (index.getType() == Index.IndexType.TEXT) {
-
+                String field = indexImpl.getFields().get(i);
                 String annotationField = index.getAnnotationForField(field);
                 if (annotationField != null) {
                     sb.append(" ").append(annotationField);
                 }
             }
-
-            if (i == numFields - 1) {
-                break;
-            }
-            sb.append(",");
         }
 
         sb.append(")");
 
         if (index.getType() != Index.IndexType.TEXT) {
-            IndexImpl idx = (IndexImpl)index;
-            if (!idx.indexesNulls()) {
+            if (!indexImpl.indexesNulls()) {
                 sb.append(" WITH NO NULLS");
             }
-            if (idx.isUnique()) {
+            if (indexImpl.isUnique()) {
                 sb.append(" WITH UNIQUE KEYS PER ROW");
             }
         }
@@ -649,8 +643,6 @@ public class DDLGenerator {
          * Append the text index properties
          */
         if (index.getType() == Index.IndexType.TEXT) {
-
-            IndexImpl indexImpl = (IndexImpl) index;
             Map<String, String> properties = indexImpl.getProperties();
 
             for (Map.Entry<String, String> entry : properties.entrySet()) {
@@ -1228,6 +1220,14 @@ public class DDLGenerator {
         return null;
     }
 
+    private String getAlterBeforeImageTtlDDL(TableImpl newT) {
+
+        tableSb.setLength(0);
+        appendAlterTablePerfix();
+        appendBeforeImageTTL(newT.getBeforeImageTTL());
+        return tableSb.toString();
+    }
+
     /*
      * Returns modify region ddl:
 	 *   alter table [add | drop] <region>,<region>
@@ -1364,9 +1364,13 @@ public class DDLGenerator {
         return (def1 == null);
     }
 
-    private static boolean ttlEquals(TableImpl t0, TableImpl t1) {
-        TimeToLive ttl0 = t0.getDefaultTTL();
-        TimeToLive ttl1 = t1.getDefaultTTL();
+    private static boolean ttlEquals(
+        TableImpl t0,
+        TableImpl t1,
+        boolean tableTTL) {
+
+        TimeToLive ttl0 = (tableTTL ? t0.getDefaultTTL() : t0.getBeforeImageTTL());
+        TimeToLive ttl1 = (tableTTL ? t1.getDefaultTTL() : t1.getBeforeImageTTL());
         if (isTtlNotExpire(ttl0) && isTtlNotExpire(ttl1)) {
             return true;
         }

@@ -1757,6 +1757,7 @@ public class ServerTableIter extends BaseTableIter {
 
                         srow.addPrimKeyAndPropertyFields(
                             theScanner.expirationTime(),
+                            theScanner.creationTime(),
                             theScanner.modificationTime(),
                             theScanner.partitionId(),
                             (theIndex == null ?
@@ -1773,6 +1774,7 @@ public class ServerTableIter extends BaseTableIter {
                         TupleValue tv = (TupleValue)rcb.getRegVal(resultReg);
                         tv.setExpirationTime(theScanner.expirationTime());
                         tv.setModificationTime(theScanner.modificationTime());
+                        tv.setCreationTime(theScanner.creationTime());
                         tv.setPartition(theScanner.partitionId());
                         tv.setIndexStorageSize(theScanner.indexStorageSize());
 
@@ -1822,6 +1824,7 @@ public class ServerTableIter extends BaseTableIter {
 
                             srow.addPrimKeyAndPropertyFields(
                                 theScanner.expirationTime(),
+                                theScanner.creationTime(),
                                 theScanner.modificationTime(),
                                 theScanner.partitionId(),
                                 theScanner.rowStorageSize(),
@@ -1835,6 +1838,7 @@ public class ServerTableIter extends BaseTableIter {
 
                             TupleValue tv = (TupleValue)rcb.getRegVal(resultReg);
                             tv.setExpirationTime(theScanner.expirationTime());
+                            tv.setCreationTime(theScanner.creationTime());
                             tv.setModificationTime(theScanner.modificationTime());
                             tv.setPartition(theScanner.partitionId());
                             tv.setIndexStorageSize(theScanner.indexStorageSize());
@@ -1895,10 +1899,12 @@ public class ServerTableIter extends BaseTableIter {
                                 rcb.getRegVal(theResultReg);
                             tv.setExpirationTime(tableRow.getExpirationTime());
                             tv.setModificationTime(tableRow.getLastModificationTime());
+                            tv.setCreationTime(tableRow.getCreationTime());
                             tv.setPartition(tableRow.getPartition());
                             tv.setStorageSize(tableRow.getStorageSize());
                             tv.setIndexStorageSize(theScanner.indexStorageSize());
                             tv.setVersion(tableRow.getVersion());
+                            tv.setRowMetadata(tableRow.getRowMetadata());
                         } else {
                             rcb.setRegVal(theResultReg, tableRow);
                         }

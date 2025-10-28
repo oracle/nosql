@@ -896,6 +896,7 @@ public class TableTest extends RepNodeTestBase {
         md.evolveTable(table1, table1.numTableVersions(),
                        newFieldMap,
                        table1.getDefaultTTL(),
+                       table1.getBeforeImageTTL(),
                        table1.getDescription(),
                        false,
                        table1.getIdentityColumnInfo(),
@@ -1165,7 +1166,9 @@ public class TableTest extends RepNodeTestBase {
                            null,
                            table.getShardKey(),
                            table.getFieldMap(),
-                           null, null,
+                           null,
+                           null, /*beforeImageTTL*/
+                           null,
                            false, 0,
                            null, null);
     }

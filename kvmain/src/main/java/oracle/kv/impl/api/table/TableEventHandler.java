@@ -32,6 +32,8 @@ public interface TableEventHandler {
 
     public void ttl(TimeToLive ttl);
 
+    public void beforeImageTTL(TimeToLive ttl);
+
     public void systemTable(boolean value);
 
     public void description(String description);
@@ -60,6 +62,21 @@ public interface TableEventHandler {
                          SequenceDef sequenceDef);
 
     /*
+     * Map the table name and parent table name
+     *
+     * They are currently overridden in the cloud for map the KV table name
+     * (ocid.xyz) to the user table name (the name specified by the user in the
+     * original DDL)
+     */
+    default String mapTableName(String tableName) {
+        return tableName;
+    }
+
+    default String mapParentTableName(String parentName) {
+        return parentName;
+    }
+
+    /*
      * Use this to list child table names
      */
     public void children(List<String> childTables);
@@ -76,13 +93,11 @@ public interface TableEventHandler {
                       String indexName,
                       String description,
                       String type,
-                      List<String> fields,
-                      List<String> types,
+                      List<IndexFieldInfo> fields,
                       boolean indexesNulls,
                       boolean isUnique,
                       Map<String, String> annotations,
                       Map<String, String> properties);
-
     public void endIndexes();
 
     /*
@@ -120,4 +135,65 @@ public interface TableEventHandler {
     public void endFields();
 
     public void end();
+
+    /*
+     * The class represents an index Field used in table JSON metadata.
+     */
+    public static class IndexFieldInfo {
+        /*
+         * The path to the indexed field, it is null if it is a function
+         */
+        private String path;
+
+        /*
+         * Index field type.
+         *
+         * The declared type string if it is a Json field, or the return type
+         * of the function if it is a function. Otherwise, it is null.
+         */
+        private String type;
+
+        /*
+         * Function name, it is null if the field is not a function.
+         */
+        private String function;
+
+        /*
+         * Function arguments
+         *
+         * A comma-separated string containing all arguments, or null if the
+         * field is not a function.
+         */
+        private String arguments;
+
+        public IndexFieldInfo(String path, String type) {
+            this.path = path;
+            this.type = type;
+            function = null;
+            arguments = null;
+        }
+
+        public IndexFieldInfo(String function, String arguments, String type) {
+            this.function = function;
+            this.arguments = arguments;
+            this.type = type;
+            path = null;
+        }
+
+        public String getPath() {
+            return path;
+        }
+
+        public String getType() {
+            return type;
+        }
+
+        public String getFunction() {
+            return function;
+        }
+
+        public String getArguments() {
+            return arguments;
+        }
+    }
 }

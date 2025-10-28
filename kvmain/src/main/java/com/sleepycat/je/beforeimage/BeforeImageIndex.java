@@ -39,6 +39,7 @@ import com.sleepycat.je.dbi.DatabaseImpl;
 import com.sleepycat.je.dbi.DbTree;
 import com.sleepycat.je.dbi.DbType;
 import com.sleepycat.je.dbi.EnvironmentImpl;
+import com.sleepycat.je.dbi.TTL;
 import com.sleepycat.je.log.LogUtils;
 import com.sleepycat.je.txn.BasicLocker;
 import com.sleepycat.je.txn.Locker;
@@ -53,7 +54,7 @@ import com.sleepycat.je.utilint.TestHookExecute;
 /**
  * {@literal
  * This class manages the beforeimage database which stores previous records of
- * all the database records configured with enableBeforeImage 
+ * all the database records configured with enableBeforeImage
  * }
  */
 public class BeforeImageIndex {
@@ -136,7 +137,7 @@ public class BeforeImageIndex {
 
     public static class BeforeImagePayLoad {
 
-        /*this is the data stored as value 
+        /*this is the data stored as value
          * in beforeimage database
          */
         private final byte[] bImgData;
@@ -163,7 +164,7 @@ public class BeforeImageIndex {
 
         public byte[] marshalData() {
             int totLength = Integer.BYTES + bImgData.length + Long.BYTES;
-            // totLength += version >= 26 ? Long.BYTES 
+            // totLength += version >= 26 ? Long.BYTES
             ByteBuffer buf = ByteBuffer.allocate(totLength);
             LogUtils.writePackedInt(buf, version);
             LogUtils.writeByteArray(buf, bImgData);
@@ -206,8 +207,8 @@ public class BeforeImageIndex {
                 return this;
             }
             /*
-             * template to add new field 
-             * public Builder setBImgTxnId(long txnId) { 
+             * template to add new field
+             * public Builder setBImgTxnId(long txnId) {
              * this.txnId = txnId;
              *      return this;
              * }
@@ -215,7 +216,7 @@ public class BeforeImageIndex {
             public BeforeImagePayLoad build() {
                 if (version == 0) {
                     /*
-                     * Feature introduced version 
+                     * Feature introduced version
                      * TODO map this to logentryversion?
                      */
                     version = 25;
@@ -248,7 +249,12 @@ public class BeforeImageIndex {
                 BeforeImageIndexStatDefinition.N_BIMG_RECORDS_BY_DELETES);
         nBImgByTombs = new IntStat(statistics,
                 BeforeImageIndexStatDefinition.N_BIMG_RECORDS_BY_TOMBSTONES);
-
+        if (!openBeforeImageDatabase()) {
+            if (!envImpl.isReadOnly()) {
+                throw EnvironmentFailureException
+                    .unexpectedState("Unable to create the before image database ");
+            }
+        }
     }
 
     public static void setBeforeImageHook(TestHook<?> hook) {
@@ -274,13 +280,25 @@ public class BeforeImageIndex {
      * operation which can be concurrent.
      *
      */
-    private synchronized void openBeforeImageDatabase()
+    private synchronized boolean openBeforeImageDatabase()
         throws DatabaseException {
 
-            // We cannot use the locker from user operation to avoid issues
-            // when other user, get the db, and the user operation which
-            // created the db was aborted. isn't this simpler to just initialize
-            // after env creation when we are single threaded.
+            /*
+               Not able to create this internal db as part of user operation
+               due to following  reasons.
+               1. if we use the same locker of user txn, then until the txn
+               commits, no other users put operation can happen.
+               2. Aborted txn might involve, the another blocked txn on this
+               monitor to carry over the same task.
+               3. if we use different lockers i.e nested transactions. the
+               commit of this locker in replica replay may be causing the dtvlsn
+               of master to update when a subscriber is blocked on waitforDtvlsn
+               code, causing the partial non durable transaction entry to be
+               streamed.(TODO check this)
+               Due to the above issues, we are initializing the database
+               during the env creation when we are single threaded.
+             */
+
             final Locker locker = Txn.createLocalAutoTxn(envImpl,
                     new TransactionConfig());
 
@@ -290,10 +308,9 @@ public class BeforeImageIndex {
                         DbType.BEFORE_IMAGE.getInternalName(),
                         null /* databaseHandle */, false);
                 if (db == null) {
+
                     if (envImpl.isReadOnly()) {
-                        /* This should have been caught earlier. */
-                        throw EnvironmentFailureException.unexpectedState(
-                                "A replicated environment can't be opened read only.");
+                    	return false;
                     }
                     DatabaseConfig dbConfig = new DatabaseConfig();
                     dbConfig.setReplicated(false);
@@ -301,6 +318,7 @@ public class BeforeImageIndex {
                             DbType.BEFORE_IMAGE.getInternalName(), dbConfig);
                 }
                 beforeImageDbImpl = db;
+                return true;
             } finally {
                 locker.operationEnd(true);
             }
@@ -327,7 +345,7 @@ public class BeforeImageIndex {
     }
 
     /**
-     * 
+     *
      * @param entry to be inserted to beforeimage database
      * @return true if successfully added the entry
      */
@@ -337,15 +355,49 @@ public class BeforeImageIndex {
                 "beforeImageIndex put " + entry.getAbortLsn() + " "
                 + entry.getExpTime() + " " + entry.isExpInHours());
         if (beforeImageDbImpl == null) {
-            openBeforeImageDatabase();
+        	 throw EnvironmentFailureException
+             .unexpectedState("No BeforeImage Database Exists");
         }
+
+        if (TTL.isExpired(entry.getExpTime(), entry.isExpInHours())) {
+            // to handle cases where the replica is down until expiry of
+            // beforeimage
+            return false;
+        }
+
+        /* Below check is to get the user defined TTL in a simplified
+         * common way for master and replica.
+         * After user specifies TTL through the options, we convert the
+         * TTL to currentTime + TTL in specified timeunit(days or hrs).
+         * This represent number of hours since Unix epoch + added TTL number
+         * of hours when the before image will be expired (if time unit is hours).
+         * For example Current Data : May/6/2025 number of hours passed since epoch
+         * will be 487850 (apprx) , user specified TTL is 2 hrs. so we store
+         * 487852 in log.
+         * we need to fetch the user TTL again when we are trying to insert
+         * in beforeimageidx. so we calculate number of time units passed until
+         * now and subtract it to the expired number of time units to get back
+         * the user specified TTL.
+         * so for above example we calculate currentTime, which would be in same
+         * hour boundary would give us 487850, and after subtracting with the
+         * logged time for before image which is 487582 will give us 2 hrs TTL
+         * back.
+         * This simplifies avoiding the TTL conversion
+         * when we are logging.
+         */
+
+        int currentTime = TTL.systemTimeToExpiration(
+				TTL.currentSystemTime(), entry.isExpInHours());
+		int userTTL = entry.getExpTime() - currentTime;
+		assert userTTL >= 0;
+
         TestHookExecute.doHookIfSet(beforeImageHook);
         DatabaseEntry key = new DatabaseEntry();
         LongBinding.longToEntry(entry.getAbortLsn(), key);
         Cursor c = makeCursor(entry.getLock());
         try {
             OperationResult res = c.put(key, entry.getData(), Put.NO_OVERWRITE,
-                    new WriteOptions().setTTL(entry.getExpTime(),
+                    new WriteOptions().setTTL(userTTL,
                         entry.isExpInHours() ? TimeUnit.HOURS
                         : TimeUnit.DAYS));
 
@@ -374,12 +426,10 @@ public class BeforeImageIndex {
     public DatabaseEntry get(long abortLsn, Locker lck) {
 
         LoggerUtils.fine(logger, envImpl, "beforeImageIndex get " + abortLsn);
-
-        if (beforeImageDbImpl == null) {
-            // todo throw an exception
-            throw EnvironmentFailureException
-                .unexpectedState("No BeforeImage Database Exists ");
-        }
+		if (beforeImageDbImpl == null) {
+			throw EnvironmentFailureException
+					.unexpectedState("No BeforeImage Database Exists");
+		}
 
         DatabaseEntry key = new DatabaseEntry();
         DatabaseEntry data = new DatabaseEntry();
@@ -423,8 +473,6 @@ public class BeforeImageIndex {
 
     /**
      * For debugging and unit tests
-     *
-     * @throws DatabaseException
      */
     public void dumpDb(boolean display, List<DatabaseEntry> idxDataList) {
 

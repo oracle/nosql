@@ -135,27 +135,27 @@ public enum KVStorePrivilegeLabel implements FastExternalizable {
     READ_TABLE(18, TABLE),
 
     /**
-     * Privilege for deleting key-values in a specific tables
+     * Privilege for deleting key-values in a specific table
      */
     DELETE_TABLE(19, TABLE),
 
     /**
-     * Privilege for putting key-values in a specific tables
+     * Privilege for putting key-values in a specific table
      */
     INSERT_TABLE(20, TABLE),
 
     /**
-     * Privilege for evolving a specific tables
+     * Privilege for evolving a specific table
      */
     EVOLVE_TABLE(21, TABLE),
 
     /**
-     * Privilege for creating index on a specific tables
+     * Privilege for creating index on a specific table
      */
     CREATE_INDEX(22, TABLE),
 
     /**
-     * Privilege for dropping index on a specific tables
+     * Privilege for dropping index on a specific table
      */
     DROP_INDEX(23, TABLE),
 

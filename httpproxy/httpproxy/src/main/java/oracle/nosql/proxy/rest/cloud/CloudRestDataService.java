@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2011, 2024 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011, 2025 Oracle and/or its affiliates. All rights reserved.
  *
  * This file was distributed by Oracle as part of a version of Oracle NoSQL
  * Database made available at:
@@ -19,11 +19,21 @@ import static io.netty.handler.codec.http.HttpResponseStatus.UNAUTHORIZED;
 import static oracle.nosql.proxy.protocol.HttpConstants.AUTHORIZATION;
 import static oracle.nosql.proxy.protocol.JsonProtocol.COMPARTMENT_ID;
 import static oracle.nosql.proxy.protocol.JsonProtocol.CREATE_REPLICA_DETAILS;
+import static oracle.nosql.proxy.protocol.JsonProtocol.ENVIRONMENT;
 import static oracle.nosql.proxy.protocol.JsonProtocol.FREE_TIER_SYS_TAGS;
+import static oracle.nosql.proxy.protocol.JsonProtocol.HOSTED_ENVIRONMENT;
+import static oracle.nosql.proxy.protocol.JsonProtocol.ID;
+import static oracle.nosql.proxy.protocol.JsonProtocol.KMS_KEY;
+import static oracle.nosql.proxy.protocol.JsonProtocol.KMS_KEY_STATE;
+import static oracle.nosql.proxy.protocol.JsonProtocol.KMS_VAULT_ID;
 import static oracle.nosql.proxy.protocol.JsonProtocol.MAX_READ_UNITS;
 import static oracle.nosql.proxy.protocol.JsonProtocol.MAX_WRITE_UNITS;
 import static oracle.nosql.proxy.protocol.JsonProtocol.REGION;
 import static oracle.nosql.proxy.protocol.JsonProtocol.REST_CURRENT_VERSION;
+import static oracle.nosql.proxy.protocol.JsonProtocol.TIME_CREATED;
+import static oracle.nosql.proxy.protocol.JsonProtocol.TIME_UPDATED;
+import static oracle.nosql.proxy.protocol.JsonProtocol.UPDATE_CONFIGURATION_DETAILS;
+import static oracle.nosql.proxy.protocol.JsonProtocol.buildConfiguration;
 import static oracle.nosql.proxy.protocol.JsonProtocol.checkNonNegativeInt;
 import static oracle.nosql.proxy.protocol.JsonProtocol.checkNotEmpty;
 import static oracle.nosql.proxy.protocol.JsonProtocol.checkNotNull;
@@ -46,21 +56,26 @@ import oracle.nosql.common.kv.drl.LimiterManager;
 import oracle.nosql.common.sklogger.SkLogger;
 import oracle.nosql.proxy.Config;
 import oracle.nosql.proxy.MonitorStats;
+import oracle.nosql.proxy.RequestException;
 import oracle.nosql.proxy.audit.ProxyAuditManager;
 import oracle.nosql.proxy.cloud.CloudDataService;
 import oracle.nosql.proxy.filter.FilterHandler;
 import oracle.nosql.proxy.filter.FilterHandler.Filter;
+import oracle.nosql.proxy.protocol.JsonProtocol.JsonObject;
 import oracle.nosql.proxy.protocol.JsonProtocol.JsonPayload;
 import oracle.nosql.proxy.protocol.Protocol.OpCode;
 import oracle.nosql.proxy.rest.RequestParams;
 import oracle.nosql.proxy.rest.RestDataService;
+import oracle.nosql.proxy.sc.GetKmsKeyInfoResponse;
 import oracle.nosql.proxy.sc.GetTableResponse;
 import oracle.nosql.proxy.sc.TableUtils;
 import oracle.nosql.proxy.sc.TableUtils.PrepareCB;
 import oracle.nosql.proxy.sc.TenantManager;
+import oracle.nosql.proxy.sc.WorkRequestIdResponse;
 import oracle.nosql.proxy.security.AccessChecker;
 import oracle.nosql.proxy.security.AccessContext;
 import oracle.nosql.proxy.util.ErrorManager;
+import oracle.nosql.util.tmi.KmsKeyInfo;
 import oracle.nosql.util.tmi.TableLimits;
 
 public class CloudRestDataService extends RestDataService {
@@ -96,21 +111,15 @@ public class CloudRestDataService extends RestDataService {
      * Validate the request.
      */
     @Override
-    protected FullHttpResponse validateHttpRequest(FullHttpRequest request,
-                                                   String requestId,
-                                                   ChannelHandlerContext ctx,
-                                                   LogContext lc) {
-        final HttpHeaders headers = request.headers();
+    protected FullHttpResponse validateHttpRequest(RequestContext rc) {
+        final HttpHeaders headers = rc.headers;
         final CharSequence auth = headers.get(AUTHORIZATION);
         if (auth == null) {
-            return invalidRequest(ctx,
-                                  headers,
+            return invalidRequest(rc,
                                   "Authorization header is missing",
-                                  INVALID_AUTHORIZATION, // error code
-                                  requestId,
-                                  lc);
+                                  INVALID_AUTHORIZATION);
         }
-        return super.validateHttpRequest(request, requestId, ctx, lc);
+        return super.validateHttpRequest(rc);
     }
 
     @Override
@@ -180,6 +189,8 @@ public class CloudRestDataService extends RestDataService {
     @Override
     protected AccessContext checkWorkRequestAccess(FullHttpRequest request,
                                                    OpCode opCode,
+                                                   OpCode[] authorizeOps,
+                                                   boolean shouldAuthorizeAllOps,
                                                    String compartmentId,
                                                    String workRequestId,
                                                    LogContext lc) {
@@ -188,12 +199,35 @@ public class CloudRestDataService extends RestDataService {
                                       request.uri(),
                                       request.headers(),
                                       opCode,
+                                      authorizeOps,
+                                      shouldAuthorizeAllOps,
                                       compartmentId,
                                       workRequestId,
                                       TableUtils.getPayload(request),
                                       this,
                                       lc);
 
+        updateLogContext(lc, actx, opCode);
+        return actx;
+    }
+
+    @Override
+    protected
+    AccessContext checkConfigurationAccess(FullHttpRequest request,
+                                           OpCode opCode,
+                                           OpCode[] authorizedOps,
+                                           String compartmentId,
+                                           LogContext lc) {
+        AccessContext actx =
+            ac.checkConfigurationAccess(request.method(),
+                                        request.uri(),
+                                        request.headers(),
+                                        opCode,
+                                        authorizedOps,
+                                        compartmentId,
+                                        TableUtils.getPayload(request),
+                                        this,
+                                        lc);
         updateLogContext(lc, actx, opCode);
         return actx;
     }
@@ -464,6 +498,190 @@ public class CloudRestDataService extends RestDataService {
         String idxName = request.getPathParam(REGION);
         checkNotNullEmpty(REGION, idxName);
         return idxName;
+    }
+
+    /**
+     * Get configuration
+     *
+     * GET <api_version>/configuration?compartmentId=<dedicated-tenant-id>
+     */
+    @Override
+    protected void handleGetConfiguration(FullHttpResponse response,
+                                          RequestContext rc,
+                                          AccessContext actx,
+                                          String apiVersion) {
+
+        GetKmsKeyInfoResponse resp = TableUtils.getKmsKeyInfo(actx, tm, rc.lc);
+        if (!resp.getSuccess()) {
+            throw new RequestException(resp.getErrorCode(),
+                                       resp.getErrorString());
+        }
+
+        KmsKeyInfo key = resp.getKeyInfo();
+        if (logger.isLoggable(Level.FINE, rc.lc)) {
+            logger.fine("GetConfiguration: tenant=" + actx.getTenantId() +
+                        ", kmsKeyInfo=" + key.toString(), rc.lc);
+        }
+
+        String keyInfo = buildConfiguration(key);
+        buildTaggedResponse(response, keyInfo, key.getETag());
+
+        markTMOpSucceeded(rc, 1 /* TM operation count*/);
+    }
+
+    /**
+     * Update Configuration
+     *
+     * Currently, only updating kms key is supported.
+     *
+     * URL:
+     *   PUT <api_version>/configuration?compartmentId=<dedicated-tenant-id>
+     *
+     * Header parameters:
+     *   - if-match
+     *   - is-opc-dry-run
+     *
+     * Payload:
+     * {
+     *   "environment":<HOSTED>,
+     *   "kmsKey": {
+     *     "id": <key_ocid>,
+     *     "kmsVaultId": <vault_ocid>
+     *    }
+     * }
+     */
+    @Override
+    protected void handleUpdateConfiguration(FullHttpResponse response,
+                                             RequestContext rc,
+                                             AccessContext actx,
+                                             String apiVersion) {
+        /* Query parameter */
+        String compartmentId = readCompartmentId(rc.restParams, true);
+
+        /* Header parameters */
+        byte[] ifMatch = readIfMatch(rc.restParams);
+        boolean dryRun = readDryRun(rc.restParams);
+
+        checkNotNull(UPDATE_CONFIGURATION_DETAILS, rc.restParams.getPayload());
+
+        boolean isHostedEnv = false;
+        String kmsKeyId = null;
+        String kmsVaultId = null;
+
+        JsonPayload pl = null;
+        try {
+            pl = rc.restParams.parsePayload();
+            while (pl.hasNext()) {
+                if (pl.isField(ENVIRONMENT)) {
+                    isHostedEnv = HOSTED_ENVIRONMENT.equals(pl.readString());
+                } else if (pl.isField(KMS_KEY)) {
+                    JsonObject jo = pl.readObject();
+                    if (jo != null) {
+                        while (jo.hasNext()) {
+                            if (jo.isField(ID)) {
+                                kmsKeyId = jo.readString();
+                            } else if (jo.isField(KMS_VAULT_ID)) {
+                                kmsVaultId = jo.readString();
+                            } else if (jo.isField(KMS_KEY_STATE) ||
+                                       jo.isField(TIME_CREATED) ||
+                                       jo.isField(TIME_UPDATED)) {
+                                jo.readString();
+                            } else {
+                                throw new IllegalArgumentException(
+                                    "Unexpected field of KmsKey: " +
+                                    jo.getCurrentField());
+                            }
+                        }
+                    }
+                } else {
+                    handleUnknownField(UPDATE_CONFIGURATION_DETAILS, pl);
+                }
+            }
+        } catch (IOException ioe) {
+            throw new IllegalArgumentException(
+                "Invalid payload for UpdateConfiguration request: " +
+                ioe.getMessage());
+        } finally {
+            if (pl != null) {
+                pl.close();
+            }
+        }
+
+        if (!isHostedEnv) {
+            throw new IllegalArgumentException(
+                "Configuration for non Hosted Environment is not supported");
+        }
+        if (kmsKeyId == null || kmsKeyId.isBlank()) {
+            throw new IllegalArgumentException(
+               "The kms key Id must not be null or empty");
+        }
+
+        /*
+         * Only one kind of configuration can be updated in a request. This is
+         * because changing configurations can be handled by different sub
+         * services, handling a mix of successes and failures adds complexity.
+         *
+         * TODO: If multiple configurations are supported in future, check only
+         * one configuration can be updated at a time.
+         */
+        WorkRequestIdResponse resp =
+            TableUtils.updateKmsKey(actx, tm, compartmentId, kmsKeyId,
+                                    kmsVaultId, ifMatch, dryRun, rc.lc,
+                                    rc.request, ac, this,
+                                    this::updateLogContext);
+        if (!resp.getSuccess()) {
+            throw new RequestException(resp.getErrorCode(),
+                                       resp.getErrorString());
+        }
+
+        if (logger.isLoggable(Level.FINE, rc.lc)) {
+            logger.fine("handleUpdateConfiguration: workRequestId: " +
+                        resp.getWorkRequestId(), rc.lc);
+        }
+
+        /* build response */
+        buildWorkRequestIdResponse(response, resp.getWorkRequestId());
+
+        markTMOpSucceeded(rc, 1 /* TM operation count*/);
+    }
+
+    /**
+     * Remove kms key
+     *
+     * URL:
+     *   POST <api_version>/configuration/actions/unassignkmskey?
+     *        compartmentId=<dedicated-tenant-id>
+     *
+     * Header parameters:
+     *   - if-match
+     *   - is-opc-dry-run
+     */
+    @Override
+    protected void handleRemoveKmsKey(FullHttpResponse response,
+                                      RequestContext rc,
+                                      AccessContext actx,
+                                      String apiVersion) {
+
+        /* Header parameters */
+        byte[] ifMatch = readIfMatch(rc.restParams);
+        boolean dryRun = readDryRun(rc.restParams);
+
+        WorkRequestIdResponse resp = TableUtils.removeKmsKey(actx, tm, ifMatch,
+                                                             dryRun, rc.lc);
+        if (!resp.getSuccess()) {
+            throw new RequestException(resp.getErrorCode(),
+                                       resp.getErrorString());
+        }
+
+        if (logger.isLoggable(Level.FINE, rc.lc)) {
+            logger.fine("handleRemoveKmsKey: workRequestId " +
+                        resp.getWorkRequestId(), rc.lc);
+        }
+
+        /* build response */
+        buildWorkRequestIdResponse(response, resp.getWorkRequestId());
+
+        markTMOpSucceeded(rc, 1 /* TM operation count*/);
     }
 
     /*

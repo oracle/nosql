@@ -151,7 +151,7 @@ public abstract class NamespacePrivilege extends KVStorePrivilege {
      * Gets a specific namespace privilege instance according to the specific
      * label and namespace information.  It is used in the case that builds a
      * namespace privilege instance according to user-input privilege name. In
-     * other cases, it is recommend to directly get the instances via
+     * other cases, it is recommended to directly get the instances via
      * constructors for efficiency.
      *
      * @param privLabel label of the privilege

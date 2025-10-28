@@ -623,11 +623,32 @@ public class SerialVersion {
     public static final short QUERY_VERSION_17 = V37;
 
     /**
+     * Introduced at R25.3/V38
+     * - Support before image for tables in Streams API
+     * - Support for row metadata
+     * - Introduces row creationTime
+     */
+    public static final short V38 = 38;
+    static { init(V38, KVVersion.R25_3); }
+
+    /**
+     * New support of before image for tables
+     */
+    public static final short BEFORE_IMAGE_VERSION = V38;
+    public static final short ROW_METADATA_VERSION = V38;
+    public static final short QUERY_VERSION_18 = V38;
+
+    /**
+     * Introduces row creationTime
+     */
+    public static final short CREATION_TIME_VER = V38;
+
+    /**
      * When adding a new version and updating DEFAULT_CURRENT, be sure to make
      * corresponding changes in KVVersion as well as the files referenced from
      * there to add a new release version. See {@link KVVersion#CURRENT_VERSION}
      */
-    private static final short DEFAULT_CURRENT = V37;
+    private static final short DEFAULT_CURRENT = V38;
 
     /*
      * The default earliest supported serial version.

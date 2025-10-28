@@ -197,7 +197,14 @@ public class FunctionLib {
         FN_DAY_OF_WEEK(127),
         FN_DAY_OF_MONTH(128),
         FN_DAY_OF_YEAR(129),
-        FN_TIMESTAMP_BUCKET(130);
+        FN_TIMESTAMP_BUCKET(130),
+
+        /* Other */
+        FN_ROW_METADATA(131),
+
+        FN_CREATION_TIME(132),
+        FN_CREATION_TIME_MILLIS(133);
+
 
         private static final FuncCode[] VALUES = values();
         public static final int VALUES_COUNT = VALUES.length;
@@ -438,6 +445,10 @@ public class FunctionLib {
                                                       "day_of_year"));
         theFunctions.add(new FuncTimestampBucket(FuncCode.FN_TIMESTAMP_BUCKET,
                                                  "timestamp_bucket"));
+        theFunctions.add(new FuncRowMetadata());
+
+        theFunctions.add(new FuncCreationTime());
+        theFunctions.add(new FuncCreationTimeMillis());
 
         for (Function func : theFunctions) {
             sctx.addFunction(func);

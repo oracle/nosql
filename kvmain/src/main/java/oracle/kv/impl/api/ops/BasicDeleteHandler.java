@@ -15,6 +15,7 @@ package oracle.kv.impl.api.ops;
 
 import java.util.Collections;
 import java.util.List;
+
 import oracle.kv.impl.api.ops.InternalOperation.OpCode;
 import oracle.kv.impl.security.KVStorePrivilege;
 import oracle.kv.impl.security.NamespacePrivilege;

@@ -273,7 +273,7 @@ public class StreamPosition implements Serializable {
 
     @Override
     public String toString() {
-        return "{" + storeName + "(id=" + storeId + "): " +
+        return "{" + storeName + "(id=" + storeId + "):" +
                 shardPositionToString() +"}";
     }
 

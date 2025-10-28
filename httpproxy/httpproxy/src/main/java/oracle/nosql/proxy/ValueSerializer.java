@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2011, 2024 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011, 2025 Oracle and/or its affiliates. All rights reserved.
  *
  * This file was distributed by Oracle as part of a version of Oracle NoSQL
  * Database made available at:
@@ -87,6 +87,7 @@ public class ValueSerializer {
         private final int keySizeLimit;
         private final int valueSizeLimit;
         private TimeToLive ttl;
+        private String rowMetadata;
 
         public RowSerializerImpl(ByteInputStream in,
                                  int driverType,
@@ -112,6 +113,14 @@ public class ValueSerializer {
         @Override
         public TimeToLive getTTL() {
             return ttl;
+        }
+
+        public void setRowMetadata(String rowMetadata) {
+            this.rowMetadata = rowMetadata;
+        }
+
+        public String getRowMetadata() {
+            return rowMetadata;
         }
 
         @Override

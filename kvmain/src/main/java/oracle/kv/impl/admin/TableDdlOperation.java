@@ -187,7 +187,9 @@ abstract class TableDdlOperation  implements DdlOperation {
                     ddlHandler.getAdmin().getPlanner().createEvolveTablePlan(
                         "AlterTable", table.getInternalNamespace(),
                         table.getFullName(), tableVersion, table.getFieldMap(),
-                        table.getDefaultTTL(), null, false,
+                        table.getDefaultTTL(),
+                        table.getBeforeImageTTL(),
+                        null, false,
                         table.getIdentityColumnInfo(),
                         table.getIdentitySequenceDef(),
                         table.isChild() ? null : table.getRemoteRegions());

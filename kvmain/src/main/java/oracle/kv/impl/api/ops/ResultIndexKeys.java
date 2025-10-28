@@ -28,7 +28,7 @@ import oracle.kv.impl.util.SerializationUtil;
 
 /**
  * Holds results of an index key iteration over a table.  This result includes
- * primary key and index key byte arrays.  This is all of the information that
+ * primary key and index key byte arrays.  This is all the information that
  * is available in a single secondary scan without doing an additional database
  * read of the primary data.
  *

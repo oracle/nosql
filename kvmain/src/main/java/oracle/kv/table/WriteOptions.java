@@ -382,13 +382,13 @@ public class WriteOptions implements Cloneable {
          return regionId;
      }
 
-     /**
-      * Returns whether put tombstone instead of deleting, used for delete
-      * operation on external multi-region table.
-      *
-      * @hidden
-      */
-     public boolean doTombstone() {
+    /**
+     * Returns whether put tombstone instead of deleting, used for delete
+     * operation on external multi-region table.
+     *
+     * @hidden
+     */
+    public boolean doTombstone() {
          return doTombstone;
      }
 }

@@ -15,6 +15,7 @@ package oracle.kv.impl.pubsub;
 
 import static com.sleepycat.je.log.LogEntryType.LOG_DEL_LN;
 import static com.sleepycat.je.log.LogEntryType.LOG_DEL_LN_TRANSACTIONAL;
+import static com.sleepycat.je.log.LogEntryType.LOG_DEL_LN_TRANSACTIONAL_WITH_BEFORE_IMAGE;
 import static com.sleepycat.je.log.LogEntryType.LOG_INS_LN;
 import static com.sleepycat.je.log.LogEntryType.LOG_INS_LN_TRANSACTIONAL;
 import static com.sleepycat.je.log.LogEntryType.LOG_TRACE;
@@ -22,6 +23,7 @@ import static com.sleepycat.je.log.LogEntryType.LOG_TXN_ABORT;
 import static com.sleepycat.je.log.LogEntryType.LOG_TXN_COMMIT;
 import static com.sleepycat.je.log.LogEntryType.LOG_UPD_LN;
 import static com.sleepycat.je.log.LogEntryType.LOG_UPD_LN_TRANSACTIONAL;
+import static com.sleepycat.je.log.LogEntryType.LOG_UPD_LN_TRANSACTIONAL_WITH_BEFORE_IMAGE;
 import static com.sleepycat.je.utilint.VLSN.FIRST_VLSN;
 import static com.sleepycat.je.utilint.VLSN.INVALID_VLSN;
 import static oracle.kv.impl.util.ThreadUtils.threadId;
@@ -87,7 +89,6 @@ import com.sleepycat.je.rep.stream.FeederReplicaSyncup;
 import com.sleepycat.je.rep.stream.OutputWireRecord;
 import com.sleepycat.je.utilint.LoggerUtils;
 import com.sleepycat.je.utilint.VLSN;
-import com.sleepycat.util.PackedInteger;
 import com.sleepycat.util.UtfOps;
 
 /**
@@ -154,6 +155,12 @@ public class NoSQLStreamFeederFilter implements FeederFilter, Serializable {
      * {@link oracle.kv.Value.Format#MULTI_REGION_TABLE};
      */
     private final boolean localWritesOnly;
+
+    /**
+     * True if include before image in stream event if available, false
+     * otherwise
+     */
+    private final boolean inclBeforeImage;
 
     /**
      * If localWritesOnly is true, the region ID of the local region, used to
@@ -279,7 +286,8 @@ public class NoSQLStreamFeederFilter implements FeederFilter, Serializable {
     private NoSQLStreamFeederFilter(Set<TableImpl> tables,
                                     int nTotalParts,
                                     boolean localWritesOnly,
-                                    int localRegionId) {
+                                    int localRegionId,
+                                    boolean inclBeforeImage) {
         super();
 
         if (tables == null) {
@@ -307,6 +315,7 @@ public class NoSQLStreamFeederFilter implements FeederFilter, Serializable {
         this.nTotalParts = nTotalParts;
         this.localWritesOnly = localWritesOnly;
         this.localRegionId = localRegionId;
+        this.inclBeforeImage = inclBeforeImage;
 
         /*
          * Will be initialized at server side. The methods refer to these null
@@ -339,6 +348,32 @@ public class NoSQLStreamFeederFilter implements FeederFilter, Serializable {
     @Override
     public void setStartVLSN(long vlsn) {
         startVLSN = vlsn;
+    }
+
+    /**
+     * Sets the feeder filter id, the id can only be set once for a
+     * feeder filter instance
+     */
+    @Override
+    public void setFeederFilterId(String id) {
+        if (filterId != null) {
+            throw new IllegalStateException(
+                "Stream feeder filter id has already been set to=" + filterId +
+                ", id=" + id);
+        }
+        filterId = id;
+        logger.fine(() -> lm("Set stream feeder filter id=" + filterId));
+    }
+
+    /**
+     * Returns true if subscription should include before image in entries,
+     * false otherwise.
+     * @return true if subscription should include before image in entries,
+     * false otherwise.
+     */
+    @Override
+    public boolean includeBeforeImage() {
+        return inclBeforeImage;
     }
 
     /* convert the map with string table id key to a map with byte[] key */
@@ -597,6 +632,7 @@ public class NoSQLStreamFeederFilter implements FeederFilter, Serializable {
     }
 
     /**
+     * Unit test only
      * A convenience method to get feeder filter for on-prem MR table
      * @param tbs             subscribed tables
      * @param nTotalParts     total number of partitions in store
@@ -607,7 +643,7 @@ public class NoSQLStreamFeederFilter implements FeederFilter, Serializable {
                                                     int nTotalParts,
                                                     boolean localWritesOnly) {
         return getFilter(tbs, nTotalParts, localWritesOnly,
-                         Region.LOCAL_REGION_ID);
+                         Region.LOCAL_REGION_ID, false);
     }
 
     /**
@@ -617,7 +653,7 @@ public class NoSQLStreamFeederFilter implements FeederFilter, Serializable {
      * <p>
      * It is more preferable to provide start vlsn than a set of owned
      * partitions because in order to provide the set of owned partitions, it
-     * need to query the server beforehand with given start vlsn, which is
+     * needs to query the server beforehand with given start vlsn, which is
      * unnecessarily since the filter can do that when it is installed at
      * feeder.
      *
@@ -628,15 +664,17 @@ public class NoSQLStreamFeederFilter implements FeederFilter, Serializable {
      *                        localWritesOnly is true to filter out entries
      *                        with another region ID when the value is in
      *                        MULTI_REGION_TABLE format
+     * @param inclBeforeImage true if include before image
      *
      * @return a feeder filter with given set of subscribed tables
      */
     static NoSQLStreamFeederFilter getFilter(Set<TableImpl> tbs,
                                              int nTotalParts,
                                              boolean localWritesOnly,
-                                             int localRegionId) {
+                                             int localRegionId,
+                                             boolean inclBeforeImage) {
         return new NoSQLStreamFeederFilter(tbs, nTotalParts, localWritesOnly,
-                                           localRegionId);
+                                           localRegionId, inclBeforeImage);
     }
 
     /**
@@ -657,7 +695,6 @@ public class NoSQLStreamFeederFilter implements FeederFilter, Serializable {
         /* once-time initialization on very first record */
         if (!initialized) {
             hostRN = repImpl.getRepNode().getMasterName();
-            filterId = hostRN;
             initScheduledStat(repImpl);
             /* only dump once */
             LoggerUtils.info(logger, repImpl,
@@ -674,6 +711,12 @@ public class NoSQLStreamFeederFilter implements FeederFilter, Serializable {
             }
             openTxnIds = new HashSet<>();
             initialized = true;
+            LoggerUtils.info(logger, repImpl,
+                             lm("NoSQLStreamFilter initialized" +
+                                ", filterId=" + filterId +
+                                ", hostRN=" + hostRN +
+                                ", # partitions=" + nTotalParts +
+                                ", local writes only=" + localWritesOnly));
         }
 
         /* entry from pgt db and need process, partGenTblDBId cannot be null */
@@ -745,7 +788,10 @@ public class NoSQLStreamFeederFilter implements FeederFilter, Serializable {
         /* finally filter out all non-subscribed tables */
         final OutputWireRecord ret = filter(record);
         LoggerUtils.finest(logger, repImpl,
-                           () -> lm("vlsn of last passed=" + lastPassedVLSN +
+                           () -> lm((ret == null ? "Block" : "Pass") +
+                                    " entry with vlsn=" + record.getVLSN() +
+                                    ", type=" + type +
+                                    ", vlsn of last passed=" + lastPassedVLSN +
                                     ", last processed=" + lastFilterVLSN));
         return ret;
     }
@@ -815,6 +861,8 @@ public class NoSQLStreamFeederFilter implements FeederFilter, Serializable {
                             ", type=" + req.getReqType() +
                             ", result=[" + ret + "]" +
                             ", table=" + req.getTableName() +
+                            ", before image=" + inclBeforeImage +
+                            ", durable entries=" + durableEntriesOnly() +
                             ", #tables=" + tableIds.size() +
                             ", idStrings=" + tableIds +
                             ", ids=" +
@@ -832,7 +880,8 @@ public class NoSQLStreamFeederFilter implements FeederFilter, Serializable {
      */
     NoSQLStreamFeederFilter updateFilter(Set<TableImpl> tables) {
         return NoSQLStreamFeederFilter.getFilter(
-            tables, nTotalParts, localWritesOnly, localRegionId);
+            tables, nTotalParts, localWritesOnly, localRegionId,
+            inclBeforeImage);
     }
 
     /**
@@ -1048,7 +1097,10 @@ public class NoSQLStreamFeederFilter implements FeederFilter, Serializable {
         } else {
             msg = "ids=" + Arrays.toString(tableIds.toArray());
         }
-        return "[" + msg + ", owned partitions: " +
+        return "[" + filterId + "]" +
+               "[" + msg + ", before image=" + inclBeforeImage +
+               ", durable entries="+ durableEntriesOnly() +
+               ", owned partitions=" +
                (ownedParts == null ? "all" : ownedParts) + "]";
     }
 
@@ -1104,10 +1156,8 @@ public class NoSQLStreamFeederFilter implements FeederFilter, Serializable {
         /* block all non-local table writes if necessary */
         final byte[] val = lnEntry.getData();
         if (localWritesOnly && val != null && val.length > 0) {
-            final Value.Format format = Value.Format.fromFirstByte(val[0]);
-            if (Value.Format.isTableFormat(format) &&
-                format == Value.Format.MULTI_REGION_TABLE &&
-                PackedInteger.readInt(val, 1) != localRegionId) {
+            int regionId = Value.getRegionIdFromByteArray(val);
+            if (regionId != Region.NULL_REGION_ID && regionId != localRegionId) {
                 return null;
             }
         }
@@ -1204,7 +1254,9 @@ public class NoSQLStreamFeederFilter implements FeederFilter, Serializable {
                LOG_DEL_LN.equals(type) ||
                LOG_INS_LN_TRANSACTIONAL.equals(type) ||
                LOG_UPD_LN_TRANSACTIONAL.equals(type) ||
-               LOG_DEL_LN_TRANSACTIONAL.equals(type);
+               LOG_DEL_LN_TRANSACTIONAL.equals(type) ||
+               LOG_UPD_LN_TRANSACTIONAL_WITH_BEFORE_IMAGE.equals(type) ||
+               LOG_DEL_LN_TRANSACTIONAL_WITH_BEFORE_IMAGE.equals(type);
     }
 
     /* Compares two non-null byte[] from start inclusively to end exclusively */
@@ -1419,7 +1471,7 @@ public class NoSQLStreamFeederFilter implements FeederFilter, Serializable {
                                  TimeUnit.SECONDS);
     }
 
-    String buildFilterStatMsg() {
+    public String buildFilterStatMsg() {
         final StringBuilder sb = new StringBuilder("StreamFilter statistics:");
         if (partGenTblDBId == null) {
             sb.append("Uninitialized");
@@ -1443,7 +1495,8 @@ public class NoSQLStreamFeederFilter implements FeederFilter, Serializable {
           .append(getNumInParts()).append("\n");
         sb.append("# partitions migrated in=")
           .append(getNumOutParts()).append("\n");
-        sb.append("owned partitions=").append(getOwnedParts());
+        sb.append("include before image=").append(inclBeforeImage).append("\n");
+        sb.append("owned partitions=").append(getOwnedParts()).append("\n");
         sb.append("max # open txns=").append(getMaxNumOpenTxn());
         return sb.toString();
     }
@@ -1671,7 +1724,7 @@ public class NoSQLStreamFeederFilter implements FeederFilter, Serializable {
     }
 
     private String lm(String msg) {
-        return "[StreamFilter-" + filterId + "] " + msg;
+        return "[StreamFilter][" + filterId + "] " + msg;
     }
 
     /**

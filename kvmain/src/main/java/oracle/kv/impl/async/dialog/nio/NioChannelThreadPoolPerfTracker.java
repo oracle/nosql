@@ -134,7 +134,7 @@ public class NioChannelThreadPoolPerfTracker {
     public NioChannelThreadPoolPerfTracker(
         NioChannelThreadPool pool,
         Logger logger,
-        ScheduledExecutorService backupExecutor)
+        ScheduledExecutorService backupSchedExecutor)
     {
         this.pool = pool;
         this.rateLimitingLogger = new RateLimitingLogger<String>(
@@ -143,7 +143,7 @@ public class NioChannelThreadPoolPerfTracker {
             logger);
         this.heartbeatTimes =
             new AtomicLongArray(pool.getExecutors().length());
-        backupExecutor.scheduleWithFixedDelay(
+        backupSchedExecutor.scheduleWithFixedDelay(
             new HeartbeatCheckTask(), 1,
             heartbeatCheckIntervalMillis, TimeUnit.MILLISECONDS);
     }

@@ -44,11 +44,42 @@ compiled-query-plan
       "field name" : "row_size",
       "field expression" : 
       {
-        "iterator kind" : "FUNC_ROW_STORAGE_SIZE",
-        "input iterator" :
+        "iterator kind" : "LESS_OR_EQUAL",
+        "left operand" :
         {
-          "iterator kind" : "VAR_REF",
-          "variable" : "$f"
+          "iterator kind" : "ABS",
+          "input iterators" : [
+            {
+              "iterator kind" : "ADD_SUBTRACT",
+              "operations and operands" : [
+                {
+                  "operation" : "+",
+                  "operand" :
+                  {
+                    "iterator kind" : "FUNC_ROW_STORAGE_SIZE",
+                    "input iterator" :
+                    {
+                      "iterator kind" : "VAR_REF",
+                      "variable" : "$f"
+                    }
+                  }
+                },
+                {
+                  "operation" : "-",
+                  "operand" :
+                  {
+                    "iterator kind" : "CONST",
+                    "value" : 320
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        "right operand" :
+        {
+          "iterator kind" : "CONST",
+          "value" : 1
         }
       }
     },

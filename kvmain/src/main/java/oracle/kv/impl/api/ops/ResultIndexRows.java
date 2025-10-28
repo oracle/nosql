@@ -50,9 +50,10 @@ public class ResultIndexRows extends ResultKeyValueVersion {
                            byte[] valueBytes,
                            Version version,
                            long expirationTime,
+                           long creationTime,
                            long modificationTime) {
         super(primaryKeyBytes, valueBytes, version, expirationTime,
-              modificationTime, false/* isTombstone */);
+            creationTime, modificationTime, false/* isTombstone */);
         this.indexKeyBytes = indexKeyBytes;
     }
 

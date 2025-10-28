@@ -171,6 +171,7 @@ public class ElasticityDelayTest extends MigrationReadConsistencyTestBase {
                     USER_TABLE.getShardKey(),
                     USER_TABLE.getFieldMap(),
                     null, // TTL
+                    null, /*beforeImageTTL*/
                     null, // limits
                     false, 0,
                     null, null);
@@ -270,7 +271,8 @@ public class ElasticityDelayTest extends MigrationReadConsistencyTestBase {
             0, /* localRegionId */
             true, /* localRegionId*/
             10000 /*maxServerMemoryConsumption*/,
-            false /* performsWrite*/);
+            false /* performsWrite*/,
+            null /* rowMetadata */);
 
         return ((KVStoreImpl)kvs)
             .makeReadRequest(op, PartitionId.NULL_ID, consistency, 5000);

@@ -22,7 +22,7 @@ import com.sleepycat.je.rep.subscription.SubscriptionCallback;
 /**
  * Default callback to process each entry received from replication stream.
  */
-class ReplicationStreamCbk implements SubscriptionCallback {
+public class ReplicationStreamCbk implements SubscriptionCallback {
 
     /* private logger */
     private final Logger logger;
@@ -42,10 +42,6 @@ class ReplicationStreamCbk implements SubscriptionCallback {
         shard = stat.getParent().getRepGroupId().getGroupId();
     }
 
-    public ReplicationStreamConsumerStat getStat() {
-        return stat;
-    }
-
     /**
      * Processes a put (insert or update) entry from stream
      *
@@ -56,22 +52,20 @@ class ReplicationStreamCbk implements SubscriptionCallback {
      * @param dbId  id of database the entry belongs to
      * @param ts    timestamp of the last update
      * @param expMs expiration time in system time in ms
+     * @param beforeImgEnabled true if before image is enabled for the entry
+     * @param valBeforeImg value bytes of the before image if enabled
+     * @param tsBeforeImg timestamp in ms of the before image if enabled
+     * @param expBeforeImg expiration time in ms of the before image
      */
     @Override
     public void processPut(long vlsn, byte[] key, byte[] value, long txnId,
                            DatabaseId dbId, long ts, long expMs,
-                            boolean beforeImgEnabled,
-                            byte[] valBeforeImg,
-                            long tsBeforeImg,
-                            long expBeforeImg) {
-        processEntry(new DataEntry(DataEntry.Type.PUT,
-                                   vlsn,
-                                   txnId,
-                                   key,
-                                   value,
-                                   dbId,
-                                   ts,
-                                   expMs));
+                           boolean beforeImgEnabled, byte[] valBeforeImg,
+                           long tsBeforeImg, long expBeforeImg) {
+        processEntry(DataEntry.getPutEntry(vlsn, txnId, key, value, dbId,
+                                           ts, expMs, beforeImgEnabled,
+                                           valBeforeImg, tsBeforeImg,
+                                           expBeforeImg));
         stat.incrNumPuts(vlsn);
     }
 
@@ -84,21 +78,19 @@ class ReplicationStreamCbk implements SubscriptionCallback {
      * @param txnId id of txn the entry belongs to
      * @param dbId  id of database the entry belongs to
      * @param ts    timestamp of the last update
+     * @param beforeImgEnabled true if before image is enabled for the entry
+     * @param valBeforeImg value bytes of the before image if enabled
+     * @param tsBeforeImg timestamp in ms of the before image if enabled
+     * @param expBeforeImg expiration time in ms of the before image
      */
     @Override
     public void processDel(long vlsn, byte[] key, byte[] val, long txnId,
-                           DatabaseId dbId,
-                           long ts,  boolean beforeImgEnabled,
-                           byte[] valBeforeImg,
-                           long tsBeforeImg,
+                           DatabaseId dbId, long ts, boolean beforeImgEnabled,
+                           byte[] valBeforeImg, long tsBeforeImg,
                            long expBeforeImg) {
-        processEntry(new DataEntry(DataEntry.Type.DELETE,
-                                   vlsn,
-                                   txnId,
-                                   key,
-                                   val,
-                                   dbId,
-                                   ts));
+        processEntry(DataEntry.getDelEntry(vlsn, txnId, key, val, dbId, ts,
+                                           beforeImgEnabled, valBeforeImg,
+                                           tsBeforeImg, expBeforeImg));
         stat.incrNumDels(vlsn);
     }
 
@@ -107,15 +99,11 @@ class ReplicationStreamCbk implements SubscriptionCallback {
      *
      * @param vlsn  VLSN of commit entry
      * @param txnId id of txn to commit
+     * @param ts timestamp of commit
      */
     @Override
-    public void processCommit(long vlsn, long txnId) {
-        processEntry(new DataEntry(DataEntry.Type.TXN_COMMIT,
-                                   vlsn,
-                                   txnId,
-                                   null,
-                                   null,
-                                   null));
+    public void processCommit(long vlsn, long txnId, long ts) {
+        processEntry(DataEntry.getCommitEntry(vlsn, txnId, ts));
         stat.incrNumCommits(vlsn);
     }
 
@@ -124,15 +112,11 @@ class ReplicationStreamCbk implements SubscriptionCallback {
      *
      * @param vlsn  VLSN of abort entry
      * @param txnId id of txn to abort
+     * @param ts timestamp of abort
      */
     @Override
-    public void processAbort(long vlsn, long txnId) {
-        processEntry(new DataEntry(DataEntry.Type.TXN_ABORT,
-                                   vlsn,
-                                   txnId,
-                                   null,
-                                   null,
-                                   null));
+    public void processAbort(long vlsn, long txnId, long ts) {
+        processEntry(DataEntry.getAbortEntry(vlsn, txnId, ts));
         stat.incrNumAborts(vlsn);
     }
 
@@ -148,7 +132,7 @@ class ReplicationStreamCbk implements SubscriptionCallback {
 
         /*
          * When receiving an exception msg from feeder, the JE client thread
-         * will shutdown the stream  after calling this function. The
+         * will shut down the stream  after calling this function. The
          * replication stream consumer which owns the JE client thread is
          * supposed to retry or terminate the subscription.
          */
@@ -163,7 +147,7 @@ class ReplicationStreamCbk implements SubscriptionCallback {
             logger.finest(() -> lm("enqueued entry with " +
                                    "type=" + dataEntry.getType() +
                                    ", txn id=" + dataEntry.getTxnID() +
-                                   ", key=" + dataEntry.getTxnID()));
+                                   ", vlsn=" + dataEntry.getVLSN()));
 
         } catch (InterruptedException ie) {
             /* thread is shut down by others */
@@ -174,5 +158,13 @@ class ReplicationStreamCbk implements SubscriptionCallback {
 
     private String lm(String msg) {
         return "[RSCBK][shard=" + shard + "] " + msg;
+    }
+
+    /**
+     * Unit test only
+     * @return replication stream consumer statistics object
+     */
+    public ReplicationStreamConsumerStat getStat() {
+        return stat;
     }
 }

@@ -313,6 +313,12 @@ public class PartitionReader implements Runnable {
                     status.incrCommittedTXNs();
                     break;
                 }
+                case LAST_RECORD_MARKER : {
+                    logger.log(Level.INFO,
+                               "Received last record marker for {0}",
+                               new Object[]{partitionId});
+                    break;
+                }
                 case EOD : {
                     done = true;
                     logger.log(Level.INFO, "Receive EOD for {0}",

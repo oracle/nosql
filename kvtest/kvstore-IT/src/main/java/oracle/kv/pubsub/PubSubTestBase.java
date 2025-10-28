@@ -31,7 +31,6 @@ import java.io.IOException;
 import java.rmi.RemoteException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.Iterator;
@@ -87,6 +86,7 @@ import oracle.kv.impl.topo.RepGroupId;
 import oracle.kv.impl.topo.RepNodeId;
 import oracle.kv.impl.topo.Topology;
 import oracle.kv.impl.util.FileNames;
+import oracle.kv.impl.util.FormatUtils;
 import oracle.kv.impl.util.KVRepTestConfig;
 import oracle.kv.impl.util.PollCondition;
 import oracle.kv.impl.util.TestUtils;
@@ -110,10 +110,14 @@ import org.reactivestreams.Subscription;
  */
 public class PubSubTestBase extends TestBase {
 
+    protected static final String USER_TABLE_NAME = "user";
+    protected static final String CUSTOMER_TABLE_NAME = "customer";
+
     public static final String TEST_LOG_FILE = "testlog";
     private static final String keyPrefix = "PubSubTestBase_Key_";
-    private static final String valPrefix = "PubSubTestBase_Value_";    
-    
+    private static final String valPrefix = "PubSubTestBase_Value_";
+    protected static final String TEST_ROW_MD = "{\"custom MD\":1}";
+
     /* no r2compat table */
     protected static final boolean r2Compat = false;
 
@@ -137,21 +141,21 @@ public class PubSubTestBase extends TestBase {
         NameUtils.makeQualifiedName(DEFAULT_TEST_NAME_SPACE, "CheckpointTable");
 
     /* environment config parameters */
-    protected int repFactor;
-    protected int numStorageNodes;
-    protected int numDataCenters;
-    protected int numPartitions;
-    protected int nSecondaryZones;
-    protected int nShards;
+    protected int repFactor = 3;
+    protected int numStorageNodes = 1;
+    protected int numDataCenters = 1;
+    protected int numPartitions = 32;
+    protected int nSecondaryZones = 0;
+    protected int nShards = 0;
 
-    protected volatile boolean traceOnScreen;
+    protected volatile boolean traceOnScreen = false;
 
     protected KVRepTestConfig config;
     protected KVStore store;
     protected CreateStore createStore;
     protected KVStoreConfig kvStoreConfig;
     protected TableAPI tableAPI;
-    boolean useFeederFilter;
+    boolean useFeederFilter = false;
 
     private Map<Key, Value> testData;
 
@@ -188,6 +192,7 @@ public class PubSubTestBase extends TestBase {
 
     protected final Random random = new Random(System.currentTimeMillis());
 
+    protected volatile boolean useRowMD = false;
 
     /**
      * Below are for secure store test only
@@ -232,21 +237,59 @@ public class PubSubTestBase extends TestBase {
         super.tearDown();
     }
 
-    protected void createNamespace(String ns) {
+    protected void setUseRowMD() {
+        useRowMD = true;
+        trace("Set use row metadata");
+    }
+
+    protected long getTableId(String tableName) {
+        final TableAPI tapi = store.getTableAPI();
+        final TableImpl tb = (TableImpl) tapi.getTable(tableName);
+        if (tb == null) {
+            return -1;
+        }
+        return tb.getId();
+    }
+
+    protected String logTimestamp(long ts) {
+        return ts + "(" + FormatUtils.formatDateTime(ts) + ")";
+    }
+
+    void createNamespace(String ns) {
         String ddl = "CREATE NAMESPACE IF NOT EXISTS " + ns;
         store.executeSync(ddl);
     }
 
-    protected void createTable(KVStore kvs, String testTable) {
+    protected Table createTable(KVStore kvs, String testTable) {
         final String ddl = "CREATE TABLE " + testTable + " " +
                            "(id INTEGER, name STRING, age INTEGER, " +
                            "PRIMARY KEY (id))";
         kvs.executeSync(ddl);
         /* Ensure table created */
+        final Table ret = kvs.getTableAPI().getTable(testTable);
         assertNotNull("table " + testTable + " not created",
                       kvs.getTableAPI().getTable(testTable));
-        trace("test table " + testTable + " has been created at store=" +
+        trace("Table=" + testTable + " has been created at store=" +
               ((KVStoreImpl)kvs).getTopology().getKVStoreName());
+        return ret;
+    }
+
+    protected Table createChildTable(KVStore kvs, String parent, String child) {
+        final String tb = parent + "." + child;
+        return createChildTable(kvs, tb);
+    }
+
+    protected Table createChildTable(KVStore kvs, String tb) {
+        final String ddl = "CREATE TABLE " + tb +
+                           " (state STRING, address STRING, " +
+                           " PRIMARY KEY (state))";
+        kvs.executeSync(ddl);
+        /* Ensure table created */
+        final Table ret =  kvs.getTableAPI().getTable(tb);
+        assertNotNull("table " + tb + " not created", ret);
+        trace("Table=" + tb + " has been created at store=" +
+              ((KVStoreImpl)kvs).getTopology().getKVStoreName());
+        return ret;
     }
 
     protected NoSQLPublisher createPublisher() {
@@ -294,18 +337,24 @@ public class PubSubTestBase extends TestBase {
         return ret;
     }
 
-    private boolean deleteRow(TableAPI api, String table, int id) {
+    protected boolean deleteRow(TableAPI api, String table, int id) {
         final PrimaryKey pkey = api.getTable(table).createPrimaryKey();
         pkey.put("id", id);
+        if (useRowMD) {
+            pkey.setRowMetadata(TEST_ROW_MD);
+        }
         return api.delete(pkey, null, null);
     }
-    private Version writeRow(TableAPI api, String tableName,
-                               int id, String name, int age) {
 
+    private Version writeRow(TableAPI api, String tableName,
+                             int id, String name, int age) {
         final Row row = api.getTable(tableName).createRow();
         row.put("id", id);
         row.put("name", name);
         row.put("age", age);
+        if (useRowMD) {
+            row.setRowMetadata(TEST_ROW_MD);
+        }
         return api.put(row, null, null);
     }
 
@@ -318,7 +367,9 @@ public class PubSubTestBase extends TestBase {
             new PollCondition(TEST_POLL_INTERVAL_MS, TEST_POLL_TIMEOUT_MS) {
                 @Override
                 protected boolean condition() {
-                    return sub.getNumPuts() == total;
+                    final long act = sub.getNumPuts();
+                    trace("expected=" + total + ", actual=" + act);
+                    return act == total;
                 }
             }.await();
 
@@ -334,6 +385,7 @@ public class PubSubTestBase extends TestBase {
         final StatementResult sr = store.executeSync(stmt);
         assertNotNull(sr);
         assertTrue(sr.isSuccessful());
+        trace("Default namespace created=" + DEFAULT_TEST_NAME_SPACE);
     }
 
     protected void waitFor(final PollCondition pollCondition)
@@ -357,7 +409,7 @@ public class PubSubTestBase extends TestBase {
                                table.getPrimaryKeySizes(),
                                table.getShardKey(),
                                table.getFieldMap(),
-                               null, null, true, 0, null, null);
+                               null, null, null, true, 0, null, null);
          }
 
         for (RepGroupId repGroupId : config.getTopology().getRepGroupIds()) {
@@ -376,9 +428,10 @@ public class PubSubTestBase extends TestBase {
             verifyTestData();
         }
         store = KVStoreFactory.getStore(config.getKVSConfig());
-        logger.info("Test environment created successfully," +
-                    "\ntopology:\n" + topo2String(config) +
-                    "\ntest data loaded:\n" + loadTestData);
+        kvStoreConfig = config.getKVSConfig();
+        trace("Test environment created successfully," +
+              "\ntopology:\n" + topo2String(config) +
+              "\ntest data loaded:\n" + loadTestData);
     }
 
     protected Map<String, Row> insertRowsIntoTable(TableImpl table,
@@ -481,6 +534,10 @@ public class PubSubTestBase extends TestBase {
         }
     }
 
+    protected void threadTrace(String msg) {
+        trace("[Thread=" + Thread.currentThread().getName()+ "] " + msg);
+    }
+
     protected void trace(String message) {
        trace(INFO, message);
     }
@@ -565,7 +622,7 @@ public class PubSubTestBase extends TestBase {
         return (NoSQLStreamFeederFilter) feeder.getFeederFilter();
     }
 
-    private void addLoggerFileHandler() throws IOException {
+    protected void addLoggerFileHandler() throws IOException {
         final String fileName = TEST_LOG_FILE;
         final File loggerFile = new File(new File(testPath), fileName);
         final FileHandler handler =
@@ -686,14 +743,16 @@ public class PubSubTestBase extends TestBase {
 
         /* create tables */
         createUserTable(adminStore, numInitRows);
-        trace("User table created with rows " + numInitRows);
+        trace("User table created with rows=" + numInitRows);
         createCustomerTable(adminStore, numInitRows);
-        trace("Customer table created with rows " + numInitRows);
+        trace("Customer table created with rows=" + numInitRows);
 
         /* grant all privileges to user needed to subscribe the table */
-        grantCreateAnyTablePriv(adminStore);
-        grantReadPrivTable(adminStore, Collections.singleton("user"));
-        trace("User " + USER + " granted privileges to subscribe user table, ");
+        grantCreateAnyTablePriv(adminStore, USER);
+        final String role = createRole(adminStore);
+        grantReadPrivTable(adminStore, role, USER_TABLE_NAME, USER);
+        trace("User=" + USER + " granted privileges to subscribe user table" +
+              ", role=" + role);
 
         /* create a publisher */
         final NoSQLPublisherConfig pubConf =
@@ -703,7 +762,7 @@ public class PubSubTestBase extends TestBase {
         final NoSQLPublisher publisher = NoSQLPublisher.get(pubConf,
                                                             USER_LOGIN_CRED,
                                                             logger);
-        trace("publisher created with user " + USER_LOGIN_CRED.getUsername());
+        trace("Publisher created with user=" + USER_LOGIN_CRED.getUsername());
 
         return publisher;
     }
@@ -778,7 +837,7 @@ public class PubSubTestBase extends TestBase {
     }
 
     /* make a random row */
-    private RowImpl makeRandomRow(TableImpl table, int which) {
+    protected RowImpl makeRandomRow(TableImpl table, int which) {
 
         RowImpl row = table.createRow();
 
@@ -873,21 +932,22 @@ public class PubSubTestBase extends TestBase {
 
     protected Map<String, Row> createUserTable(KVStore storeHandle,
                                                int numRows) {
-        final String ddl = "CREATE TABLE user " +
+        final String ddl = "CREATE TABLE " + USER_TABLE_NAME +
                            "(id STRING, firstName STRING, lastName STRING, " +
                            "age INTEGER, PRIMARY KEY (id))";
         storeHandle.executeSync(ddl);
 
         final TableAPI api = storeHandle.getTableAPI();
         /* Ensure table created */
-        assertNotNull("table user not created", api.getTable("user"));
+        assertNotNull("table=" + USER_TABLE_NAME + " not created",
+                      api.getTable(USER_TABLE_NAME));
 
         /* load rows into table */
         final Map<String, Row> rows = new HashMap<>();
-        final TableImpl table = (TableImpl) api.getTable("user");
+        final TableImpl table = (TableImpl) api.getTable(USER_TABLE_NAME);
         for (int i = 0; i < numRows; i++) {
             final RowImpl row = table.createRow();
-            row.put("id", "user" + i);
+            row.put("id", USER_TABLE_NAME + i);
             row.put("firstName", "user-first-" +
                     random.nextInt(1000));
             row.put("lastName", "user-last-" +
@@ -904,19 +964,20 @@ public class PubSubTestBase extends TestBase {
     }
 
     protected void createCustomerTable(KVStore storeHandle, int numRows) {
-        final String ddl = "CREATE TABLE customer (cid STRING, name STRING, " +
-                           "PRIMARY KEY (cid))";
+        final String ddl = "CREATE TABLE " + CUSTOMER_TABLE_NAME +
+                           " (cid STRING, name STRING, PRIMARY KEY (cid))";
         storeHandle.executeSync(ddl);
 
         final TableAPI api = storeHandle.getTableAPI();
         /* Ensure table created */
-        assertNotNull("table customer not created", api.getTable("customer"));
+        assertNotNull("table=" + CUSTOMER_TABLE_NAME +
+                      " not created", api.getTable(CUSTOMER_TABLE_NAME));
 
         /* load rows into table */
-        final TableImpl table = (TableImpl) api.getTable("customer");
+        final TableImpl table = (TableImpl) api.getTable(CUSTOMER_TABLE_NAME);
         for (int i = 0; i < numRows; i++) {
             final RowImpl row = table.createRow();
-            row.put("cid", "customer" + i);
+            row.put("cid", CUSTOMER_TABLE_NAME + i);
             row.put("name", "customer-name-" + random.nextInt(1000));
             api.put(row, null,
                     new WriteOptions(Durability.COMMIT_NO_SYNC, 10000,
@@ -977,111 +1038,65 @@ public class PubSubTestBase extends TestBase {
         return sp;
     }
 
-    private static void createRole(KVStore adminStore, String role)
+    protected static String createRole(KVStore adminStore)
         throws Exception {
+        final String role = "role" +
+                            UUID.randomUUID().toString().substring(0, 4);
         execStatement(adminStore, "CREATE ROLE " + role);
-    }
-
-    protected static String grantReadPrivTable(KVStore adminStore,
-                                               Set<String> tables)
-
-        throws Exception {
-
-        final String role = "role" + UUID.randomUUID()
-                                         .toString()
-                                         .substring(0, 4);
-        createRole(adminStore, role);
-
-        grantReadPrivTable(adminStore,  role, tables);
-
         return role;
     }
 
-    protected static String grantReadPrivTable(KVStore adminStore,
-                                               String role,
-                                               Set<String> tables)
+    protected static void grantReadPrivTable(KVStore admin,
+                                             String role,
+                                             String table,
+                                             String user) throws Exception {
+        grantPrivToRole(admin, role, table, KVStorePrivilegeLabel.READ_TABLE);
+        grantRoleToUser(admin, role, user);
+    }
 
+    protected static void grantWritePrivTable(KVStore admin,
+                                              String role,
+                                              String table,
+                                              String user) throws Exception {
+        grantPrivToRole(admin, role, table, KVStorePrivilegeLabel.INSERT_TABLE);
+        grantRoleToUser(admin, role, user);
+
+    }
+
+    protected static String grantCreateAnyTablePriv(KVStore admin, String user)
         throws Exception {
 
-        for (String t : tables) {
-            grantPrivToRole(adminStore, role, t,
-                            KVStorePrivilegeLabel.READ_TABLE);
-        }
-
-        grantRoleToUser(adminStore, role, USER);
-
+        final String role = createRole(admin);
+        grantPrivToRole(admin, role, KVStorePrivilegeLabel.CREATE_ANY_TABLE);
+        grantRoleToUser(admin, role, user);
         return role;
     }
 
-    protected static String grantWritePrivTable(KVStore adminStore,
-                                                String role,
-                                                String table)
-
+    protected static void grantWriteAnyTablePriv(KVStore admin, String user)
         throws Exception {
 
-        grantPrivToRole(adminStore, role, table,
-                            KVStorePrivilegeLabel.INSERT_TABLE);
-
-        grantRoleToUser(adminStore, role, USER);
-
-        return role;
+        final String role = createRole(admin);
+        grantPrivToRole(admin, role, KVStorePrivilegeLabel.INSERT_ANY_TABLE);
+        grantRoleToUser(admin, role, user);
     }
 
-    protected static String grantCreateAnyTablePriv(KVStore adminStore)
+    protected static void grantReadAnyTablePriv(KVStore admin, String user)
         throws Exception {
 
-        final String role = "role" + UUID.randomUUID()
-                                         .toString()
-                                         .substring(0, 4);
-        execStatement(adminStore, "CREATE ROLE " + role);
-
-        grantPrivToRole(adminStore, role,
-                        KVStorePrivilegeLabel.CREATE_ANY_TABLE);
-
-        grantRoleToUser(adminStore, role, USER);
-
-        return role;
+        final String role = createRole(admin);
+        grantPrivToRole(admin, role, KVStorePrivilegeLabel.READ_ANY_TABLE);
+        grantRoleToUser(admin, role, user);
     }
 
-    protected static void grantWriteAnyTablePriv(KVStore adminStore)
-        throws Exception {
-
-        final String role = "role" + UUID.randomUUID()
-                                         .toString()
-                                         .substring(0, 4);
-        execStatement(adminStore, "CREATE ROLE " + role);
-
-        grantPrivToRole(adminStore, role,
-                        KVStorePrivilegeLabel.INSERT_ANY_TABLE);
-
-        grantRoleToUser(adminStore, role, USER);
-    }
-
-    protected static void grantReadAnyTablePriv(KVStore adminStore)
-        throws Exception {
-
-        final String role = "role" + UUID.randomUUID()
-                                         .toString()
-                                         .substring(0, 4);
-        execStatement(adminStore, "CREATE ROLE " + role);
-
-        grantPrivToRole(adminStore, role,
-                        KVStorePrivilegeLabel.READ_ANY_TABLE);
-
-        grantRoleToUser(adminStore, role, USER);
-    }
-
-    protected static void dropUser(KVStore adminStore)
-        throws Exception {
-        execStatement(adminStore, "DROP USER " + USER + " CASCADE");
+    protected static void dropUser(KVStore admin, String user) throws Exception {
+        execStatement(admin, "DROP USER " + user + " CASCADE");
     }
 
     protected static void grantPrivToRole(KVStore adminStore,
-                                        String role,
-                                        KVStorePrivilegeLabel label)
+                                          String role,
+                                          KVStorePrivilegeLabel label)
         throws Exception {
-        execStatement(adminStore,
-                      "grant " + label + " to " + role);
+        execStatement(adminStore, "GRANT " + label + " TO " + role);
         assertRoleHasPriv(adminStore, role, label.toString());
 
     }
@@ -1126,8 +1141,8 @@ public class PubSubTestBase extends TestBase {
     }
 
     private static void assertRoleHasPriv(KVStore adminStore,
-                                            String role,
-                                            String privStr) {
+                                          String role,
+                                          String privStr) {
 
         assertThat(showRole(adminStore, role), containsString(privStr));
     }
@@ -1135,31 +1150,36 @@ public class PubSubTestBase extends TestBase {
     protected static void assertRoleHasNoPriv(KVStore adminStore,
                                               String role,
                                               String privStr) {
-
         assertThat(showRole(adminStore, role), not(containsString(privStr)));
     }
 
     protected static String showRole(KVStore adminStore, String role) {
         final StatementResult result =
             adminStore.executeSync("show role " + role);
-
         return result.getResult();
     }
 
     protected static String showUsers(KVStore adminStore) {
-        final StatementResult result =
-            adminStore.executeSync("show users");
+        final StatementResult result = adminStore.executeSync("show users");
+        return result.getResult();
+    }
 
+    protected static String showRoles(KVStore adminStore) {
+        final StatementResult result =
+            adminStore.executeSync("SHOW ROLES");
+        return result.getResult();
+    }
+
+    protected static String showSingleUser(KVStore adminStore, String user) {
+        final StatementResult result =
+            adminStore.executeSync("SHOW USER " + user);
         return result.getResult();
     }
 
     protected static void grantRoleToUser(KVStore adminStore,
                                           String role,
-                                          String usr)
-        throws Exception {
-
-        execStatement(adminStore,
-                      "grant " + role + " to user " + usr);
+                                          String usr) throws Exception {
+        execStatement(adminStore, "grant " + role + " to user " + usr);
     }
 
     /**
@@ -1198,7 +1218,7 @@ public class PubSubTestBase extends TestBase {
 
         private NoSQLSubscription subscription;
 
-        protected boolean isSubscribeSucc;
+        boolean isSubscribeSucc;
 
         protected List<StreamOperation> recvPutOps;
         protected List<StreamOperation> recvDelOps;
@@ -1268,7 +1288,10 @@ public class PubSubTestBase extends TestBase {
             isSubscribeSucc = false;
             trace(Level.INFO,
                   "Subscriber " + conf.getSubscriberId() +
-                  " receives an error: " + t.getMessage());
+                  " receives an error=" + t + "\n" +
+                  ", cause=" + causeOfFailure +
+                  "\nStack\n" +
+                  LoggerUtils.getStackTrace(t));
         }
 
         @Override
@@ -1276,7 +1299,7 @@ public class PubSubTestBase extends TestBase {
             recvWarnings.add(t);
             trace(Level.INFO,
                   "Subscriber " + conf.getSubscriberId() +
-                  " receives a warning: " + t.getMessage());
+                  " receives a warning=" + t);
         }
 
         @Override

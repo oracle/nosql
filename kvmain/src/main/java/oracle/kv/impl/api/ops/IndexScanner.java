@@ -224,6 +224,18 @@ public class IndexScanner {
     }
 
     /**
+     * Returns the creation time of the current valid result if non-null,
+     * otherwise 0.
+     *
+     * This means that the caller must have received a true result from
+     * one of the navigational interfaces indicating there's a current
+     * record.
+     */
+    public long getCreationTime() {
+        return (result != null ? result.getCreationTime() : 0);
+    }
+
+    /**
      * Returns the current OperationResult. If the most recent operation failed
      * to find a record this will be null.
      */

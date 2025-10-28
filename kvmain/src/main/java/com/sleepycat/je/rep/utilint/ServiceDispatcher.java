@@ -1347,7 +1347,7 @@ public class ServiceDispatcher extends StoppableThread {
                     return "Service was busy";
 
                 case INVALID:
-                    return "Invalid response supplied";
+                    return "Invalid response supplied, security failure";
 
                 case PROCEED:
                     return "Protocol continuation requested";

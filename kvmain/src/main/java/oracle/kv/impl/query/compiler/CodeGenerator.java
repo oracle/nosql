@@ -98,6 +98,8 @@ public class CodeGenerator extends ExprVisitor {
 
     private boolean theForCloud;
 
+    private boolean theRemoveGlobalSort;
+
     public CodeGenerator(QueryControlBlock qcb) {
         theQCB = qcb;
         qcb.setCodegen(this);
@@ -270,15 +272,20 @@ public class CodeGenerator extends ExprVisitor {
     @Override
     boolean enter(ExprSort sort) {
 
-        /* If the sort is going to be removed, set the index scan direction
-         * before actually removing the sort */
-        if (sort.matchesGroupBy()) {
+        /* Check whether the sort can be removed due to an underlying
+         * index-based group-by that produces its results in the desired
+         * order. */
+        ExprBaseTable tableExpr = sort.getTableExpr();
+
+        if (tableExpr != null && sort.matchesGroupBy()) {
 
             Expr input = sort.getInput();
 
             while (input != null) {
 
                 if (input.getKind() == ExprKind.GROUP) {
+                    /* The group-by is a global one, so the sort cannot
+                     * be removed */
                     break;
                 }
 
@@ -290,13 +297,36 @@ public class CodeGenerator extends ExprVisitor {
                     if (sfw.hasGroupBy() &&
                         input.getKind() == ExprKind.RECEIVE) {
 
+                        /* The group-by is an index-based one. If the sorting
+                         * is in descending order, we must reverse the direction
+                         * of the index scan. */
                         if (sort.isDescendingIndexScan()) {
-                            ExprBaseTable tableExpr = sort.getTableExpr();
+
+                            if (tableExpr.getNumDescendants() > 0) {
+
+                                /* Cannot reverse the direction of the index
+                                 * scan if the query performs LOJs with
+                                 * descendant tables via the primary index.
+                                 * If the LOJs are done via a secondary index
+                                 * index on the target table, all the sorting
+                                 * exprs must be from the target table. */
+                                if (tableExpr.getIndex() == null) {
+                                    break;
+                                }
+
+                                ArrayList<TableImpl> tables = sort.getTables();
+                                if (tables.size() != 1 ||
+                                    tables.get(0) != tableExpr.getTargetTable()) {
+                                    break;
+                                }
+                            }
+
                             ExprReceive rcv = (ExprReceive)input;
                             tableExpr.setDirection(Direction.REVERSE);
                             rcv.reverseSortDirection();
                         }
 
+                        theRemoveGlobalSort = true;
                         return true;
                     }
                 } else {
@@ -305,6 +335,7 @@ public class CodeGenerator extends ExprVisitor {
             }
         }
 
+        /* The sort will not be removed, so set theTopBlockingExpr to the sort */
         if (theTopBlockingExpr == null) {
             theTopBlockingExpr = sort;
         }
@@ -315,31 +346,8 @@ public class CodeGenerator extends ExprVisitor {
     @Override
     void exit(ExprSort sort) {
 
-        /* Remove the sort if it's not needed. See ExprSort javadoc for
-         * details */
-        if (sort.matchesGroupBy()) {
-
-            Expr input = sort.getInput();
-
-            while (input != null) {
-
-                if (input.getKind() == ExprKind.GROUP) {
-                    break;
-                }
-
-                if (input.getKind() == ExprKind.SFW) {
-
-                    ExprSFW sfw = (ExprSFW)input;
-                    input = sfw.getDomainExpr(0);
-
-                    if (sfw.hasGroupBy() &&
-                        input.getKind() == ExprKind.RECEIVE) {
-                        return;
-                    }
-                } else {
-                    break;
-                }
-            }
+        if (theRemoveGlobalSort) {
+            return;
         }
 
         if (theBottomBlockingExpr == null) {

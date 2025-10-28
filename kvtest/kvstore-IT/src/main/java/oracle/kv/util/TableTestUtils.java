@@ -55,6 +55,7 @@ public class TableTestUtils {
                                                   evolver.getTableVersion(),
                                                   table.getFieldMap(),
                                                   table.getDefaultTTL(),
+                                                  table.getBeforeImageTTL(),
                                                   table.getRemoteRegions());
             execPlan(cs, planId, "evolveTable", shouldSucceed, storeAPI);
         } catch (AdminFaultException ice) {

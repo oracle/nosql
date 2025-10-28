@@ -32,6 +32,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.logging.Logger;
 
 import oracle.kv.Key;
+import oracle.kv.Value;
 import oracle.kv.impl.api.table.PrimaryKeyImpl;
 import oracle.kv.impl.api.table.RowImpl;
 import oracle.kv.impl.api.table.TableImpl;
@@ -50,10 +51,12 @@ import oracle.kv.pubsub.StreamOperation.PutEvent;
 import oracle.kv.pubsub.StreamOperation.SequenceId;
 import oracle.kv.pubsub.SubscribedTableVersionException;
 import oracle.kv.pubsub.SubscriptionFailureException;
+import oracle.kv.table.Row;
+import oracle.kv.table.Table;
+import oracle.kv.txn.TransactionIdImpl;
 
 import com.sleepycat.je.utilint.StoppableThread;
 import com.sleepycat.je.utilint.VLSN;
-import com.sleepycat.util.PackedInteger;
 
 /**
  * Object maintaining a list of open transactions received from source. When a
@@ -184,6 +187,13 @@ public class OpenTransactionBuffer {
 
     /* deserializer to create stream operations from JE data entries */
     private final StreamOperation.Deserializer deserializer;
+    /**
+     * True if to include before image in deserializing events, false
+     * otherwise.
+     */
+    private final boolean inclBeforeImage;
+    /** true if include abort transactions, false otherwise */
+    private final boolean includeAbortTxn;
 
     OpenTransactionBuffer(ReplicationStreamConsumer parent,
                           RepGroupId repGroupId,
@@ -200,7 +210,6 @@ public class OpenTransactionBuffer {
         this.logger = logger;
         this.deserializer = (deserializer == null) ?
             new DefaultDeserializer() : deserializer;
-
         /* make a map of local copy of subscribed tables for quick lookup */
         cachedTables = new ConcurrentHashMap<>();
         if (tables == null) {
@@ -242,6 +251,17 @@ public class OpenTransactionBuffer {
 
         /* to be initialized in startWorker() */
         workerThread = null;
+
+        final PublishingUnit pu = parent.getPu();
+        if (pu == null) {
+            /* some unit test only */
+            includeAbortTxn = false;
+            inclBeforeImage = false;
+        } else {
+            /* regular stream */
+            includeAbortTxn = pu.includeAbortTransaction();
+            inclBeforeImage = pu.includeBeforeImage();
+        }
     }
 
     public RepGroupId getRepGroupId() {
@@ -253,6 +273,14 @@ public class OpenTransactionBuffer {
      */
     public boolean isWaitingForCkpt () {
         return partGenMarkProcessor.isWaitingForCkpt();
+    }
+
+    /**
+     * Unit test only
+     * Returns true if stream should include before image, false otherwise
+     */
+    public boolean isInclBeforeImage() {
+        return inclBeforeImage;
     }
 
     /**
@@ -506,7 +534,8 @@ public class OpenTransactionBuffer {
     }
 
     /* Aborts a txn from openTxnBuffer */
-    private synchronized void abort(final DataEntry entry) {
+    private synchronized void abort(final DataEntry entry)
+        throws InterruptedException {
 
         assert (DataEntry.Type.TXN_ABORT.equals(entry.getType()));
 
@@ -517,12 +546,18 @@ public class OpenTransactionBuffer {
              * feeder filler is unable to filter some commit/abort msg for
              * internal db or dup db. So it is possible we can see some
              * phantom commit/abort without an open txn in buffer. But we
-             * wont receive PUT/DEL for such internal db entries, so there
+             * will not receive PUT/DEL for such internal db entries, so there
              * is no open txn for such commit/abort in buffer.
              */
             logger.finest(() -> lm("Abort a non-existent txnid=" + txnid + "," +
                                    " ignore."));
             return;
+        }
+
+        if (includeAbortTxn) {
+            final long ts = entry.getLastUpdateMs();
+            final long abortVLSN = entry.getVLSN();
+            commitAbortHelper(false, txn, txnid, ts, abortVLSN);
         }
 
         /* remove txn from openTxnBuffer and update openTxnBuffer stats */
@@ -535,6 +570,28 @@ public class OpenTransactionBuffer {
                              ", # of ops aborted=" + numOps));
     }
 
+    /**
+     * Returns true if the stream operation is from a table that streams
+     * transactions, false otherwise
+     */
+    private boolean isStreamTxnTable(StreamOperation op) {
+        final StreamOperation.Type type = op.getType();
+        if (!type.equals(StreamOperation.Type.PUT) &&
+            !type.equals(StreamOperation.Type.DELETE)) {
+            /* ignore all non-put non-delete operations */
+            return false;
+        }
+        final PublishingUnit pu = parent.getPu();
+        if (pu == null) {
+            /* some unit test only */
+            return false;
+        }
+        final Table table = op.getTable();
+        /* gets table id of top table to decide if stream txn */
+        final long topTableId = ((TableImpl) table).getTopLevelTable().getId();
+        return pu.getStreamTransaction(topTableId);
+    }
+
     /* Commits an open txn from openTxnBuffer  */
     private synchronized void commit(final DataEntry entry)
         throws SubscriptionFailureException, InterruptedException {
@@ -542,6 +599,7 @@ public class OpenTransactionBuffer {
         assert (DataEntry.Type.TXN_COMMIT.equals(entry.getType()));
 
         final long txnid = entry.getTxnID();
+        final long vlsn = entry.getVLSN();
         final List<DataEntry> txn = openTxnBuffer.remove(txnid);
         if (txn == null) {
             /*
@@ -551,25 +609,31 @@ public class OpenTransactionBuffer {
              * wont receive PUT/DEL for such internal db entries, so there
              * is no open txn for such commit/abort in buffer.
              */
-            logger.finest(() -> "Ignore a non-existent txn id=" + txnid);
+            logger.finest(() -> "Ignore a non-existent txn id=" + txnid +
+                                ", vlsn=" + vlsn);
             return;
         }
 
-        commitHelper(txn);
+        commitAbortHelper(true, txn, txnid, entry.getLastUpdateMs(), vlsn);
 
         /* remove txn from openTxnBuffer and update openTxnBuffer stats */
         final long numOps =  txn.size();
         numCommitOps.addAndGet(numOps);
         numCommitTxn.getAndIncrement();
-        lastCommitVLSN = entry.getVLSN();
+        lastCommitVLSN = vlsn;
         logger.finest(() -> lm("Committed txn=" + txnid + " with vlsn=" +
                                lastCommitVLSN + ", # of ops committed=" +
                                numOps));
     }
 
     /* Commits a transaction and convert data entry to stream operations */
-    private void commitHelper(List<DataEntry> allOps)
+    private void commitAbortHelper(boolean commit,
+                                   List<DataEntry> allOps,
+                                   long txnId,
+                                   long ts,
+                                   long commitVLSN)
         throws SubscriptionFailureException, InterruptedException {
+        final List<StreamOperation> txnOps = new ArrayList<>();
         for (DataEntry entry : allOps) {
 
             /* sanity check just in case */
@@ -577,11 +641,11 @@ public class OpenTransactionBuffer {
             if ((type != DataEntry.Type.PUT) &&
                 (type != DataEntry.Type.DELETE)) {
                 throw new IllegalStateException(
-                    "Type " + type + " cannot be streamed to client.");
+                    "Type=" + type + " cannot be streamed to client.");
             }
             if (entry.getKey() == null) {
-                throw new IllegalStateException("key cannot be null when being " +
-                                                "deserialized.");
+                throw new IllegalStateException(
+                    "key cannot be null when being deserialized.");
             }
 
              /* process a partition generation db entry */
@@ -590,15 +654,46 @@ public class OpenTransactionBuffer {
             }
 
             /* regular data entry */
-            final StreamOperation msg = buildStreamOp(entry.getKey(),
-                                                      entry.getValue(),
-                                                      type,
-                                                      entry.getVLSN(),
-                                                      entry.getLastUpdateMs(),
-                                                      entry.getExpirationMs());
+            final StreamOperation msg =
+                buildStreamOp(entry.getKey(),
+                              entry.getValue(),
+                              type,
+                              entry.getVLSN(),
+                              entry.getLastUpdateMs(),
+                              entry.getExpirationMs(),
+                              entry.isBeforeImgEnabled(),
+                              entry.getValBeforeImg(),
+                              entry.getLastModTimeBeforeImg(),
+                              entry.getExpBeforeImg());
+            if (msg == null) {
+                /* cannot deserialize the entry */
+                continue;
+            }
+            if (!isStreamTxnTable(msg)) {
+                /* enqueue stream operation */
+                enqueueMsg(msg);
+                logger.finest(() -> lm("Enqueue " + (commit ?
+                    "commit" : "abort") + " op=" + msg));
+            } else {
+                /* cache the ops in transaction */
+                txnOps.add(msg);
+                logger.finest(() -> lm("Stream transaction for table id=" +
+                                       msg.getTableId()));
+            }
+        }
+
+        if (!txnOps.isEmpty()) {
+            /* create txn stream operation */
+            final int shardId = repGroupId.getGroupId();
+            final TransactionIdImpl
+                id = new TransactionIdImpl(shardId, txnId, ts);
+            final StreamSequenceId sq = new StreamSequenceId(commitVLSN);
+            final StreamOperation txn =
+                new StreamTxnEvent(id, sq, commit, txnOps);
             /* enqueue stream operation */
-            enqueueMsg(msg);
-            logger.finest(() -> lm("committed op=" + msg));
+            enqueueMsg(txn);
+            logger.finest(() -> lm("Enqueue " + (commit ?
+                "commit" : "abort") + " txn=" + txn));
         }
     }
 
@@ -669,7 +764,7 @@ public class OpenTransactionBuffer {
         }
 
         if (table == null) {
-            /* already dropped, a short lived table */
+            /* already dropped, a short-lived table */
             droppedTables.add(rootTableId);
             return null;
         }
@@ -686,13 +781,20 @@ public class OpenTransactionBuffer {
                                           DataEntry.Type type,
                                           long vlsn,
                                           long lastUpdateMs,
-                                          long expirationMs)
+                                          long expirationMs,
+                                          boolean beforeImgEnabled,
+                                          byte[] valBeforeImg,
+                                          long tsBeforeImg,
+                                          long expBeforeImg)
         throws SubscriptionFailureException {
 
         /* check if the key belongs to a subscribed table */
         final Map<String, TableImpl> tbMap = getCachedTables(key);
         if (tbMap == null) {
             /* not a subscribed table or dropped */
+            logger.finest(() -> lm("Key not found in subscribed tables" +
+                                   ", cached tables=" + cachedTables.keySet() +
+                                   ", dropped tables="+ droppedTables));
             return null;
         }
 
@@ -701,10 +803,14 @@ public class OpenTransactionBuffer {
             for (TableImpl t : tbMap.values()) {
                 final StreamOperation op =
                     deserialize(t, key, value, type, vlsn, lastUpdateMs,
-                                expirationMs);
+                                expirationMs, beforeImgEnabled, valBeforeImg,
+                                tsBeforeImg, expBeforeImg);
                 if (op != null) {
                     return op;
                 }
+                logger.finest(() -> lm("[rg=" + repGroupId + ", vlsn=" +
+                                       vlsn + "] " + "key not from table=" +
+                                       t.getFullNamespaceName()));
             }
         }
 
@@ -720,6 +826,8 @@ public class OpenTransactionBuffer {
         // later
 
         /* cannot deserialize */
+        logger.finest(() -> lm("Cannot deserialize key from tables=" +
+                               tbMap.keySet()));
         return null;
     }
 
@@ -730,10 +838,15 @@ public class OpenTransactionBuffer {
                                         DataEntry.Type type,
                                         long vlsn,
                                         long lastUpdateMs,
-                                        long expirationMs) {
+                                        long expirationMs,
+                                        boolean beforeImgEnabled,
+                                        byte[] valBeforeImg,
+                                        long tsBeforeImg,
+                                        long expBeforeImg) {
         try {
             return createMsg(table, key, value, type, vlsn, lastUpdateMs,
-                             expirationMs);
+                             expirationMs, beforeImgEnabled, valBeforeImg,
+                             tsBeforeImg, expBeforeImg);
         } catch (SubscribedTableVersionException stve) {
 
             final String rootTableId = getTableId(table.getTopLevelTable());
@@ -761,7 +874,8 @@ public class OpenTransactionBuffer {
                                " to ver=" + stve.getRequiredVersion()));
                 /* we should not fail this time! */
                 return createMsg(refresh, key, value, type, vlsn,
-                                 lastUpdateMs, expirationMs);
+                                 lastUpdateMs, expirationMs, beforeImgEnabled,
+                                 valBeforeImg, tsBeforeImg, expBeforeImg);
             }
 
             final String err =
@@ -798,7 +912,11 @@ public class OpenTransactionBuffer {
                                       DataEntry.Type type,
                                       long vlsn,
                                       long lastUpdateMs,
-                                      long expirationMs)
+                                      long expirationMs,
+                                      boolean beforeImgEnabled,
+                                      byte[] valBeforeImg,
+                                      long tsBeforeImg,
+                                      long expBeforeImg)
         throws SubscribedTableVersionException {
 
         final StreamSequenceId sequenceId = new StreamSequenceId(vlsn);
@@ -817,12 +935,14 @@ public class OpenTransactionBuffer {
                 }
                 return deserializer.getPutEvent(
                     subscriberId, repGroupId, table, key, value, sequenceId,
-                    lastUpdateMs, expirationMs);
-
+                    lastUpdateMs, expirationMs, inclBeforeImage,
+                    beforeImgEnabled, valBeforeImg, tsBeforeImg, expBeforeImg);
             case DELETE:
                 return deserializer.getDeleteEvent(
                     subscriberId, repGroupId, table, key, value, sequenceId,
-                    lastUpdateMs, expirationMs, !streamAllTables);
+                    lastUpdateMs, expirationMs, !streamAllTables,
+                    inclBeforeImage, beforeImgEnabled, valBeforeImg,
+                    tsBeforeImg, expBeforeImg);
             default:
                 /* should never reach here */
                 throw new AssertionError("Unrecognized type " + type);
@@ -965,6 +1085,39 @@ public class OpenTransactionBuffer {
         }
     }
 
+    /**
+     * Returns the size of open transaction buffer in bytes by iterating all
+     * data entries in the buffer
+     * @return size of open transaction buffer in bytes
+     */
+    synchronized public long computeSize() {
+        long ret = 0;
+        final long ts = System.currentTimeMillis();
+        for (List<DataEntry> list : openTxnBuffer.values()) {
+            for (DataEntry de : list) {
+                ret += getDataEntrySize(de);
+            }
+        }
+        final long total = ret;
+        logger.fine(() -> lm("Estimated OTB size bytes=" + total +
+                             ", computation elapsedMs=" +
+                             (System.currentTimeMillis() - ts)));
+        return ret;
+    }
+
+    private long getDataEntrySize(DataEntry entry) {
+        long ret = 40; /* metadata overhead, estimated */
+        final byte[] key = entry.getKey();
+        if (key != null) {
+            ret += key.length;
+        }
+        final byte[] val = entry.getValue();
+        if (val != null) {
+            ret += val.length;
+        }
+        return ret;
+    }
+
     public static class DefaultDeserializer
         implements StreamOperation.Deserializer {
 
@@ -976,33 +1129,33 @@ public class OpenTransactionBuffer {
                                     byte[] value,
                                     SequenceId sequenceId,
                                     long lastModificationTime,
-                                    long expirationTime) {
-            RowImpl row;
-            try {
-                /* Deserialize complete row */
-                row = table.createRowFromBytes(
-                    key, value, table.isKeyOnly(),
-                    false/* do not add missing col */);
+                                    long expirationTime,
+                                    boolean inclBeforeImage,
+                                    boolean beforeImgEnabled,
+                                    byte[] valBeforeImg,
+                                    long tsBeforeImg,
+                                    long expBeforeImg) {
 
-            } catch (TableVersionException tve) {
-                /* need refresh table md */
-                throw new SubscribedTableVersionException(
-                    subscriberId, rgId,
-                    table.getFullNamespaceName(),
-                    tve.getRequiredVersion(),
-                    table.getTableVersion());
-            }
-            /* key was not associated with a table */
+            /* build current image */
+            final RowImpl row = buildRow(subscriberId, rgId, table, key, value,
+                                         lastModificationTime, expirationTime);
+            /* build before image */
+            final Row beforeImagRow = buildBeforeImageRow(subscriberId,
+                                                          rgId,
+                                                          table,
+                                                          inclBeforeImage,
+                                                          beforeImgEnabled,
+                                                          key,
+                                                          valBeforeImg,
+                                                          tsBeforeImg,
+                                                          expBeforeImg,
+                                                          true);
             if (row == null) {
                 return null;
             }
-            /* set last update time */
-            row.setModificationTime(lastModificationTime);
-            /* set expiration time */
-            row.setExpirationTime(expirationTime);
-            /* populate size info */
-            row.setStorageSize(key.length + (value == null ? 0 : value.length));
-            return new StreamPutEvent(row, sequenceId, rgId.getGroupId());
+            return new StreamPutEvent(row, sequenceId, rgId.getGroupId(),
+                                      inclBeforeImage, beforeImgEnabled,
+                                      expBeforeImg, beforeImagRow);
         }
 
         @Override
@@ -1014,7 +1167,12 @@ public class OpenTransactionBuffer {
                                           SequenceId sequenceId,
                                           long lastModificationTime,
                                           long expirationTime,
-                                          boolean exactTable) {
+                                          boolean exactTable,
+                                          boolean inclBeforeImage,
+                                          boolean beforeImgEnabled,
+                                          byte[] valBeforeImg,
+                                          long tsBeforeImg,
+                                          long expBeforeImg) {
             PrimaryKeyImpl delKey;
             try {
                 /* a primary key */
@@ -1036,12 +1194,13 @@ public class OpenTransactionBuffer {
             delKey.setModificationTime(lastModificationTime);
 
             /*
-             * if a tombstone delete and tombstone is in MR format, set the
-             * region id to primary key.
+             * if a tombstone delete, set the region id and rowMetadata to
+             * primary key.
              */
             if (value != null && value.length > 0) {
-                int regionId = PackedInteger.readInt(value, 1);
-                delKey.setRegionId(regionId);
+                Value val = Value.fromByteArray(value);
+                delKey.setRegionId(val.getRegionId());
+                delKey.setRowMetadata(val.getRowMetadata());
             }
 
             /*
@@ -1056,7 +1215,91 @@ public class OpenTransactionBuffer {
             /* populate size info */
             delKey.setStorageSize(key.length +
                                   (value == null ? 0 : value.length));
-            return new StreamDelEvent(delKey, sequenceId, rgId.getGroupId());
+
+            /* build before image */
+            final Row beforeImagRow = buildBeforeImageRow(subscriberId,
+                                                          rgId,
+                                                          table,
+                                                          inclBeforeImage,
+                                                          beforeImgEnabled,
+                                                          key,
+                                                          valBeforeImg,
+                                                          tsBeforeImg,
+                                                          expBeforeImg,
+                                                          false);
+            return new StreamDelEvent(delKey, sequenceId, rgId.getGroupId(),
+                                      inclBeforeImage, beforeImgEnabled,
+                                      expBeforeImg, beforeImagRow);
+        }
+
+        private RowImpl buildRow(NoSQLSubscriberId subscriberId,
+                                 RepGroupId rgId, TableImpl table,
+                                 byte[] key, byte[] val, long timestampMs,
+                                 long expTimeMs) {
+
+            RowImpl row;
+            try {
+                /* Deserialize complete row */
+                row = table.createRowFromBytes(
+                    key, val, table.isKeyOnly(),
+                    false/* do not add missing col */);
+            } catch (TableVersionException tve) {
+                /* need refresh table md */
+                throw new SubscribedTableVersionException(
+                    subscriberId, rgId,
+                    table.getFullNamespaceName(),
+                    tve.getRequiredVersion(),
+                    table.getTableVersion());
+            }
+            /* key was not associated with a table */
+            if (row == null) {
+                return null;
+            }
+            /* set last update time */
+            row.setModificationTime(timestampMs);
+            /* set expiration time */
+            row.setExpirationTime(expTimeMs);
+            /* populate size info */
+            row.setStorageSize(key.length +
+                               (val == null ? 0 : val.length));
+            return row;
+        }
+
+        /**
+         * Builds before image row, or null if
+         * 1) subscription not configured to include before image, or
+         * 2) subscribed table does not enable the before for the entry, or
+         * 3) before image does not exist for insert
+         * @return the before image row, or null
+         */
+        private Row buildBeforeImageRow(NoSQLSubscriberId subscriberId,
+                                        RepGroupId rgId,
+                                        TableImpl table,
+                                        boolean inclBeforeImage,
+                                        boolean beforeImgEnabled,
+                                        byte[] key,
+                                        byte[] valBeforeImg,
+                                        long tsBeforeImg,
+                                        long expBeforeImg,
+                                        boolean putOp) {
+
+            if (!inclBeforeImage) {
+                /* stream configured to exclude before image */
+                return null;
+            }
+            if (!beforeImgEnabled) {
+                /* table disabled before image */
+                return null;
+            }
+
+            if (putOp && valBeforeImg == null) {
+                /* a put op but value is null, must be an insert op */
+                return null;
+            }
+
+            /* build before image row */
+            return buildRow(subscriberId, rgId, table, key,
+                            valBeforeImg, tsBeforeImg, expBeforeImg);
         }
     }
 
@@ -1130,6 +1373,26 @@ public class OpenTransactionBuffer {
 
         @Override
         public String toJsonString() {
+            throw getUnsupportedException();
+        }
+
+        @Override
+        public boolean includeBeforeImage() {
+            throw getUnsupportedException();
+        }
+
+        @Override
+        public boolean isBeforeImageEnabled() {
+            throw getUnsupportedException();
+        }
+
+        @Override
+        public boolean isBeforeImageExpired() {
+            throw getUnsupportedException();
+        }
+
+        @Override
+        public Row getBeforeImage() {
             throw getUnsupportedException();
         }
 

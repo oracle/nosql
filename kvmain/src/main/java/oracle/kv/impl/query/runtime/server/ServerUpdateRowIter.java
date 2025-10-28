@@ -174,6 +174,7 @@ public class ServerUpdateRowIter extends UpdateRowIter {
             }
 
             row = (RowImpl)inVal;
+            row.setRowMetadata(rcb.getRowMetadata());
 
             put = createPut(row, rcb);
 

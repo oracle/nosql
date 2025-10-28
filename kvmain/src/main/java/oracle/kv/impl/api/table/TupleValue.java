@@ -50,6 +50,8 @@ public class TupleValue extends FieldValueImpl {
 
     long theExpirationTime;
 
+    long theCreationTime;
+
     long theModificationTime;
 
     int thePartition;
@@ -59,6 +61,9 @@ public class TupleValue extends FieldValueImpl {
     int theIndexStorageSize = -1;
 
     Version theRowVersion;
+
+    String rowMetadata;
+
 
     public TupleValue(
         RecordDefImpl def,
@@ -259,6 +264,14 @@ public class TupleValue extends FieldValueImpl {
         return theExpirationTime;
     }
 
+    public void setCreationTime(long t) {
+        theCreationTime = t;
+    }
+
+    public long getCreationTime() {
+        return theCreationTime;
+    }
+
     public void setModificationTime(long t) {
         theModificationTime = t;
     }
@@ -297,6 +310,14 @@ public class TupleValue extends FieldValueImpl {
 
     public Version getVersion() {
         return theRowVersion;
+    }
+
+    public void setRowMetadata(String rowMetadata) {
+        this.rowMetadata = rowMetadata;
+    }
+
+    public String getRowMetadata() {
+        return rowMetadata;
     }
 
     /*

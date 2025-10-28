@@ -50,7 +50,6 @@ import com.sleepycat.je.rep.MasterStateException;
 import com.sleepycat.je.rep.NodeType;
 import com.sleepycat.je.rep.ReplicaConsistencyException;
 import com.sleepycat.je.rep.ReplicaConnectRetryException;
-import com.sleepycat.je.rep.ReplicaRetryException;
 import com.sleepycat.je.rep.ReplicatedEnvironment.State;
 import com.sleepycat.je.rep.RestartRequiredException;
 import com.sleepycat.je.rep.TimeConsistencyPolicy;
@@ -442,7 +441,7 @@ public class Replica {
                DatabaseException,
                GroupShutdownException {
 
-        Class<? extends ReplicaRetryException> retryExceptionClass = null;
+        Class<? extends ReplicaConnectRetryException> retryExceptionClass = null;
         int retryCount = 0;
         try {
 
@@ -451,7 +450,7 @@ public class Replica {
                     runReplicaLoopInternal();
                     /* Normal exit */
                     break;
-                } catch (ReplicaRetryException e) {
+                } catch (ReplicaConnectRetryException e) {
                     assert TestHookExecute.doHookIfSet(retryDuplicatedNodeHook,
                                                        0);
                     if (!repNode.getMasterStatus().inSync()) {
@@ -527,7 +526,7 @@ public class Replica {
     private void runReplicaLoopInternal()
         throws RestartRequiredException,
                InterruptedException,
-               ReplicaRetryException,
+               ReplicaConnectRetryException,
                InsufficientLogException {
 
         shutdownException = null;
@@ -569,7 +568,7 @@ public class Replica {
                                 ("\n" + LoggerUtils.getStackTrace(e)) : ""));
         } catch (SyncUpFailedException e) {
             LoggerUtils.info(logger, repImpl, e.getMessage());
-        } catch (ReplicaRetryException|DiskLimitException e) {
+        } catch (ReplicaConnectRetryException|DiskLimitException e) {
             /* Propagate it outwards. Node does not need to shutdown. */
             throw e;
         } catch (GroupShutdownException e) {
@@ -884,7 +883,7 @@ public class Replica {
     private void loopExitCleanup() {
 
         if (shutdownException != null) {
-            if (shutdownException instanceof ReplicaRetryException) {
+            if (shutdownException instanceof ReplicaConnectRetryException) {
                 LoggerUtils.info(logger, repImpl,
                                  "Retrying connection to feeder. Message: " +
                                  shutdownException.getMessage());

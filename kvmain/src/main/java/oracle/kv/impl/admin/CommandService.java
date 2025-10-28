@@ -990,7 +990,9 @@ public interface CommandService extends VersionedRemote {
 
     /**
      * @since 20.1
+     * @deprecated since 25.3
      */
+    @Deprecated
     public int createEvolveTablePlan(String planName,
                                      String namespace,
                                      String tableName,
@@ -1001,6 +1003,22 @@ public interface CommandService extends VersionedRemote {
                                      AuthContext authCtx,
                                      short serialVersion)
          throws RemoteException;
+
+    /**
+     * @since 25.3
+     * @param beforeImgTTL specify before image ttl, added in 25.3
+     */
+    public int createEvolveTablePlan(String planName,
+                                     String namespace,
+                                     String tableName,
+                                     int tableVersion,
+                                     FieldMap fieldMap,
+                                     TimeToLive ttl,
+                                     TimeToLive beforeImgTTL,
+                                     Set<Integer> regions,
+                                     AuthContext authCtx,
+                                     short serialVersion)
+        throws RemoteException;
 
     /**
      * Creates a new plan to perform network restore from source node to target

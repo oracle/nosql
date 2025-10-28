@@ -2002,6 +2002,7 @@ public class RecoveryManager {
              lnEntry.getAbortKey(), lnEntry.getAbortData(),
              lnEntry.getAbortVLSN(),
              lnEntry.getAbortExpiration(), lnEntry.isAbortExpirationInHours(),
+             lnEntry.getCreationTime(),
              lnEntry.getModificationTime(), lnEntry.isTombstone());
     }
 
@@ -2019,6 +2020,7 @@ public class RecoveryManager {
              lnEntry.getAbortKey(), lnEntry.getAbortData(),
              lnEntry.getAbortVLSN(),
              lnEntry.getAbortExpiration(), lnEntry.isAbortExpirationInHours(),
+             lnEntry.getAbortCreationTime(),
              lnEntry.getAbortModificationTime(), lnEntry.getAbortTombstone());
     }
 
@@ -2036,6 +2038,7 @@ public class RecoveryManager {
              revertTo.revertLsn, revertTo.revertKD, revertTo.revertPD,
              revertTo.revertKey, revertTo.revertData, revertTo.revertVLSN,
              revertTo.revertExpiration, revertTo.revertExpirationInHours,
+             revertTo.revertCreationTime,
              revertTo.revertModificationTime, revertTo.revertTombstone);
     }
 
@@ -2054,6 +2057,7 @@ public class RecoveryManager {
         long revertVLSN,
         int revertExpiration,
         boolean revertExpirationInHours,
+        long revertCreationTime,
         long revertModificationTime,
         boolean revertTombstone)
         throws DatabaseException {
@@ -2141,6 +2145,7 @@ public class RecoveryManager {
                         slotIdx, revertLsn, revertKD, revertPD,
                         revertKey, revertEmbData, revertVLSN, revertLogrecSize,
                         revertExpiration, revertExpirationInHours,
+                        revertCreationTime,
                         revertModificationTime, revertTombstone);
 
                     replaced = true;
@@ -2531,8 +2536,9 @@ public class RecoveryManager {
             logrec.getAbortLsn(), logrec.getAbortKnownDeleted(),
             logrec.getAbortKey(), logrec.getAbortData(), logrec.getAbortVLSN(),
             logrec.getAbortExpiration(), logrec.isAbortExpirationInHours(),
-            logrec.getAbortModificationTime(), logrec.getAbortTombstone(),
-            db);
+            logrec.getAbortModificationTime(),
+            logrec.getAbortCreationTime(), logrec.getAbortTombstone(),
+            db, true);
 
         final WriteLockInfo wli = result.getWriteLockInfo();
 
@@ -2608,6 +2614,8 @@ public class RecoveryManager {
         int expiration = logrec.getExpiration();
         boolean expirationInHours = logrec.isExpirationInHours();
         long modificationTime = logrec.getModificationTime();
+        long creationTime = logrec.getCreationTime();
+
         boolean tombstone = logrec.isTombstone();
 
         long treeLsn = DbLsn.NULL_LSN;
@@ -2719,7 +2727,8 @@ public class RecoveryManager {
                         bin.recoverRecord(
                             index, logrecLsn, redoKD, redoPD,
                             logrecKey, logrecEmbData, logrecVLSN, logrecSize,
-                            expiration, expirationInHours, modificationTime,
+                            expiration, expirationInHours, creationTime,
+                            modificationTime,
                             tombstone);
 
                         replaced = true;
@@ -2761,7 +2770,7 @@ public class RecoveryManager {
                         bin.recoverRecord(
                             index, logrecLsn, false/*KD*/, false/*PD*/,
                             logrecKey, logrecEmbData, logrecVLSN, logrecSize,
-                            expiration, expirationInHours, modificationTime,
+                            expiration, expirationInHours, creationTime, modificationTime,
                             tombstone);
 
                         inserted = true;
@@ -2796,6 +2805,9 @@ public class RecoveryManager {
 
                 bin.setModificationTime(
                     index, (logrecEmbData != null) ? modificationTime : 0);
+
+                bin.setCreationTime(
+                    index, (logrecEmbData != null) ? creationTime : 0);
 
                 bin.setTombstone(index, tombstone);
 
@@ -2843,6 +2855,9 @@ public class RecoveryManager {
 
                     bin.setModificationTime(
                         index, (logrecEmbData != null) ? modificationTime : 0);
+
+                    bin.setCreationTime(
+                        index, (logrecEmbData != null) ? creationTime : 0);
 
                     bin.setTombstone(index, tombstone);
 

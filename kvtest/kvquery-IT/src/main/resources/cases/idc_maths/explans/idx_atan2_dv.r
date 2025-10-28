@@ -24,37 +24,9 @@ compiled-query-plan
         "index scans" : [
           {
             "equality conditions" : {},
-            "range conditions" : {}
+            "range conditions" : { "atan2#dv@,3" : { "start value" : 0.0, "start inclusive" : false } }
           }
         ],
-        "index filtering predicate" :
-        {
-          "iterator kind" : "GREATER_THAN",
-          "left operand" :
-          {
-            "iterator kind" : "ATAN2",
-            "input iterators" : [
-              {
-                "iterator kind" : "FIELD_STEP",
-                "field name" : "atan2#dv@,3",
-                "input iterator" :
-                {
-                  "iterator kind" : "VAR_REF",
-                  "variable" : "$$t_idx"
-                }
-              },
-              {
-                "iterator kind" : "CONST",
-                "value" : 3
-              }
-            ]
-          },
-          "right operand" :
-          {
-            "iterator kind" : "CONST",
-            "value" : 0.0
-          }
-        },
         "position in join" : 0
       },
       "FROM variable" : "$$t_idx",
@@ -76,22 +48,13 @@ compiled-query-plan
           "field name" : "Column_2",
           "field expression" : 
           {
-            "iterator kind" : "ATAN2",
-            "input iterators" : [
-              {
-                "iterator kind" : "FIELD_STEP",
-                "field name" : "atan2#dv@,3",
-                "input iterator" :
-                {
-                  "iterator kind" : "VAR_REF",
-                  "variable" : "$$t_idx"
-                }
-              },
-              {
-                "iterator kind" : "CONST",
-                "value" : 3
-              }
-            ]
+            "iterator kind" : "FIELD_STEP",
+            "field name" : "atan2#dv@,3",
+            "input iterator" :
+            {
+              "iterator kind" : "VAR_REF",
+              "variable" : "$$t_idx"
+            }
           }
         }
       ]

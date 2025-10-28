@@ -13,6 +13,7 @@
 
 package oracle.kv.impl.api.ops;
 
+import java.util.EnumSet;
 import java.util.List;
 import java.util.UUID;
 import java.util.logging.Logger;
@@ -28,9 +29,11 @@ import oracle.kv.impl.metadata.Metadata.MetadataType;
 import oracle.kv.impl.rep.RepNode;
 import oracle.kv.impl.rep.RepNodeService;
 import oracle.kv.impl.security.KVStorePrivilege;
+import oracle.kv.impl.security.KVStorePrivilegeLabel;
 import oracle.kv.impl.topo.PartitionId;
 import oracle.kv.impl.util.SortableString;
 import oracle.kv.impl.util.server.LoggerUtils;
+import oracle.kv.table.TimeToLive;
 
 import com.sleepycat.je.Cursor;
 import com.sleepycat.je.CursorConfig;
@@ -38,6 +41,7 @@ import com.sleepycat.je.DatabaseEntry;
 import com.sleepycat.je.DbInternal;
 import com.sleepycat.je.OperationResult;
 import com.sleepycat.je.Transaction;
+import com.sleepycat.je.WriteOptions;
 import com.sleepycat.je.dbi.CursorImpl;
 import com.sleepycat.je.dbi.RecordVersion;
 import com.sleepycat.je.rep.impl.RepImpl;
@@ -82,12 +86,18 @@ public class OperationHandler {
         /**
          * Should access to the entry be allowed?
          */
-        public boolean allowAccess(DatabaseEntry keyEntry);
+        boolean allowAccess(DatabaseEntry keyEntry);
 
         /**
-         * Will the authorizer return true for all entries?
+         * Should access to the entry be allowed and whether the current session
+         * has given table privileges?
+         *
+         * Note that the table privileges specified should also imply the same
+         * privileges in the generalAccessPrivileges of the operation using
+         * this authorizer.
          */
-        public boolean allowFullAccess();
+        boolean allowAccess(DatabaseEntry keyEntry,
+                            EnumSet<KVStorePrivilegeLabel> tablePrivs);
     }
 
     public OperationHandler(RepNode repNode, RepNodeService.Params params) {
@@ -295,6 +305,7 @@ public class OperationHandler {
             dataEntry.getData(),
             getVersion(c),
             result != null ? result.getExpirationTime() : 0,
+            result != null ? result.getCreationTime() : 0,
             result != null ? result.getModificationTime() : 0,
             InternalOperationHandler.getStorageSize(c));
     }
@@ -321,6 +332,36 @@ public class OperationHandler {
                 getTableMetadataSeqNum());
         }
         return table;
+    }
+
+    /**
+     * Sets the before image TTL in JE {@link WriteOptions}
+     * @param jeOptions JE write options
+     * @param tableId table id
+     */
+    void setBeforeImageTTL(WriteOptions jeOptions, long tableId) {
+        if (tableId <= 0) {
+            /* not valid table id, no table associated w/ the op */
+            return;
+        }
+        final TableImpl table = getAndCheckTable(tableId);
+        setBeforeImageTTLFromTable(jeOptions, table);
+
+    }
+
+    /**
+     * Sets the before image TTL in JE write options from table instance
+     * @param jeOptions je write options
+     * @param table table instance
+     */
+    private void setBeforeImageTTLFromTable(WriteOptions jeOptions,
+                                            TableImpl table) {
+        final TimeToLive beforeImgTTL = table.getBeforeImageTTL();
+        if (beforeImgTTL != null) {
+            /* before image is enabled for the table */
+            jeOptions.saveBeforeImage((int) beforeImgTTL.getValue(),
+                                      beforeImgTTL.getUnit());
+        }
     }
 
     /**

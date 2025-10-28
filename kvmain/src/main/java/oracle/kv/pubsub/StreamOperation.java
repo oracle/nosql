@@ -13,10 +13,14 @@
 
 package oracle.kv.pubsub;
 
+import java.util.List;
+
 import oracle.kv.impl.api.table.TableImpl;
 import oracle.kv.impl.topo.RepGroupId;
 import oracle.kv.table.PrimaryKey;
 import oracle.kv.table.Row;
+import oracle.kv.table.Table;
+import oracle.kv.txn.TransactionId;
 
 /**
  * The operation (Put, Delete) that was delivered over the NoSQL stream.
@@ -97,6 +101,56 @@ public interface StreamOperation {
     String toJsonString();
 
     /**
+     * Returns true if the current stream is configured to include before
+     * image, false otherwise
+     * @return true if the current stream is configured to include before
+     * image, false otherwise
+     */
+    boolean includeBeforeImage();
+
+    /**
+     * Returns true if before image is enabled for the write operation in
+     * this event {@link StreamOperation} to the subscribed table in kvstore.
+     * Returns false if otherwise.
+     *
+     * @return true if the before image is enabled, or false.
+     */
+    boolean isBeforeImageEnabled();
+
+    /**
+     * Returns true if the before image is enabled for the write operation
+     * in this event {@link StreamOperation} but the before image has
+     * expired. If the before image is disabled for the table or the
+     * subscription is not configured to include before image, it returns
+     * false. For insert operations to the subscribed table, for which the
+     * before image is null, this method returns false.
+     *
+     * @return true if the before image is enabled and expired, or false.
+     */
+    boolean isBeforeImageExpired();
+
+    /**
+     * Returns the before image associated with the stream event represented
+     * by {@link StreamOperation}, or null if
+     * 1. the stream is not configured to include before image, or
+     * 2. the before image is not enabled for the event, or
+     * 3. the before image is enabled while it does not exist for operations
+     * like insert.
+     * @return the before image associated with the stream event, or null.
+     */
+    Row getBeforeImage();
+
+    /**
+     * @hidden
+     *
+     * Returns the table instance associated with the operation
+     * @return table instance
+     */
+    default Table getTable() {
+        throw new UnsupportedOperationException();
+    }
+
+    /**
      * The type of the operation.
      */
     enum Type {
@@ -115,7 +169,12 @@ public interface StreamOperation {
          *
          * An internally generated stream operation
          */
-        INTERNAL
+        INTERNAL,
+
+        /**
+         * A {@link TransactionEvent} operation
+         */
+        TRANSACTION
     }
 
     /**
@@ -142,6 +201,17 @@ public interface StreamOperation {
     DeleteEvent asDelete();
 
     /**
+     * Converts this operation to a {@link TransactionEvent}.
+     *
+     * @return this operation as a Transaction
+     * @throws IllegalArgumentException if this operation is not a Transaction
+     */
+    default TransactionEvent asTransaction() {
+        throw new IllegalArgumentException(
+            "This operation is not a transaction");
+    }
+
+    /**
      * Used to signal a Put operation
      */
     interface PutEvent extends StreamOperation {
@@ -157,7 +227,7 @@ public interface StreamOperation {
          * @hidden
          *
          * Internal use only.
-         *
+         * <p>
          * Returns the primary key associated with the put operation in bytes.
          * <p>
          * The format of bytes should be defined in the
@@ -169,7 +239,7 @@ public interface StreamOperation {
          * @hidden
          *
          * Internal use only.
-         *
+         * <p>
          * Returns the Row associated with the put operation in bytes.
          * <p>
          * The format of bytes should be defined in the
@@ -181,7 +251,7 @@ public interface StreamOperation {
          * @hidden
          *
          * Internal use only
-         *
+         * <p>
          * Returns an estimated storage size in bytes of the row in the put
          * operation
          */
@@ -201,7 +271,7 @@ public interface StreamOperation {
          * @hidden
          *
          * Internal use only.
-         *
+         * <p>
          * Returns the primary key associated with the delete operation
          * in bytes.
          * <p>
@@ -214,11 +284,55 @@ public interface StreamOperation {
          * @hidden
          *
          * Internal use only
-         *
+         * <p>
          * Returns an estimated storage size in bytes of the primary key in the
          * delete operation
          */
         long getPrimaryKeySize();
+    }
+
+    /**
+     * Used to signal a Transaction operation
+     */
+    interface TransactionEvent extends StreamOperation {
+
+        /**
+         * Returns the transaction id
+         * @return transaction id
+         */
+        TransactionId getTransactionId();
+
+        /**
+         * Returns the type of the transaction as {@link TransactionType}
+         * @return transaction type
+         */
+        TransactionType getTransactionType();
+
+        /**
+         * Returns the number of write operations in the transaction
+         * @return the number of write operations
+         */
+        long getNumOperations();
+
+        /**
+         * Returns an ordered list of write operations in the transaction.
+         * All write operations are on the same order they are performed in
+         * the source kvstore.
+         * @return ordered list of write operations.
+         */
+        List<StreamOperation> getOperations();
+
+        /**
+         * Types of transaction
+         */
+        enum TransactionType {
+
+            /** committed transaction */
+            COMMIT,
+
+            /** aborted transaction */
+            ABORT
+        }
     }
 
     /**
@@ -275,7 +389,12 @@ public interface StreamOperation {
                              byte[] value,
                              SequenceId sequenceId,
                              long lastModificationTime,
-                             long expirationTime);
+                             long expirationTime,
+                             boolean includeBeforeImage,
+                             boolean beforeImgEnabled,
+                             byte[] valBeforeImg,
+                             long tsBeforeImg,
+                             long expBeforeImg);
 
         /**
          * Get a DeleteEvent from given key.
@@ -288,6 +407,54 @@ public interface StreamOperation {
                                    SequenceId sequenceId,
                                    long lastModificationTime,
                                    long expirationTime,
-                                   boolean exactTable);
+                                   boolean exactTable,
+                                   boolean includeBeforeImage,
+                                   boolean beforeImgEnabled,
+                                   byte[] valBeforeImg,
+                                   long tsBeforeImg,
+                                   long expBeforeImg);
+    }
+
+    /**
+     * @hidden
+     *
+     * Returns true if following conditions are all met, false otherwise
+     * 1. before image is enabled for the table;
+     * 2. subscription configured to include before image;
+     * 3. before image exists for the given {@link StreamOperation};
+     * 4. before image has already expired.
+     *
+     * @param beforeImgEnabled true if before image is enabled
+     * @param inclBeforeImage true if before image is included in subscription
+     * @param beforeImgExpMs before image expiration time, or 0
+     * @param beforeImg before image, or null if not available
+     * @return  true if the before image has expired, false otherwise
+     */
+    static boolean isBeforeImageExpired(boolean beforeImgEnabled,
+                                        boolean inclBeforeImage,
+                                        long beforeImgExpMs,
+                                        Row beforeImg) {
+        if (!beforeImgEnabled) {
+            return false;
+        }
+        if (!inclBeforeImage) {
+            return false;
+        }
+        if (beforeImg == null) {
+            if (beforeImgExpMs != 0) {
+                throw new IllegalArgumentException(
+                    "Null before image with a non-zero expiration time=" +
+                    beforeImgExpMs);
+            }
+            /* insert op */
+            return false;
+        }
+
+        /* we have a non-null before image */
+        if (beforeImgExpMs == 0) {
+            throw new IllegalArgumentException(
+                "Non-null before image without a valid expiration time");
+        }
+        return System.currentTimeMillis() >= beforeImgExpMs;
     }
 }

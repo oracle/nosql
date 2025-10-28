@@ -36,7 +36,9 @@ class NioResponderEndpoint extends AbstractResponderEndpoint {
         super(endpointGroup, remoteAddress, listenerConfig, listener);
         this.handler = new PreReadWrappedEndpointHandler(
             this, endpointConfig, remoteAddress,
-            executor, getEndpointGroup().getBackupSchedExecService(),
+            executor,
+            getEndpointGroup().getBackupExecService(),
+            getEndpointGroup().getBackupSchedExecService(),
             listener, socketChannel);
     }
 

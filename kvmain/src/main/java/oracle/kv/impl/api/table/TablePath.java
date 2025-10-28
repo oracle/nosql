@@ -20,6 +20,7 @@ import java.util.List;
 import oracle.kv.impl.query.compiler.CompilerAPI;
 import oracle.kv.impl.query.compiler.EscapeUtil;
 import oracle.kv.impl.query.compiler.Function;
+import oracle.kv.impl.query.compiler.FuncRowMetadata;
 import oracle.kv.table.FieldDef.Type;
 
 /**
@@ -182,6 +183,18 @@ public class TablePath {
         ArrayList<ArrayList<StepInfo>> getBranches() {
             return branches;
         }
+
+        @Override
+        public String toString() {
+
+            StringBuilder sb = new StringBuilder("{\n");
+            sb.append("    kind : ").append(kind).append("\n");
+            sb.append("    step : ").append(step).append("\n");
+            sb.append("    fieldPos : ").append(fieldPos).append("\n");
+            sb.append("     keysPos : ").append(keysPos).append("\n");
+            sb.append("}");
+            return sb.toString();
+        }
     }
 
     final private FieldMap fieldMap;
@@ -203,6 +216,11 @@ public class TablePath {
         if (table.isJsonCollection()) {
 
             if (steps.size() == 1 && table.isKeyComponent(steps.get(0).step)) {
+                return;
+            }
+
+            if (!steps.isEmpty() &&
+                steps.get(0).step.equals(FuncRowMetadata.COL_NAME)) {
                 return;
             }
 
@@ -434,7 +452,12 @@ public class TablePath {
      * component of the field.
      */
     public FieldDefImpl getFirstDef() {
-        return fieldMap.getFieldDef(steps.get(0).step);
+
+        String firstStep = steps.get(0).step;
+        if (firstStep.equals(FuncRowMetadata.COL_NAME)) {
+            return FieldDefImpl.Constants.jsonDef;
+        }
+        return fieldMap.getFieldDef(firstStep);
     }
 
     public static List<StepInfo> parsePathName(TableImpl table,
@@ -492,7 +515,7 @@ public class TablePath {
                  * to start parsing the path.
                  */
                 String funcName = sb.toString();
-                function = CompilerAPI.getFuncLib().getFunc(funcName, 1);
+                function = CompilerAPI.getFuncLib().getFunc(funcName, -1);
                 sb.delete(0, sb.length());
 
                 if (i + 1 == pathname.length()) {

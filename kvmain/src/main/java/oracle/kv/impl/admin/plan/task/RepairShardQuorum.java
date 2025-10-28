@@ -470,6 +470,13 @@ public class RepairShardQuorum extends SingleJobTask {
          * rollback limit error.
          */
         if (rollbackSecondaries.size() > 0) {
+            /*
+             * Suppress deprecation warning for TXN_ROLLBACK_LIMIT, which has
+             * been deprecated since JE 25.3.7. Retain the logic to avoid
+             * upgrade issue, setting this parameter would be a no-op in JE
+             * 25.3.7 and later releases.
+             */
+            @SuppressWarnings("deprecation")
             final String jeParams =
                 ReplicationConfig.TXN_ROLLBACK_LIMIT + "=" + Integer.MAX_VALUE;
 
@@ -740,7 +747,12 @@ public class RepairShardQuorum extends SingleJobTask {
 
     /**
      * Detect if given RN will encounter rollback limit error.
+     *
+     * Suppress deprecation warning for TXN_ROLLBACK_LIMIT, which has been
+     * deprecated since JE 25.3.7. Retain the logic to avoid upgrade issue,
+     * setting this parameter would be a no-op in JE 25.3.7 and later releases.
      */
+    @SuppressWarnings("deprecation")
     private static boolean detectRollbackLimitError(RNInfo rnInfo,
                                                     long rollbackNum) {
         final RepNodeParams rnParams = rnInfo.params;

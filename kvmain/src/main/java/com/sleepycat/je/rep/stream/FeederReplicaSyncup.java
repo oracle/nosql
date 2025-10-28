@@ -187,6 +187,11 @@ public class FeederReplicaSyncup {
                     if (filter != null) {
                         filter.setStartVLSN(startVLSN);
                         filter.setLogger(logger);
+                        final String filterId =
+                            feeder.getReplicaNameIdPair().getName() +
+                            ", channel=" +
+                            namedChannel.getChannel().getChannelId();
+                        filter.setFeederFilterId(filterId);
                     }
                     feeder.setFeederFilter(filter);
 
@@ -198,7 +203,8 @@ public class FeederReplicaSyncup {
                         break;
                     }
 
-                    final StreamAuthenticator auth = feeder.getAuthenticator();
+                    final StreamAuthenticator auth =
+                        namedChannel.getChannel().getStreamAuthenticator();
                     /* if security check is needed, auth cannot be null */
                     assert (auth != null);
                     /* remember table id strings of subscribed tables */

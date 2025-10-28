@@ -246,8 +246,15 @@ class FieldValueReaderImpl<T extends FieldValueImpl>
     public void setExpirationTime(long expirationTime) {
     }
 
+    @Override public void setRowMetadata(String rowMetadata) {
+    }
+
     @Override
     public void setModificationTime(long modificationTime) {
+    }
+
+    @Override
+    public void setCreationTime(long creationTime) {
     }
 
     @Override

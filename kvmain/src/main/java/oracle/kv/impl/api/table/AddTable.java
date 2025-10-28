@@ -23,6 +23,7 @@ import static oracle.kv.impl.util.SerializationUtil.writePackedInt;
 import static oracle.kv.impl.util.SerializationUtil.writeString;
 import static oracle.kv.impl.util.SerialVersion.JSON_COLLECTION_VERSION;
 import static oracle.kv.impl.util.SerialVersion.SCHEMALESS_TABLE_VERSION;
+import static oracle.kv.impl.util.SerialVersion.BEFORE_IMAGE_VERSION;
 
 import java.io.DataInput;
 import java.io.DataOutput;
@@ -64,6 +65,7 @@ class AddTable extends TableChange {
     private final Set<Integer> regionIds;
     private final boolean schemaless;
     private final Map<String, FieldDef.Type> jsonCollectionMRCounters;
+    private final TimeToLive beforeImageTTL;
 
     AddTable(TableImpl table, int seqNum) {
         super(seqNum);
@@ -76,6 +78,7 @@ class AddTable extends TableChange {
         shardKey = table.getShardKey();
         fields = table.getFieldMap();
         ttl = table.getDefaultTTL();
+        beforeImageTTL = table.getBeforeImageTTL();
         r2compat = table.isR2compatible();
         schemaId = table.getSchemaId();
         description = table.getDescription();
@@ -103,6 +106,12 @@ class AddTable extends TableChange {
         fields = new FieldMap(in, serialVersion);
         ttl = readFastExternalOrNull(in, serialVersion,
                                      TimeToLive::readFastExternal);
+        if (serialVersion >= BEFORE_IMAGE_VERSION) {
+            beforeImageTTL = readFastExternalOrNull(in, serialVersion,
+                                                    TimeToLive::readFastExternal);
+        } else {
+            beforeImageTTL = null;
+        }
         r2compat = in.readBoolean();
         schemaId = in.readInt();
         description = readString(in, serialVersion);
@@ -142,6 +151,9 @@ class AddTable extends TableChange {
                         WriteFastExternal::writeString);
         fields.writeFastExternal(out, serialVersion);
         writeFastExternalOrNull(out, serialVersion, ttl);
+        if (serialVersion >= BEFORE_IMAGE_VERSION) {
+            writeFastExternalOrNull(out, serialVersion, beforeImageTTL);
+        }
         out.writeBoolean(r2compat);
         out.writeInt(schemaId);
         writeString(out, serialVersion, description);
@@ -174,9 +186,9 @@ class AddTable extends TableChange {
         TableImpl ret =
             md.insertTable(namespace, name, parentName,
                            primaryKey, primaryKeySizes, shardKey, fields,
-                           ttl, limits, r2compat, schemaId, description,
-                           owner, sysTable, identityColumnInfo, regionIds,
-                           schemaless, jsonCollectionMRCounters);
+                           ttl, beforeImageTTL, limits, r2compat, schemaId,
+                           description, owner, sysTable, identityColumnInfo,
+                           regionIds, schemaless, jsonCollectionMRCounters);
         return ret;
     }
 

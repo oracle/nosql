@@ -14,10 +14,12 @@
 package oracle.kv.impl.api.ops;
 
 import static oracle.kv.impl.api.ops.OperationHandler.CURSOR_DEFAULT;
+import static oracle.kv.impl.security.KVStorePrivilegeLabel.DELETE_TABLE;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -31,11 +33,13 @@ import oracle.kv.impl.api.bulk.BulkPut.KVPair;
 import oracle.kv.impl.api.ops.InternalOperation.OpCode;
 import oracle.kv.impl.api.ops.OperationHandler.KVAuthorizer;
 import oracle.kv.impl.api.ops.Result.PutBatchResult;
+import oracle.kv.impl.api.table.Region;
 import oracle.kv.impl.api.table.RowImpl;
 import oracle.kv.impl.api.table.TableImpl;
 import oracle.kv.impl.api.table.TableMetadata;
 import oracle.kv.impl.rep.migration.MigrationStreamHandle;
 import oracle.kv.impl.security.KVStorePrivilege;
+import oracle.kv.impl.security.KVStorePrivilegeLabel;
 import oracle.kv.impl.security.NamespacePrivilege;
 import oracle.kv.impl.security.SystemPrivilege;
 import oracle.kv.impl.security.TablePrivilege;
@@ -51,7 +55,7 @@ import com.sleepycat.je.LockMode;
 import com.sleepycat.je.OperationResult;
 import com.sleepycat.je.Put;
 import com.sleepycat.je.Transaction;
-import com.sleepycat.util.PackedInteger;
+import com.sleepycat.je.WriteOptions;
 
 /**
  * Server handler for {@link PutBatch}.
@@ -70,13 +74,6 @@ import com.sleepycat.util.PackedInteger;
  *          is the sum of the result from each input record.
  */
 class PutBatchHandler extends MultiKeyOperationHandler<PutBatch> {
-
-    /**
-     * Whether the operation has implicit deletion because of its TTL setting.
-     * This flag is reset for each operation in a batch, and if true, the
-     * operation requires DELETE_TABLE privilege.
-     */
-    boolean hasValidTTLSetting = false;
 
     Set<Long> tablesWithCRDT = new HashSet<>();
 
@@ -107,10 +104,11 @@ class PutBatchHandler extends MultiKeyOperationHandler<PutBatch> {
                                    List<KVPair> kvPairs,
                                    KVAuthorizer kvAuth) {
 
-        final com.sleepycat.je.WriteOptions noExpiry =
-            makeOption(TimeToLive.DO_NOT_EXPIRE, false);
+        final WriteOptions noExpiry =
+            makeOption(TimeToLive.DO_NOT_EXPIRE, false, op.getTableId(),
+                       getOperationHandler(), false/* not tombstone */);
 
-        final List<Integer> keysPresent = new ArrayList<Integer>();
+        final List<Integer> keysPresent = new ArrayList<>();
 
         final Database db = getRepNode().getPartitionDB(partitionId);
         final DatabaseEntry keyEntry = new DatabaseEntry();
@@ -144,13 +142,7 @@ class PutBatchHandler extends MultiKeyOperationHandler<PutBatch> {
                 DatabaseEntry dataEntryToUse =
                     valueDatabaseEntry(dataEntry, e.getValue());
 
-                /*
-                 * Check if this put has valid TTL setting. This must be done
-                 * before the access check.
-                 */
-                hasValidTTLSetting = (e.getTTLVal() != 0);
-
-                if (!kvAuth.allowAccess(keyEntry)) {
+                if (!kvAuth.allowAccess(keyEntry, getTablePrivileges(e))) {
                     throw new UnauthorizedException("Insufficient access " +
                       "rights granted");
                 }
@@ -173,15 +165,7 @@ class PutBatchHandler extends MultiKeyOperationHandler<PutBatch> {
                 boolean replaceCRDT = false;
                 TableImpl table = null;
                 if (tablesWithCRDT.size() > 0) {
-                    long[] tableIds = op.getTableIds();
-                    /*
-                     * Get the table using tableId if the op is
-                     * against only one table, otherwise find
-                     * the table by key bytes.
-                     */
-                    table = tableIds.length > 1 ?
-                        findTableByKeyBytes(e.getKey()) :
-                            getAndCheckTable(tableIds[0]);
+                    table = findTable(op, e.getKey());
                     if (op.getOverwrite() && table != null &&
                         tablesWithCRDT.contains(table.getId())) {
                         prevData  = new DatabaseEntry();
@@ -196,12 +180,19 @@ class PutBatchHandler extends MultiKeyOperationHandler<PutBatch> {
 
 
                 while (true) {
-                    final com.sleepycat.je.WriteOptions jeOptions;
+                    final WriteOptions jeOptions;
                     int ttlVal = e.getTTLVal();
                     if (ttlVal != 0) {
                         jeOptions = makeJEWriteOptions(ttlVal, e.getTTLUnit());
                     } else {
                         jeOptions = noExpiry;
+                    }
+
+                    /* set before image TTL */
+                    final TableImpl tb = findTable(op, e.getKey());
+                    if (tb != null) {
+                        operationHandler.setBeforeImageTTL(jeOptions,
+                                                           tb.getId());
                     }
 
                     if (replaceCRDT) {
@@ -222,6 +213,7 @@ class PutBatchHandler extends MultiKeyOperationHandler<PutBatch> {
                         MigrationStreamHandle.get().
                             addPut(keyEntry, dataEntryToUse,
                                    v.getVLSN(),
+                                   result.getCreationTime(),
                                    result.getModificationTime(),
                                    result.getExpirationTime(),
                                    false /*isTombstone*/);
@@ -237,6 +229,19 @@ class PutBatchHandler extends MultiKeyOperationHandler<PutBatch> {
         }
 
         return keysPresent;
+    }
+
+    /**
+     * Get the table using tableId if the op is against only one table,
+     * otherwise find the table by key bytes.
+     */
+    private TableImpl findTable(PutBatch op, byte[] keyBytes) {
+        final long[] tableIds = op.getTableIds();
+        if (tableIds == null) {
+            return null;
+        }
+        return tableIds.length > 1 ?
+            findTableByKeyBytes(keyBytes) : getAndCheckTable(tableIds[0]);
     }
 
     /*
@@ -262,22 +267,32 @@ class PutBatchHandler extends MultiKeyOperationHandler<PutBatch> {
 
         /* state for migration stream */
         Version version = null;
+        long creationTime = 0l;
         long modTime = 0l;
         long expiration = 0L;
 
         com.sleepycat.je.WriteOptions jeOptions = null;
 
+
+        final long tableId = op.getTableId();
+        final OperationHandler opHandler = getOperationHandler();
+        final boolean tombstone = e.isTombstone();
+        final TimeToLive ttl;
+
         if (e.isTombstone()) {
-            jeOptions = makeOption(getRepNode().getRepNodeParams().
-                                   getTombstoneTTL(), true);
-            jeOptions.setTombstone(true);
+            ttl = getRepNode().getRepNodeParams().getTombstoneTTL();
         } else if (e.getTTLVal() != 0) {
             /* using overwrite, update the TTL if it's set */
-            jeOptions = new com.sleepycat.je.WriteOptions()
-                .setTTL(e.getTTLVal(), e.getTTLUnit()).setUpdateTTL(true);
+            ttl = TimeToLive.createTimeToLive(e.getTTLVal(), e.getTTLUnit());
         } else {
-            jeOptions = makeOption(TimeToLive.DO_NOT_EXPIRE, true);
+            ttl = TimeToLive.DO_NOT_EXPIRE;
         }
+        /* create JE write option */
+        jeOptions = makeOption(ttl, true, tableId, opHandler, tombstone);
+
+        /* if creationTime is 0 it's the same as the default */
+        jeOptions.setCreationTime(e.getCreationTime());
+
         /* if mod time is 0 it's the same as the default */
         jeOptions.setModificationTime(e.getModificationTime());
 
@@ -290,6 +305,7 @@ class PutBatchHandler extends MultiKeyOperationHandler<PutBatch> {
              */
             version = getVersion(cursor);
             expiration = opres.getExpirationTime();
+            creationTime = opres.getCreationTime();
             modTime = opres.getModificationTime();
 
             final int storageSize = getStorageSize(cursor);
@@ -400,6 +416,9 @@ class PutBatchHandler extends MultiKeyOperationHandler<PutBatch> {
                             mergeCRDT(remoteRow, localRow, table, store,
                                       Value.Format.fromFirstByte(
                                           localDataEntry.getData()[0]));
+
+                        /* use existing creation time */
+                        jeOptions.setCreationTime(opres.getCreationTime());
                         /* use existing mod time */
                         jeOptions.
                             setModificationTime(opres.getModificationTime());
@@ -422,6 +441,7 @@ class PutBatchHandler extends MultiKeyOperationHandler<PutBatch> {
                                                  Put.CURRENT, jeOptions);
                 version = getVersion(cursor);
                 expiration = opres.getExpirationTime();
+                creationTime = opres.getCreationTime();
                 modTime = opres.getModificationTime();
                 final int storageSize = getStorageSize(cursor);
                 op.addWriteBytes(storageSize, getNIndexWrites(cursor),
@@ -433,6 +453,7 @@ class PutBatchHandler extends MultiKeyOperationHandler<PutBatch> {
             MigrationStreamHandle.get().addPut(keyEntry,
                                                dataEntry,
                                                version.getVLSN(),
+                                               creationTime,
                                                modTime,
                                                expiration,
                                                e.isTombstone());
@@ -440,17 +461,15 @@ class PutBatchHandler extends MultiKeyOperationHandler<PutBatch> {
     }
 
     /*
-     * 1st byte is format, after that, if in MULTI_REGION_TABLE format,
-     * is region id. If not in MRT format, return localRegionId
+     * Gets region id if one exists otherwise return localRegionId.
      */
     private static int getRegionId(DatabaseEntry entry, int localRegionId) {
         byte[] valueBytes = entry.getData();
-        Value.Format format = (valueBytes.length > 0) ?
-            Value.Format.fromFirstByte(valueBytes[0]) : null;
-        if (format != Value.Format.MULTI_REGION_TABLE) {
+        int regionId = Value.getRegionIdFromByteArray(valueBytes);
+        if (regionId == Region.NULL_REGION_ID) {
             return localRegionId;
         }
-        return PackedInteger.readInt(valueBytes, 1);
+        return regionId;
     }
 
     /*
@@ -489,10 +508,6 @@ class PutBatchHandler extends MultiKeyOperationHandler<PutBatch> {
     @Override
     public
     List<? extends KVStorePrivilege> tableAccessPrivileges(long tableId) {
-        if (hasValidTTLSetting) {
-            return Arrays.asList(new TablePrivilege.InsertTable(tableId),
-                                 new TablePrivilege.DeleteTable(tableId));
-        }
         return Collections.singletonList(
                    new TablePrivilege.InsertTable(tableId));
     }
@@ -500,11 +515,6 @@ class PutBatchHandler extends MultiKeyOperationHandler<PutBatch> {
     @Override
     public List<? extends KVStorePrivilege>
     namespaceAccessPrivileges(String namespace) {
-        if (hasValidTTLSetting) {
-            return Arrays.asList(
-                new NamespacePrivilege.InsertInNamespace(namespace),
-                new NamespacePrivilege.DeleteInNamespace(namespace));
-        }
         return Collections.singletonList(
             new NamespacePrivilege.InsertInNamespace(namespace));
     }
@@ -528,5 +538,18 @@ class PutBatchHandler extends MultiKeyOperationHandler<PutBatch> {
         return new com.sleepycat.je.WriteOptions()
             .setTTL(ttlVal, ttlUnit)
             .setUpdateTTL(false);
+    }
+
+    /*
+     * Get additional table privileges required to perform this put operation.
+     *
+     * When an operation has a valid TTL, it is an implicit delete and
+     * requires DELETE_TABLE privilege.
+     */
+    private EnumSet<KVStorePrivilegeLabel> getTablePrivileges(KVPair kvPair) {
+        if (kvPair.getTTLVal() != 0) {
+            return EnumSet.of(DELETE_TABLE);
+        }
+        return null;
     }
 }

@@ -857,6 +857,14 @@ public class ReqRespManager extends Manager {
         if (regions.isEmpty()) {
             /* an unknown remote region */
             final String region = mdMan.getRegionName(rid);
+            if (mdMan.getJsonConf().getCascadingRep()) {
+                final String msg = "Region=" + region + " in req id=" + reqId +
+                                   " is unknown, Ok since cascading " +
+                                   "replication is on";
+                logger.info(lm(logPrefix(reqId) + msg));
+                resp.postSuccResp();
+                return;
+            }
             final String err = "Region=" + region + " in req id=" + reqId +
                                " is unknown, please add to the config file " +
                                "before creating it";

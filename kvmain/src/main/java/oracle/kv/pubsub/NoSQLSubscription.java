@@ -193,6 +193,20 @@ public interface NoSQLSubscription extends Subscription {
     void subscribeTable(String tableName);
 
     /**
+     * Adds a subscribed table to the running subscription, and specify if to
+     * stream transaction. This method is identical to
+     * {@link #subscribeTable(String)}, except that user can specify if the
+     * writes to the subscribed table should be streamed as transactions or not.
+     * @param tableName the name of the table to subscribe, which is either
+     *                  an non-prefixed name that specifies a table in the
+     *                  default namespace, or a name with the namespace
+     *                  prefix and a colon followed by the table name.
+     * @param streamTxn true if to stream transactions, false to stream write
+     *                 operations in {@link StreamOperation}.
+     */
+    void subscribeTable(String tableName, boolean streamTxn);
+
+    /**
      * Removes a table from the set of subscribed tables for a running
      * subscription. The subscription will apply the change to every shard in
      * kvstore. This method is asynchronous and will return immediately.The

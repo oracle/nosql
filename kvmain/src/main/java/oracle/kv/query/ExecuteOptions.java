@@ -27,6 +27,7 @@ import oracle.kv.KVStoreConfig;
 import oracle.kv.impl.api.KVStoreImpl;
 import oracle.kv.impl.api.table.GeometryUtils;
 import oracle.kv.impl.api.table.Region;
+import oracle.kv.impl.api.table.TableJsonUtils;
 import oracle.kv.impl.query.runtime.ResumeInfo.VirtualScan;
 import oracle.kv.impl.security.AuthContext;
 import oracle.kv.impl.util.contextlogger.LogContext;
@@ -200,7 +201,20 @@ public class ExecuteOptions {
      */
     private boolean allowCRDT = false;
 
+    /*
+     * Optionally set to indicate that the query is simple. This is only used
+     * by the ReceiverIterator to determine processing of queries against
+     * a set of shards. It is mostly for use by the proxy and SDKs but
+     * will work for internal callers as well.
+     */
+    private boolean isSimpleQuery = false;
+
     private boolean inTestMode;
+
+    /*
+     * Optionally set rowMetadata to be used for INSERT and UPDATE operations.
+     */
+    private String rowMetadata;
 
     public ExecuteOptions() {}
 
@@ -252,6 +266,58 @@ public class ExecuteOptions {
     public Durability getDurability() {
         return durability;
     }
+
+    /**
+     * This method is **EXPERIMENTAL** and its behavior, signature, or
+     * even its existence may change without prior notice in future versions.
+     * Use with caution.<p>
+     *
+     * Sets the row metadata to use for the operation. This setting only applies
+     * if the query modifies a row using an INSERT, UPDATE, UPSERT statement.
+     * If the query is read-only it is ignored.
+     * This is an optional parameter.<p>
+     *
+     * Row metadata is associated to a certain version of a row. Any subsequent
+     * write operation will use its own row metadata value. If not specified
+     * null will be used by default.
+     * NOTE that if you have previously written a record with metadata and a
+     * subsequent write does not supply metadata, the metadata associated with
+     * the row will be null. Therefore, if you wish to have metadata associated
+     * with every write operation, you must supply a valid JSON construct to
+     * this method.<p>
+     *
+     * @param rowMetadata the row metadata, must be null or in a valid JSON
+     *           construct: object, array, string, number, true, false or null,
+     *           otherwise an IllegalArgumentException is thrown.
+     * @throws IllegalArgumentException if rowMetadata not null and invalid
+     *           JSON Object format
+     *
+     * @return this
+     */
+    public ExecuteOptions setRowMetadata(String rowMetadata) {
+        if (rowMetadata == null) {
+            this.rowMetadata = null;
+            return this;
+        }
+
+        TableJsonUtils.validateJsonConstruct(rowMetadata);
+        this.rowMetadata = rowMetadata;
+        return this;
+    }
+
+    /**
+     * This method is **EXPERIMENTAL** and its behavior, signature, or
+     * even its existence may change without prior notice in future versions.
+     * Use with caution.<p>
+     *
+     * Returns the row metadata value set for this request, or null if not set.
+     *
+     * @return the row metadata value
+     */
+    public String getRowMetadata() {
+        return rowMetadata;
+    }
+
 
     /**
      * The {@code timeout} parameter is an upper bound on the time interval for
@@ -1070,6 +1136,25 @@ public class ExecuteOptions {
      */
     public boolean allowCRDT() {
         return allowCRDT;
+    }
+
+    /**
+     * Returns whether or not the query is "simple" which means it does not
+     * do sorting or aggregation
+     * @hidden
+     */
+    public boolean getIsSimpleQuery() {
+        return isSimpleQuery;
+    }
+
+    /**
+     * Sets whether the query is "simple" which means that it does not do
+     * sorting or aggregation
+     * @hidden
+     */
+    public ExecuteOptions setIsSimpleQuery(boolean isSimple) {
+        this.isSimpleQuery = isSimple;
+        return this;
     }
 
     /**

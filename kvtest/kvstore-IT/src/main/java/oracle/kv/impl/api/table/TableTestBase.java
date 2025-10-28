@@ -119,7 +119,7 @@ public class TableTestBase extends TestBase {
     static int createStoreCount;
     static TableAPI restoreTableImpl;
     static KVStore rsStore;
-    protected static final int startPort = 13240;
+    public static final int startPort = 13240;
 
     protected static final TableIteratorOptions countOpts =
         new TableIteratorOptions(Direction.UNORDERED,

@@ -19,7 +19,7 @@ compiled-query-plan
         "target table" : "A",
         "row variable" : "$$a",
         "index used" : "primary index",
-        "covering index" : false,
+        "covering index" : true,
         "index scans" : [
           {
             "equality conditions" : {"ida":40},

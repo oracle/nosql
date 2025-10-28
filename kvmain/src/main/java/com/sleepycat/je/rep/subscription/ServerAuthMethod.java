@@ -13,12 +13,16 @@
 
 package com.sleepycat.je.rep.subscription;
 
+import static java.util.logging.Level.INFO;
+
 import java.io.IOException;
 import java.nio.ByteBuffer;
 
 import com.sleepycat.je.log.LogUtils;
 import com.sleepycat.je.rep.net.DataChannel;
+import com.sleepycat.je.rep.net.InstanceLogger;
 import com.sleepycat.je.rep.utilint.ServiceHandshake;
+import com.sleepycat.je.rep.utilint.net.SSLDataChannel;
 
 /**
  * Object represents a subscription authentication method used in service
@@ -68,9 +72,10 @@ public class ServerAuthMethod implements ServiceHandshake.AuthenticationMethod {
 
         private final StreamAuthenticator auth;
         ServerTokenOp(ServiceHandshake.ServerHandshake initState,
-                      StreamAuthenticator auth) {
+                      StreamAuthenticator configuredAuth) {
             super(initState);
-            this.auth = auth;
+            /* create a clone of configured authenticator */
+            auth = configuredAuth.getInstance(initState.getChannel());
         }
 
         @Override
@@ -110,15 +115,32 @@ public class ServerAuthMethod implements ServiceHandshake.AuthenticationMethod {
             if (!auth.authenticate()) {
                 return ServiceHandshake.InitResult.REJECT;
             }
+
+            /* set authenticator in the channel */
+            channel.setStreamAuthenticator(auth);
+            if (channel instanceof SSLDataChannel) {
+                /* seems only SSL channel has a logger */
+                final SSLDataChannel sslDataChannel = (SSLDataChannel) channel;
+                final InstanceLogger logger = sslDataChannel.getLogger();
+                logger.log(INFO, lm("Set channel stream authenticator, " +
+                                    "channelId=" + auth.getChannelId() +
+                                    ", authenticator=" + auth));
+            }
             return ServiceHandshake.InitResult.DONE;
         }
+    }
+
+    @Override
+    public String toString() {
+        return "ServerAuthMethod=" + getMechanismName() +
+               ", authenticator=" + serverAuth;
     }
 
     /**
      * Client side authentication, effectively no-op except rejecting
      * handshake and it is not supposed to be called at client-side.
      */
-    class ClientTokenOp extends ServiceHandshake.ClientInitOp {
+    static class ClientTokenOp extends ServiceHandshake.ClientInitOp {
 
         ClientTokenOp(ServiceHandshake.ClientHandshake initState) {
             super(initState);
@@ -126,7 +148,7 @@ public class ServerAuthMethod implements ServiceHandshake.AuthenticationMethod {
 
         @Override
         public ServiceHandshake.InitResult processOp(
-            ServiceHandshake.IOAdapter ioAdapter) throws IOException {
+            ServiceHandshake.IOAdapter ioAdapter) {
             return ServiceHandshake.InitResult.REJECT;
         }
     }

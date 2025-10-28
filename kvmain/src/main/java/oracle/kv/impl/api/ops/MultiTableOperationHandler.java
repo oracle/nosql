@@ -52,6 +52,7 @@ import com.sleepycat.je.Get;
 import com.sleepycat.je.LockMode;
 import com.sleepycat.je.OperationResult;
 import com.sleepycat.je.Transaction;
+import com.sleepycat.je.WriteOptions;
 
 /**
  * Base server handler for subclasses of MultiTableOperation.
@@ -113,6 +114,7 @@ public abstract class MultiTableOperationHandler<T extends MultiTableOperation>
                                               valBytes,
                                               valVers.getVersion(),
                                               result.getExpirationTime(),
+                                              result.getCreationTime(),
                                               result.getModificationTime(),
                                               result.isTombstone()));
     }
@@ -382,8 +384,8 @@ public abstract class MultiTableOperationHandler<T extends MultiTableOperation>
         }
 
         checkKeyspacePermission(parentKey);
-        new TargetTableAccessChecker(operationHandler, this, tables).
-            checkAccess();
+        new TargetTableAccessChecker(operationHandler, this, tables)
+            .checkAccess();
     }
 
     /**
@@ -682,12 +684,13 @@ public abstract class MultiTableOperationHandler<T extends MultiTableOperation>
                                      valVers.getValueBytes(),
                                      opSerialVersion);
 
-                                results.add(new ResultIndexRows
-                                            (indexKeyBytes,
+                                results.add(new ResultIndexRows(
+                                             indexKeyBytes,
                                              ancestorKey.getData(),
                                              valBytes,
                                              valVers.getVersion(),
                                              valVers.getExpirationTime(),
+                                             valVers.getCreationTime(),
                                              valVers.getModificationTime()));
                             }
                         }
@@ -767,7 +770,11 @@ public abstract class MultiTableOperationHandler<T extends MultiTableOperation>
                             if (putTombstone == null) {
                                 /* regular delete */
                                 if (result != null) {
-                                    if (ancestorCursor.delete(null) != null) {
+                                    final long tid = entry.getTable().getId();
+                                    final WriteOptions jeOpt =
+                                        makeOption(null, false, tid,
+                                                   operationHandler, false);
+                                    if (ancestorCursor.delete(jeOpt) != null) {
                                         numAncestors++;
                                         MigrationStreamHandle
                                             .get().addDelete(ancestorKey,
@@ -953,12 +960,11 @@ public abstract class MultiTableOperationHandler<T extends MultiTableOperation>
         private void internalCheckAccess(long tableId)
             throws FaultException, UnauthorizedException {
 
-            final TableImpl table =
-                operationHandler.getAndCheckTable(tableId);
+            final TableImpl table = operationHandler.getAndCheckTable(tableId);
             if (!internalCheckTableAccess(table)) {
                 throw new UnauthorizedException (
                     "Insufficient access rights granted on table, id:" +
-                     tableId + " name:" + table.getFullNamespaceName());
+                    table.getId() + " name:" + table.getFullNamespaceName());
             }
         }
     }

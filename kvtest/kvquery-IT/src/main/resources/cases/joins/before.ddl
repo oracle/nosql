@@ -60,6 +60,8 @@ create index a_idx_c1_a2 on A(c1, a2)
 
 create index a_idx_a1_a2_c1 on A(a1, a2, c1)
 
+create index b_idx_b1 on A.B(b1)
+
 create index d_idx_d2 on A.B.C.D(d2)
 
 create index d_idx_d2_idb_c3 on A.B.C.D(d2, idb, c3)

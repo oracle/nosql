@@ -606,6 +606,11 @@ public abstract class Locker {
     public abstract boolean isReadCommittedIsolation();
 
     /**
+     * Returns whether the isolation level of this locker is optimistic read.
+     */
+    public abstract boolean isOptimisticReadIsolation();
+
+    /**
      * Returns the underlying Txn if the locker is transactional, or null if
      * the locker is non-transactional.  For a Txn-based locker, this method
      * returns 'this'.

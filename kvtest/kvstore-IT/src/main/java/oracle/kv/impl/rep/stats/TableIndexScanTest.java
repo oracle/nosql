@@ -192,7 +192,9 @@ public class TableIndexScanTest extends RepNodeTestBase {
                     null,
                     table.getShardKey(),
                     ((TableImpl)table).getFieldMap(),
-                    null, null,
+                    null,
+                    null, /*beforeImageTTL*/
+                    null,
                     false,  0, null, null/* owner */);
 
         rn.updateMetadata(clone(md));
@@ -210,7 +212,9 @@ public class TableIndexScanTest extends RepNodeTestBase {
                     null,
                     table.getShardKey(),
                     table.getFieldMap(),
-                    null, null,
+                    null,
+                    null, /*beforeImageTTL*/
+                    null,
                     false,  0, null, null/* owner */,
                     true /* sysTable */,
                     null /* identity col */,

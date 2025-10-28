@@ -53,7 +53,6 @@ import oracle.nosql.nson.util.NioByteInputStream;
 import oracle.nosql.nson.util.NioByteOutputStream;
 import oracle.nosql.nson.values.TimestampValue;
 
-import com.sleepycat.util.PackedInteger;
 
 /**
  * NsonUtil is a class of static methods that encapsulate serialization and
@@ -118,13 +117,7 @@ public class NsonUtil {
 
         Value.Format format = Value.Format.fromFirstByte(valueBytes[0]);
         if (Format.isTableFormat(format)) {
-            int offset = 1;
-            if (format == Value.Format.MULTI_REGION_TABLE) {
-                final int regionIdLen =
-                    PackedInteger.getReadIntLength(valueBytes, 1);
-                PackedInteger.readInt(valueBytes, 1);
-                offset = regionIdLen + 1;
-            }
+            int offset = Value.getValueOffset(valueBytes);
             if (table.isJsonCollection()) {
                 try {
                     /*
@@ -235,10 +228,13 @@ public class NsonUtil {
                         "Failed to re-serialize NSON with MR counter: " + ioe);
                 }
             }
+            Value.Format rowFormat = Format.TABLE_V1;
+            if (regionId != Region.NULL_REGION_ID) {
+                rowFormat = Format.MULTI_REGION_TABLE;
+            }
             return Value.internalCreateValue(
                 nsonValueBytes,
-                regionId == Region.NULL_REGION_ID ?
-                    Value.Format.TABLE_V1 : Value.Format.MULTI_REGION_TABLE,
+                rowFormat,
                 regionId);
         }
         ByteInputStream nsonInput =
@@ -264,13 +260,12 @@ public class NsonUtil {
             writeAvroRecordFromNson(table, e, nsonInput,
                                     table.getFieldMap(), true);
             e.flush();
-            /*
-             * If non Null regionId is specified, it should use MRTable format.
-             */
+
             return Value.internalCreateValue(
                 outputStream.toByteArray(),
                 regionId == Region.NULL_REGION_ID ?
                     Value.Format.TABLE_V1 : Value.Format.MULTI_REGION_TABLE,
+//                Format.TABLE_V5,
                 regionId);
 
         } catch (IOException ioe) {

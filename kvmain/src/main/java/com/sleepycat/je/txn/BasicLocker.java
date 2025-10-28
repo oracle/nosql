@@ -149,6 +149,11 @@ public class BasicLocker extends Locker {
         return false;
     }
 
+    @Override
+    public boolean isOptimisticReadIsolation() {
+        return false;
+    }
+
     /**
      * No transactional locker is available.
      */

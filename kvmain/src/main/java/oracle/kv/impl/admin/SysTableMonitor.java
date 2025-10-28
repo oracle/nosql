@@ -233,6 +233,7 @@ class SysTableMonitor extends ShutdownThread {
                             table.getTableVersion(),
                             newTable.getFieldMap(),
                             newTable.getDefaultTTL(),
+                            newTable.getBeforeImageTTL(),
                             newTable.getDescription(),
                             true /* systemTable */,
                             null /*identityColumnInfo*/,

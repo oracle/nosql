@@ -335,7 +335,7 @@ public class KVStoreFactory {
     public static int getEndpointGroupNumThreads() {
         final int numThreads = Integer.getInteger(
             ENDPOINT_GROUP_NUM_THREADS_PROPERTY,
-            2 * Runtime.getRuntime().availableProcessors());
+            Runtime.getRuntime().availableProcessors());
         if (numThreads < 1) {
             throw new IllegalStateException(
                 "The " + ENDPOINT_GROUP_NUM_THREADS_PROPERTY +

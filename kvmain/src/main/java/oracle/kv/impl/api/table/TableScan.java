@@ -423,6 +423,7 @@ public class TableScan {
                            entry.getValue(),
                            entry.getVersion(),
                            entry.getExpirationTime(),
+                           entry.getCreationTime(),
                            entry.getModificationTime()));
                    }
            }
@@ -506,6 +507,7 @@ public class TableScan {
             return apiImpl.getRowFromValueVersion(vv,
                                                   fullKey,
                                                   rkvv.getExpirationTime(),
+                                                  rkvv.getCreationTime(),
                                                   rkvv.getModificationTime(),
                                                   false,
                                                   rkvv.getIsTombstone());

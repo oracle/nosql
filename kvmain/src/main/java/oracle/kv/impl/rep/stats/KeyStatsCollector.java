@@ -137,7 +137,7 @@ public class KeyStatsCollector implements ParameterListener {
 
     private TableAPI tableAPI;
     private final KVStoreCreator creator;
-    
+
     final ResourceTracker aggregateThroughputTracker;
 
     /* The map is to store the table name and table pairs */
@@ -154,14 +154,46 @@ public class KeyStatsCollector implements ParameterListener {
     private ScanningThread scanningThread;
 
     /* Variables to control scanning which are loaded from parameters */
-    private volatile boolean statsEnabled;
-    private volatile long statsGatherInterval;
-    private volatile long statsLeaseDuration;
-    /* It is used to control the sleep time or waiting time in scanning */
-    private volatile long statsSleepWaitDuration;
 
+    /**
+     * Whether the stats collection is enabld.
+     */
+    private volatile boolean statsEnabled;
+    /**
+     * The interval for stats scan. The next scan interval start is computed
+     * with this parameter which is used to coordinate with the lease. See
+     * StatsScan#checkLease.
+     */
+    private volatile long statsGatherInterval;
+    /**
+     * The duration of the lease. Only the RN holding an unexpired lease can do
+     * the stats scan.
+     */
+    private volatile long statsLeaseDuration;
+    /**
+     * The duration for the next poll to check if we should start a scan.
+     */
+    private volatile long statsSleepWaitDuration;
+    /**
+     * Whether to update table size according to write delta. See
+     * ResourceCollector.sizeDeltaMap and IntermediateTableSizeUpdate.
+     */
     private volatile boolean updateTableSizes;
+    /**
+     * The duration to check whether to do a table size update with
+     * IntermediateTableSizeUpdate.
+     */
     private volatile long statsSizeUpdateInterval;
+    /**
+     * The duration to force a table size update with
+     * IntermediateTableSizeUpdate. We set this value to 1/10 of the
+     * statsGatherInterval. The heuristic is to make sure we do a forced update
+     * pretty soon when the new results of the stats scan from this RN or other
+     * RNs is available while on the other hand not doing too many forced
+     * updates. See the comment on the IntermediateTableSizeUpdate class for
+     * more information.
+     */
+    private volatile long statsSizeForceUpdateInterval;
 
     /* TTL for lease records. */
     private volatile TimeToLive leaseTTL;
@@ -280,13 +312,18 @@ public class KeyStatsCollector implements ParameterListener {
                                "ms is equal to or greater than the gathering" +
                                " interval, updates will not be done");
                 updateTableSizes = false;
-            } else if (statsSizeUpdateInterval < MIN_SIZE_UPDATE_INTERVAL_MS) {
+            } else if (!testIgnoreMinimumDurations &&
+                statsSizeUpdateInterval < MIN_SIZE_UPDATE_INTERVAL_MS)
+            {
                 logger.warning("The table size update interval: " +
                                statsSizeUpdateInterval +
                                "ms is less than the minimum, setting it to " +
                                MIN_SIZE_UPDATE_INTERVAL_MS + "ms");
                 statsSizeUpdateInterval = MIN_SIZE_UPDATE_INTERVAL_MS;
             }
+
+            statsSizeForceUpdateInterval =
+                Math.max(statsGatherInterval / 10, 1);
         }
 
         final long hours = TimeUnit.MILLISECONDS.toHours(statsGatherInterval);
@@ -398,7 +435,6 @@ public class KeyStatsCollector implements ParameterListener {
          * obsolete statistics info from all tables
          */
         private long scan(long intervalStart) {
-
             /* Check whether can scan */
             if (isShutdown() || !isRNActive()) {
                 return 0L;
@@ -676,7 +712,7 @@ public class KeyStatsCollector implements ParameterListener {
                     updater = tableSizeUpdater;
                 }
             }
-            updater.runUpdate();
+            updater.runUpdate(statsSizeForceUpdateInterval);
         }
 
         /**
@@ -994,13 +1030,13 @@ public class KeyStatsCollector implements ParameterListener {
 
                     PrimaryKey pKey = null;
                     while ((status == OperationStatus.SUCCESS) && !isShutdown()) {
-                        
+
                         /* Track the cost of the read for load management */
                         final int storageSize =
                               DbInternal.getCursorImpl(cursor).getStorageSize();
                         aggregateThroughputTracker.addReadBytes(storageSize,
                                                                 false);
-                        
+
                         byte[] keyData = keyEntry.getData();
                         if (target.findTargetTable(keyData) == null) {
                             break;

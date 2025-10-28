@@ -198,7 +198,7 @@ public class ServerDeleteRowIter extends DeleteRowIter {
         }
 
         Delete op = new Delete(key.getKeyBytes(), Choice.NONE, theTable.getId(),
-                               rcb.doTombstone());
+                               rcb.doTombstone(), rcb.getRowMetadata());
         /*
          * Configure the resource tracker of Delete op with the
          * tracker of TableQuery.

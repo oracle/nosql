@@ -2052,6 +2052,7 @@ public class SecuredAdminClientTest extends AdminClientTestBase {
                                               evolver.getTableVersion(),
                                               table.getFieldMap(),
                                               table.getDefaultTTL(),
+                                              table.getBeforeImageTTL(),
                                               table.getRemoteRegions());
         execPlan(cs, shouldSucceed, planId, "EvolveTable");
     }

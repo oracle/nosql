@@ -389,6 +389,7 @@ public class TableMetadata implements TableMetadataHelper,
                               List<String> shardKey,
                               FieldMap fieldMap,
                               TimeToLive ttl,
+                              TimeToLive beforeImageTTL,
                               TableLimits limits,
                               boolean r2compat,
                               int schemaId,
@@ -396,7 +397,8 @@ public class TableMetadata implements TableMetadataHelper,
                               ResourceOwner owner) {
 
         return addTable(namespace, name, parentName,
-                        primaryKey, primaryKeySizes, shardKey, fieldMap, ttl,
+                        primaryKey, primaryKeySizes, shardKey, fieldMap,
+                        ttl, beforeImageTTL,
                         limits, r2compat, schemaId, description, owner, false,
                         null, null, false, null);
     }
@@ -409,6 +411,7 @@ public class TableMetadata implements TableMetadataHelper,
                               List<String> shardKey,
                               FieldMap fieldMap,
                               TimeToLive ttl,
+                              TimeToLive beforeImageTTL,
                               TableLimits limits,
                               boolean r2compat,
                               int schemaId,
@@ -423,7 +426,9 @@ public class TableMetadata implements TableMetadataHelper,
                                             primaryKey, primaryKeySizes,
                                             shardKey,
                                             fieldMap,
-                                            ttl, limits,
+                                            ttl,
+                                            beforeImageTTL,
+                                            limits,
                                             r2compat, schemaId,
                                             description,
                                             owner, sysTable,
@@ -486,6 +491,7 @@ public class TableMetadata implements TableMetadataHelper,
      */
     public boolean evolveTable(TableImpl table, int tableVersion,
                                FieldMap fieldMap, TimeToLive ttl,
+                               TimeToLive beforeImgTTL,
                                String description,
                                boolean systemTable,
                                IdentityColumnInfo newIdentityColumnInfo,
@@ -513,6 +519,7 @@ public class TableMetadata implements TableMetadataHelper,
         /* Exit if nothing has changed */ // TODO - what about description?
         if (fieldMap.equals(table.getFieldMap()) &&
             compareTTL(ttl, table.getDefaultTTL()) &&
+            compareTTL(beforeImgTTL, table.getBeforeImageTTL()) &&
             compareIdentityColumn(table.getIdentityColumnInfo(),
                                   newIdentityColumnInfo) &&
             compareRegions(table.isChild() ? null : table.getRemoteRegions(),
@@ -527,7 +534,8 @@ public class TableMetadata implements TableMetadataHelper,
                  table.numTableVersions());
         }
 
-        table.evolve(fieldMap, ttl, description, newIdentityColumnInfo, null,
+        table.evolve(fieldMap, ttl, beforeImgTTL, description,
+                     newIdentityColumnInfo, null,
                      regions);
         bumpSeqNum();
         table.setSequenceNumber(seqNum);
@@ -655,6 +663,7 @@ public class TableMetadata implements TableMetadataHelper,
                           List<String> shardKey,
                           FieldMap fields,
                           TimeToLive ttl,
+                          TimeToLive beforeImageTTL,
                           TableLimits limits,
                           boolean r2compat,
                           int schemaId,
@@ -719,7 +728,8 @@ public class TableMetadata implements TableMetadataHelper,
             parent.checkChildLimit(name);
             table = new TableImpl(namespace, name, parent,
                                   primaryKey, primaryKeySizes, shardKey,
-                                  fields, ttl, limits, r2compat, schemaId,
+                                  fields, ttl, beforeImageTTL,
+                                  limits, r2compat, schemaId,
                                   description, true, owner,
                                   sysTable, identityColumnInfo, regionIds,
                                   jsonCollection, mrCounters);
@@ -734,7 +744,8 @@ public class TableMetadata implements TableMetadataHelper,
             }
             table = new TableImpl(namespace, name, null,
                                   primaryKey, primaryKeySizes, shardKey,
-                                  fields, ttl, limits, r2compat, schemaId,
+                                  fields, ttl, beforeImageTTL,
+                                  limits, r2compat, schemaId,
                                   description, true, owner,
                                   sysTable, identityColumnInfo, regionIds,
                                   jsonCollection, mrCounters);
@@ -753,11 +764,13 @@ public class TableMetadata implements TableMetadataHelper,
                           String tableName,
                           FieldMap fields,
                           TimeToLive ttl,
+                          TimeToLive beforeImgTTL,
                           String description,
                           IdentityColumnInfo identityColumnInfo,
                           Set<Integer> regions) {
         final TableImpl table = getTable(namespace, tableName, true);
-        table.evolve(fields, ttl, description, identityColumnInfo, null, regions);
+        table.evolve(fields, ttl, beforeImgTTL, description,
+                     identityColumnInfo, null, regions);
         return table;
     }
 

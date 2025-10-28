@@ -18,6 +18,7 @@ import oracle.kv.impl.api.table.TableImpl;
 import oracle.kv.impl.util.UserDataControl;
 import oracle.kv.pubsub.StreamOperation;
 import oracle.kv.table.Row;
+import oracle.kv.table.Table;
 
 /**
  * Object represents a put operation in NoSQL Stream
@@ -29,20 +30,49 @@ public class StreamPutEvent implements StreamOperation.PutEvent {
     private final int repGroupId;
 
     private final Row row;
+    /**
+     * True if the stream is configured to include before image
+     */
+    private final boolean inclBeforeImage;
+    /**
+     * True if before image is enabled for this event
+     */
+    private final boolean beforeImgEnabled;
+    /**
+     * Before image expiration time in ms
+     */
+    private final long beforeImgExpMs;
+    /**
+     * The before image in Row if enabled, or null if before image is
+     * disabled or does not exist, e.g., for insert operation.
+     */
+    private final Row beforeImg;
 
     /**
-     * Constructs a put operation
+     * Constructs a put operation with before image enabled
      *
      * @param row         row of put
      * @param sequenceId  unique sequence id
      * @param repGroupId  shard id of the deletion
+     * @param inclBeforeImage true if include before image in subscription
+     * @param beforeImgEnabled  true if before image enabled
+     * @param beforeImgExpMs before image expiration time
+     * @param beforeImg   before image of the write operation
      */
     protected StreamPutEvent(Row row,
                              SequenceId sequenceId,
-                             int repGroupId) {
+                             int repGroupId,
+                             boolean inclBeforeImage,
+                             boolean beforeImgEnabled,
+                             long beforeImgExpMs,
+                             Row beforeImg) {
         this.row = row;
         this.sequenceId = sequenceId;
         this.repGroupId = repGroupId;
+        this.inclBeforeImage = inclBeforeImage;
+        this.beforeImgEnabled = beforeImgEnabled;
+        this.beforeImgExpMs = beforeImgExpMs;
+        this.beforeImg = beforeImg;
     }
 
     /**
@@ -103,7 +133,11 @@ public class StreamPutEvent implements StreamOperation.PutEvent {
     public String toString() {
         return "PUT OP [seq=" + ((StreamSequenceId)sequenceId).getSequence() +
                ", shard id=" + repGroupId +
-               ", row=" + UserDataControl.displayRowJson(row) + "]";
+               ", row=" + UserDataControl.displayRowJson(row) +
+               ", before image enabled=" + beforeImgEnabled +
+               ", include before image=" + inclBeforeImage +
+               ", before=" + UserDataControl.displayRowJson(beforeImg) +
+               "]";
     }
 
     /**
@@ -134,6 +168,17 @@ public class StreamPutEvent implements StreamOperation.PutEvent {
     @Override
     public String getTableName() {
         return row.getTable().getName();
+    }
+
+    /**
+     * @hidden
+     *
+     * Returns the table instance associated with the operation
+     * @return table instance
+     */
+    @Override
+    public Table getTable() {
+        return row.getTable();
     }
 
     /**
@@ -198,6 +243,55 @@ public class StreamPutEvent implements StreamOperation.PutEvent {
      */
     @Override
     public String toJsonString() {
-        return row.toJsonString(true);
+        return "[type="  + getType() + "]" +
+               "[seq=" + sequenceId + "]" +
+               "[shard=" + repGroupId + "]" +
+               "[region id=" + getRegionId() + "]" +
+               "[table=" + getFullTableName() + "]" +
+               "[before image enabled=" + beforeImgEnabled + "]" +
+               "[before image incl.=" + inclBeforeImage + "]" +
+               row.toJsonString(false) +
+               (beforeImgEnabled && inclBeforeImage ?
+                   ", before image=" + getBeforeImage() : "");
+    }
+
+    @Override
+    public boolean includeBeforeImage() {
+        return inclBeforeImage;
+    }
+
+    @Override
+    public boolean isBeforeImageEnabled() {
+        return beforeImgEnabled;
+    }
+
+    @Override
+    public boolean isBeforeImageExpired() {
+        return StreamOperation.isBeforeImageExpired(beforeImgEnabled,
+                                                    inclBeforeImage,
+                                                    beforeImgExpMs,
+                                                    beforeImg);
+    }
+
+    @Override
+    public Row getBeforeImage() {
+        if (!inclBeforeImage) {
+            return null;
+        }
+        if (!beforeImgEnabled) {
+            return null;
+        }
+        if (isBeforeImageExpired()) {
+            return null;
+        }
+        return beforeImg;
+    }
+
+    /**
+     * @hidden
+     * Returns before image expiration time
+     */
+    public long getBeforeImgExpMs() {
+        return beforeImgExpMs;
     }
 }

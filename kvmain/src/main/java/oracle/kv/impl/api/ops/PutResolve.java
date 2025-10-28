@@ -14,6 +14,7 @@
 package oracle.kv.impl.api.ops;
 
 import static oracle.kv.impl.util.SerialVersion.CLOUD_MR_TABLE;
+import static oracle.kv.impl.util.SerialVersion.CREATION_TIME_VER;
 
 import java.io.DataInput;
 import java.io.DataOutput;
@@ -25,11 +26,11 @@ import oracle.kv.Value;
 import oracle.kv.impl.api.table.Region;
 import oracle.kv.table.TimeToLive;
 
-import com.sleepycat.util.PackedInteger;
 
 public class PutResolve extends Put {
     private final boolean isTombstone;
-    private final long timestamp;
+    private final long creationTime;
+    private final long lastModificationTime;
 
     /* expiration time in system time */
     private final long expirationTimeMs;
@@ -47,7 +48,8 @@ public class PutResolve extends Put {
                       long expirationTimeMs,
                       boolean updateTTL,
                       boolean isTombstone,
-                      long timestamp,
+                      long creationTime,
+                      long lastModificationTime,
                       int localRegionId) {
         super(OpCode.PUT_RESOLVE, keyBytes, value, prevValChoice, tableId,
               TimeToLive.DO_NOT_EXPIRE, updateTTL,
@@ -56,7 +58,8 @@ public class PutResolve extends Put {
               null,  /*allIndexIds*/
               null   /*indexesToUpdate*/);
         this.isTombstone = isTombstone;
-        this.timestamp = timestamp;
+        this.creationTime = creationTime;
+        this.lastModificationTime = lastModificationTime;
         this.expirationTimeMs = expirationTimeMs;
         if (localRegionId != Region.NULL_REGION_ID) {
             Region.checkId(localRegionId, true /* isExternalRegion */);
@@ -68,7 +71,8 @@ public class PutResolve extends Put {
     private PutResolve(PutResolve other, short serialVersion) {
         super(other, serialVersion);
         isTombstone = other.isTombstone;
-        timestamp = other.timestamp;
+        creationTime = other.creationTime;
+        lastModificationTime = other.lastModificationTime;
         expirationTimeMs = other.expirationTimeMs;
         if (includeCloudMRTable(serialVersion)) {
             localRegionId = other.localRegionId;
@@ -91,12 +95,17 @@ public class PutResolve extends Put {
 
         super(OpCode.PUT_RESOLVE, in, serialVersion);
         isTombstone = in.readBoolean();
-        timestamp = in.readLong();
+        lastModificationTime = in.readLong();
         expirationTimeMs = in.readLong();
         if (includeCloudMRTable(serialVersion)) {
             localRegionId = in.readInt();
         } else {
             localRegionId = Region.NULL_REGION_ID;
+        }
+        if (serialVersion >= CREATION_TIME_VER) {
+            creationTime = in.readLong();
+        } else {
+            creationTime = 0;
         }
     }
 
@@ -114,8 +123,12 @@ public class PutResolve extends Put {
         return requestValue.getBytes();
     }
 
+    public long getCreationTime() {
+        return creationTime;
+    }
+
     public long getTimestamp() {
-        return timestamp;
+        return lastModificationTime;
     }
 
     /**
@@ -166,15 +179,7 @@ public class PutResolve extends Put {
      */
     int computeOffset() {
         final byte[] valueBytes = getValueBytes();
-        final Value.Format format = Value.Format.fromFirstByte(valueBytes[0]);
-        /* should always pass, cheap check for safety */
-        if (format != Value.Format.MULTI_REGION_TABLE) {
-            throw new IllegalArgumentException("Invalid format=" + format);
-        }
-
-        /* skip bytes of region id */
-        final int regionIdLen = PackedInteger.getReadIntLength(valueBytes, 1);
-        return regionIdLen + 1;
+        return Value.getValueOffset(valueBytes);
     }
 
     /**
@@ -191,7 +196,7 @@ public class PutResolve extends Put {
         throws IOException {
         super.writeFastExternal(out, serialVersion);
         out.writeBoolean(isTombstone);
-        out.writeLong(timestamp);
+        out.writeLong(lastModificationTime);
         out.writeLong(expirationTimeMs);
         if (includeCloudMRTable(serialVersion)) {
             out.writeInt(localRegionId);
@@ -201,6 +206,9 @@ public class PutResolve extends Put {
                     serialVersion + " does not support providing external " +
                     "region Id , must be " + CLOUD_MR_TABLE + " or greater");
             }
+        }
+        if (serialVersion >= CREATION_TIME_VER) {
+            out.writeLong(creationTime);
         }
     }
 
@@ -228,15 +236,16 @@ public class PutResolve extends Put {
         }
         final PutResolve other = (PutResolve) obj;
         return (isTombstone == other.isTombstone) &&
-            (timestamp == other.timestamp) &&
+            (creationTime == other.creationTime) &&
+            (lastModificationTime == other.lastModificationTime) &&
             (expirationTimeMs == other.expirationTimeMs) &&
             (localRegionId == other.localRegionId);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(super.hashCode(), isTombstone, timestamp,
-                            expirationTimeMs, localRegionId);
+        return Objects.hash(super.hashCode(), isTombstone, creationTime,
+            lastModificationTime, expirationTimeMs, localRegionId);
     }
 
     @Override

@@ -9,6 +9,7 @@ package oracle.kv.impl.api.table;
 
 import static java.util.Collections.singletonList;
 import static oracle.kv.impl.util.SerialTestUtils.serialVersionChecker;
+import static oracle.kv.impl.util.SerialVersion.BEFORE_IMAGE_VERSION;
 import static oracle.kv.impl.util.SerialVersion.SCHEMALESS_TABLE_VERSION;
 import static oracle.kv.util.TestUtils.checkAll;
 
@@ -103,11 +104,13 @@ public class TableChangeSerialTest extends BasicClientTestBase {
             serialVersionChecker(
                 new AddTable(TABLE, 46 /* seqNum */),
                 SerialVersion.MINIMUM, 0xd54f666087adaf6L,
-                SCHEMALESS_TABLE_VERSION, 0xb30ed8b6e8485dbL),
+                SCHEMALESS_TABLE_VERSION, 0xb30ed8b6e8485dbL,
+                BEFORE_IMAGE_VERSION, 0x36bf1a86ace389eL),
             serialVersionChecker(
                 new AddTable(REMOTE_TABLE, 47 /* seqNum */),
                 SerialVersion.MINIMUM, 0x301999cf5482ab91L,
-                SCHEMALESS_TABLE_VERSION, 0xa9b4408458a8f229L));
+                SCHEMALESS_TABLE_VERSION, 0xa9b4408458a8f229L,
+                BEFORE_IMAGE_VERSION, 0xd666ab860686aedL));
     }
 
     @Test
@@ -146,10 +149,12 @@ public class TableChangeSerialTest extends BasicClientTestBase {
         checkAll(
             serialVersionChecker(
                 new EvolveTable(TABLE, 100),
-                SerialVersion.MINIMUM, 0xa8799cc74eaa214cL),
+                SerialVersion.MINIMUM, 0xa8799cc74eaa214cL,
+                BEFORE_IMAGE_VERSION, 0xaa5cb77ed2f951d1L),
             serialVersionChecker(
                 new EvolveTable(REMOTE_TABLE, 101),
-                SerialVersion.MINIMUM, 0xc6024a6a32055764L));
+                SerialVersion.MINIMUM, 0xc6024a6a32055764L,
+                BEFORE_IMAGE_VERSION, 0x737cedf8035376f4L));
     }
 
     @Test

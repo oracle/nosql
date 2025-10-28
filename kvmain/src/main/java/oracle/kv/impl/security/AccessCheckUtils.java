@@ -83,7 +83,7 @@ public class AccessCheckUtils {
          * Constructs a OperationContext of plan operation.
          *
          * @param plan plan to be operated
-         * @param desc description of the operation
+         * @param opDesc description of the operation
          */
         PlanContext(Plan plan, String opDesc) {
             super(plan, "Plan");
@@ -266,10 +266,10 @@ public class AccessCheckUtils {
      * @param execCtx execution context
      * @param logger RateLimitingLogger to eliminate excessive log message
      */
-    public static void logSecurityError(String msg,
-                                        String opDesc,
-                                        ExecutionContext execCtx,
-                                        RateLimitingLogger<String> logger) {
+    static void logSecurityError(String msg,
+                                 String opDesc,
+                                 ExecutionContext execCtx,
+                                 RateLimitingLogger<String> logger) {
         if (logger.getInternalLogger() != null) {
             String authHost = "";
             String userName = "";
