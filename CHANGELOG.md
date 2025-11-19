@@ -1,14 +1,204 @@
-## The Oracle NoSQL Database (Release 25.1.13 Community Edition) Change Log  
+## The Oracle NoSQL Database (Release 25.3.21 Community Edition) Change Log  
 
-Release 25.1.13 Community Edition
+Release 25.3.21 Community Edition
 
 ### Upgrade Requirements
 
-Release 25.1 supports upgrades starting with the 22.3 release. To upgrade a store directly to the current release, the store must be running release 22.3 or later.
+Release 25.3 supports upgrades starting with the 22.3 release. To upgrade a store directly to the current release, the store must be running release 22.3 or later.
 
 If you have a store running a 20.x, 21.x or 22.1/22.2 release, we recommend that you upgrade it to the current release by first upgrading to a 23.x or 24.x release, and then upgrading from that release to the current release. If you have a store running a 19.x or earlier release and you are an Enterprise Edition user, please contact support. If you are a Community Edition user with this issue, please post a question to the [NoSQL Database Discussions forum on Oracle Communities](https://community.oracle.com/tech/developers/categories/nosql_database_discuss).
 
 For more information, see the section on [Upgrading an Existing Oracle NoSQL Database Deployment](https://www.oracle.com/pls/topic/lookup?ctx=en/database/other-databases/nosql-database/25.1&id=NSADM-GUID-A768BFD0-E205-48E3-855D-9616526DE014) in the Admin Guide.
+
+### Changes in 25.3.21 Community Edition
+
+### New Features
+
+1.  Added support for before image in the Streams API. A user can configure
+	subscription streams to include the before images of streaming operations.
+	For example, when streaming an update operation on a subscribed table,
+	the subscription will include both the current image (the update operation)
+	as well as the before image (the row as it appeared before the update).
+
+    \[KVSTORE-2394\]
+
+2.  Added support for streaming by transaction in the Streams API. A user
+	can now configure subscription streams to stream transactions instead of
+	individual put and delete operations. For example, if an operation
+	updates or deletes multiple rows in a single transaction against
+	a subscribed table, the subscription will deliver the entire
+	transaction as a single streaming event. Operations in the transaction
+	will be accessible from within that streaming event.
+
+    \[KVSTORE-2341\]
+
+4.  Added support for an experimental version user-supplied row metadata.
+	A user can add their own metadata to any row during a write operation
+	using a new API on the Row interface and ExecuteOptions for SQL writing
+	queries.  The row metadata can be any JSON construct: Object, array,
+	String, Number, Boolean, or null.  This metadata can be retrieved
+	through the table API or through a new SQL row_metadata function.
+	User-supplied metadata is also available in the Streams API.  See
+	Known Issues (DOC team add hot link to section) in the Release Notes
+	for additional information.
+
+    \[KVSTORE-2627\]
+
+### Bug and Performance Fixes
+
+1.  Fixed a bug where, when running multiple commands on the admin CLI, the
+	exit code of runadmin was always zero. After the fix, runadmin returns
+	the exit code of the last executed admin command.
+
+    \[KVSTORE-2582\]
+
+2.  Fixed a bug where one StreamAuthenticator was configured to support all the
+	stream feeders and the service dispatcher.   When a large number of regions are
+	configured it is possible to get a security check failure.   After the fix, mutiple
+	StreamAuthenticators are configured.
+
+    \[KVSTORE-2808\]
+
+3.  Changed how hard rollback is handled.
+
+	Previously, whenever master replica syncup required the rolling back of
+	any completed transaction, the rollback would be logged as a SEVERE message.
+	The system would attempt a restart and throw a RollbackProhibitedException
+	if TXN_ROLLBACK_DISABLED was configured to true, or if more transactions
+	than set in TXN_ROLLBACK_LIMIT were rolled back.  Now rollback and restart
+	will always happen. If only non-durable transactions are rolled back then
+	the rollback will be logged at the INFO level; if durable transactions
+	are rolled back the rollback will be logged at the SEVERE level.
+
+	As a result of this change, the exception RollbackProhibitedException
+	has been deprecated, and the configurations TXN_ROLLBACK_DISABLED and
+	TXN_ROLLBACK_LIMIT have been disabled and deprecated.
+
+    \[KVSTORE-2636\] \[KVSTORE-2686\]
+
+4.  Fixed a case where a durable transaction could be rolled back after a change in mastership.
+
+	After a mastership change, JE will no longer advance the DTVLSN until a
+	quorum has acknowledged a new record. After a node becomes master, it will
+	now commit a NullTxn as a way to ensure that any in-flight non-durable
+	transactions at the time of failure in the preceding term are made durable
+	in a new term without having to wait for the application itself to create
+	a durable transaction. That is, it speeds up the final state of these
+	non-durable transactions, since the ack of the null txn advances the DTVLSN.
+	See Section 5.4.2 at https://raft.github.io/raft.pdf.
+
+    \[KVSTORE-2657\]
+
+5.  Fixed a possible quorum loss in arbiter if one node fails.
+	When a cluster was started with two replication nodes and an arbiter, and
+	one replication node was isolated, and an attempt of writes was performed
+	to the other replication node, then the writes failed because the arbiter
+	could not start the replica-feeder handshake in time.
+
+    \[KVSTORE-2654\]
+
+6.  Fixed an issue where an internal thread pool may create excessive threads under
+	certain circumstances such as repeated network connections. The issue may be
+	observed as higher CPU utilization. A thread dump would typically reveal
+	many threads with the name pattern "NioEndpointGroup.backup".
+
+    \[KVSTORE-2719\]
+
+7.  Fixed a bug where after the partition scan is complete (and the fact
+	persisted) the source shard thinks the partition is now owned by the target
+	shard. However the failure prevents the EOD from being sent so the
+	target shard never completes the transfer. The failure causes the source to
+	cancel the migration, but no action is taken to restore the partition, making
+	a partition unavailable for extended period of time.
+	The failure on the source did not result in a migration error state
+	on the target. The target simply aborted the migration and
+	rescheduled it with the target migration state == PENDING.
+	The monitor thread on the source will only take action if the
+	target migration state is ERROR.
+
+	Partition migration state flow before fix :
+	PENDING --> RUNNING --> PENDING 
+
+	Made a fix where LAST_RECORD_MARKER asserts that last record has been
+	processed by the source.
+	Made changes in the MigrationTarget, whenever the EOD is
+	not received on the Target shard and LAST_RECORD_MARKER has been received
+	by the Target, it will cancel the migration resulting in target migration
+	state as ERROR.
+	
+	TargetMonitorExecutor sees the target state as ERROR, leading to the failed
+	method being called. The failed method calls manager.removeRecord, removing
+	the source migration record and updating the local topology to rollback
+	ownership of the partition to the source shard.
+
+	Partition migration state flow after fix :
+	PENDING --> RUNNING --> ERROR
+
+    \[KVSTORE-456\]
+
+8.  Fixed an issue where executions of DDL operations through KVStore.execute()
+	may repeatedly fail with AuthenticationRequiredException even after
+	re-authentication. This failure throws an exception with stack trace
+	similar to the following:
+
+	oracle.kv.AuthenticationRequiredException: Authentication required for access
+			at oracle.kv.impl.security.AccessCheckerImpl.checkAccess(AccessCheckerImpl.java:216)
+			at oracle.kv.impl.security.ExecutionContext.create(ExecutionContext.java:159)
+			at oracle.kv.impl.security.SecureProxy$CheckingHandler$1.execute(SecureProxy.java:561)
+			at oracle.kv.impl.security.SecureProxy$CheckingHandler$1.execute(SecureProxy.java:552)
+			at oracle.kv.impl.fault.ProcessFaultHandler.execute(ProcessFaultHandler.java:147)
+			at oracle.kv.impl.security.SecureProxy$CheckingHandler.invoke(SecureProxy.java:550)
+			at oracle.kv.impl.security.SecureProxy.invokeNonObject(SecureProxy.java:109)
+			at oracle.kv.impl.util.AbstractInvocationHandler.invoke(AbstractInvocationHandler.java:107)
+			at jdk.proxy2.$Proxy13.canHandleDDL(Unknown Source)
+
+    \[KVSTORE-2679\]
+
+9.  Fixed a bug where the DDL for functional indexes was incorrectly generated by
+	the Migrator tool and in the "show ddl" output from the SQL shell.
+
+    \[KVSTORE-2702\]
+
+10. Improved the JSON representation of indexes in the table schema to better
+	support functional indexes in the output of DESC AS JSON TABLE.
+
+    \[KVSTORE-2724\]
+
+11. Fixed a bug in NUMBER value serialization: when a negative NUMBER value
+	contained two consecutive zero bytes at even positions(starting from index 0,
+	e.g., -2.0001), it was not serialized correctly, which could result in incorrect
+	sorting order.
+
+	For example:
+	
+	create table foo(id integer, n number, primary key(id));\
+	insert into foo values(1, -2.001);\
+	insert into foo values(2, -2.0001);\
+	insert into foo values(3, -2);\
+	select * from foo order by n;
+	
+	Returned:
+	
+	{"id":1,"n":-2.001}
+	{"id":3,"n":-2}
+	{"id":2,"n":-2.0001}
+	
+	Expected result:
+	
+	{"id":1,"n":-2.001}
+	{"id":2,"n":-2.0001}
+	{"id":3,"n":-2}
+	
+	The fix updates the serialization logic but does not modify existing data in
+	the store. To correct affected values, applications must rewrite the
+	corresponding rows. Alternatively, the Migrator tool can be used to export and
+	re-import the data to apply the updated serialization.
+	
+	The fix applies only to problematic NUMBER values, specifically, negative values
+	that contain two consecutive zero bytes at even positions. If no such values
+	exist in the data, no action is needed.
+
+    \[KVSTORE-2514\]
 
 ### Changes in 25.1.13 Community Edition
 
