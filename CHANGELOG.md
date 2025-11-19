@@ -30,9 +30,9 @@ For more information, see the section on [Upgrading an Existing Oracle NoSQL Dat
 	transaction as a single streaming event. Operations in the transaction
 	will be accessible from within that streaming event.
 
-	\[KVSTORE-2341\]
+    \[KVSTORE-2341\]
 
-3.  Added support for an experimental version user-supplied row metadata.
+4.  Added support for an experimental version user-supplied row metadata.
 	A user can add their own metadata to any row during a write operation
 	using a new API on the Row interface and ExecuteOptions for SQL writing
 	queries.  The row metadata can be any JSON construct: Object, array,
@@ -175,7 +175,7 @@ For more information, see the section on [Upgrading an Existing Oracle NoSQL Dat
 	insert into foo values(1, -2.001);\
 	insert into foo values(2, -2.0001);\
 	insert into foo values(3, -2);\
-	select * from foo order by n
+	select * from foo order by n;
 	
 	Returned:
 	
@@ -188,7 +188,6 @@ For more information, see the section on [Upgrading an Existing Oracle NoSQL Dat
 	{"id":1,"n":-2.001}
 	{"id":2,"n":-2.0001}
 	{"id":3,"n":-2}
-	
 	
 	The fix updates the serialization logic but does not modify existing data in
 	the store. To correct affected values, applications must rewrite the
