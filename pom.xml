@@ -177,7 +177,7 @@
     <commons.logging.version>1.3.5</commons.logging.version>
 
     <!-- nosql test dependencies version -->
-    <nosqldriver.version>5.4.17</nosqldriver.version>
+    <nosqldriver.version>5.4.18</nosqldriver.version>
     <qtf.version>1.0.0</qtf.version>
     <oci.sdk.version>2.49.1</oci.sdk.version>
     <jetestutil.version>19.2.1</jetestutil.version>
