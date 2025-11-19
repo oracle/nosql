@@ -39,7 +39,6 @@
   </modules>
 
   <properties>
-    <nosqldriver.version>5.4.17-SNAPSHOT</nosqldriver.version>
     <qtf.version>1.0.0</qtf.version>
     <qtf.cases.version>25.1.11</qtf.cases.version>
 
