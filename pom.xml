@@ -171,7 +171,7 @@
     <junit.version>4.13.2</junit.version>
     <sshd.version>2.14.0</sshd.version>
     <slf4j.version>2.0.16</slf4j.version>
-    <hadoop.version>3.4.0</hadoop.version>
+    <hadoop.version>3.4.2</hadoop.version>
     <elasticsearch.version>8.8.1</elasticsearch.version>
     <wallet.version>23.4.0.24.05</wallet.version>
     <commons.logging.version>1.3.0</commons.logging.version>
@@ -183,6 +183,11 @@
     <jetestutil.version>19.2.1</jetestutil.version>
     <kerby.version>2.1.0</kerby.version>
     <ycsb.version>0.1X.20181216</ycsb.version>
+           
+    <! -- hadoop 3.4.2 has a few compile dependencies have CVEs, so adjust -->
+    <guava.version>33.5.0-jre</guava.version>
+    <commons-lang3.version>3.20.0</commons-lang3.version> 
+    <nimbus-jose-jwt.version>10.6</nimbus-jose-jwt>
 
     <!-- Make it easier to run single test from project root folder -->
     <failIfNoTests>false</failIfNoTests>
