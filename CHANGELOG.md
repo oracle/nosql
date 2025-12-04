@@ -32,7 +32,7 @@ For more information, see the section on [Upgrading an Existing Oracle NoSQL Dat
 
     \[KVSTORE-2341\]
 
-4.  Added support for an experimental version user-supplied row metadata.
+3.  Added support for an experimental version user-supplied row metadata.
 	A user can add their own metadata to any row during a write operation
 	using a new API on the Row interface and ExecuteOptions for SQL writing
 	queries.  The row metadata can be any JSON construct: Object, array,
