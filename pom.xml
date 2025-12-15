@@ -162,7 +162,7 @@
     <copyright>Copyright (c) 2011, 2025 Oracle and/or its affiliates.   All rights reserved.</copyright>
 
     <!-- public dependencies version -->
-    <netty.version>4.1.125.Final</netty.version>
+    <netty.version>4.1.129.Final</netty.version>
     <gson.version>2.11.0</gson.version>
     <reactivestreams.version>1.0.4</reactivestreams.version>
     <jackson.version>2.18.0</jackson.version>
